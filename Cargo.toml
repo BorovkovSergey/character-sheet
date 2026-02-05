@@ -1,5 +1,5 @@
 [workspace]
-members = ["client", "server", "shared"]
+members = ["client", "server", "shared", "ui_widgets"]
 resolver = "2"
 
 [workspace.package]
@@ -30,6 +30,7 @@ futures-util = "0.3"
 
 # Internal
 shared = { path = "shared" }
+ui_widgets = { path = "ui_widgets" }
 
 # Release profile optimized for WASM size
 [profile.release]
