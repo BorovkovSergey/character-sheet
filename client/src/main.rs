@@ -1,0 +1,37 @@
+mod networking;
+mod state;
+mod ui;
+
+use bevy::prelude::*;
+use bevy_egui::EguiPlugin;
+
+use networking::NetworkingPlugin;
+use state::AppState;
+use ui::UiPlugin;
+
+fn main() {
+    let mut app = App::new();
+
+    app.add_plugins(
+        DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "D&D Character Sheet".to_string(),
+                    fit_canvas_to_parent: true,
+                    prevent_default_event_handling: true,
+                    ..default()
+                }),
+                ..default()
+            })
+            .set(bevy::log::LogPlugin {
+                level: bevy::log::Level::INFO,
+                filter: "wgpu=error,naga=warn".to_string(),
+                ..default()
+            }),
+    )
+    .add_plugins(EguiPlugin)
+    .add_plugins(NetworkingPlugin)
+    .add_plugins(UiPlugin)
+    .init_resource::<AppState>()
+    .run();
+}

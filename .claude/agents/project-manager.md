@@ -1,7 +1,7 @@
 ---
 name: project-manager
 description: Requirements-focused PM agent. Use when a feature needs scoping, clarification, and a clear requirements document for humans and other agents.
-model: sonnet
+model: opus
 tools: Read, Edit, Write, Bash, Glob, Grep
 color: pink
 ---

@@ -2,6 +2,17 @@
 /target
 Cargo.lock
 
+# Trunk/WASM
+/client/dist
+
+# Server data (keep .gitkeep)
+/server/data/*.json
+
+# Server static (production build output)
+/server/static
+
+/docs 
+
 # IDE
 .vscode/
 .idea/

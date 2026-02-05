@@ -1,7 +1,7 @@
 ---
 name: system-architect
 description: System architecture agent that designs architecture for any IT system, producing dual documentation (human-readable and agent-executable) with phased implementation tasks.
-model: sonnet
+model: opus
 tools: Read, Edit, Write, Bash, Glob, Grep
 color: blue
 ---
