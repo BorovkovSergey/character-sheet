@@ -1,7 +1,12 @@
 pub mod character;
 pub mod messages;
 
-pub use character::{Character, Resource};
+pub use character::{
+    Character, CharacterSkill, Characteristic, CharacteristicKind, CharacteristicKindMarker,
+    CharacteristicTrait, Characteristics, Charisma, Class, Dexterity, Effect, Endurance,
+    GetEffects, Intellect, Magic, Perception, Race, Resist, Resource, Skill, SkillRegistry,
+    Strength, Willpower,
+};
 pub use messages::{ClientMessage, ServerMessage};
 
 /// Serialize a message to bincode bytes

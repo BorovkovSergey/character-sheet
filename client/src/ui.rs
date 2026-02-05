@@ -101,14 +101,17 @@ fn render_ui(
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
                                 ui.heading(&character.name);
-                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                                    if ui.button("Delete").clicked() {
-                                        to_delete = Some(character.id);
-                                    }
-                                    if ui.button("Save").clicked() {
-                                        to_save = Some(character.clone());
-                                    }
-                                });
+                                ui.with_layout(
+                                    egui::Layout::right_to_left(egui::Align::Center),
+                                    |ui| {
+                                        if ui.button("Delete").clicked() {
+                                            to_delete = Some(character.id);
+                                        }
+                                        if ui.button("Save").clicked() {
+                                            to_save = Some(character.clone());
+                                        }
+                                    },
+                                );
                             });
 
                             ui.add_space(4.0);
@@ -117,10 +120,20 @@ fn render_ui(
                             render_resource_bar(ui, "HP", &mut character.hp, egui::Color32::RED);
 
                             // Mana bar
-                            render_resource_bar(ui, "Mana", &mut character.mana, egui::Color32::BLUE);
+                            render_resource_bar(
+                                ui,
+                                "Mana",
+                                &mut character.mana,
+                                egui::Color32::BLUE,
+                            );
 
                             // Action Points bar
-                            render_resource_bar(ui, "AP", &mut character.action_points, egui::Color32::GOLD);
+                            render_resource_bar(
+                                ui,
+                                "AP",
+                                &mut character.action_points,
+                                egui::Color32::GOLD,
+                            );
                         });
 
                     ui.add_space(8.0);
@@ -149,7 +162,12 @@ fn render_ui(
 }
 
 /// Renders a resource bar with +/- buttons. Modifies resource in place.
-fn render_resource_bar(ui: &mut egui::Ui, label: &str, resource: &mut Resource, color: egui::Color32) {
+fn render_resource_bar(
+    ui: &mut egui::Ui,
+    label: &str,
+    resource: &mut Resource,
+    color: egui::Color32,
+) {
     ui.horizontal(|ui| {
         ui.label(format!("{:>4}:", label));
 

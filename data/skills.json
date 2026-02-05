@@ -1,0 +1,40 @@
+{
+    "Bard": {
+        "MeleeAttack": {
+            "dependency": "Dexterity"
+        },
+        "RangeAttack": {
+            "dependency": "Perception"
+        },
+        "Throwing": {
+            "dependency": "Dexterity"
+        },
+        "Secrecy": {
+            "dependency": "Dexterity"
+        },
+        "Attention": {
+            "dependency": "Perception"
+        },
+        "Eloquence": {
+            "dependency": "Charisma"
+        },
+        "Art": {
+            "dependency": "Charisma"
+        },
+        "Trade": {
+            "dependency": "Charisma"
+        },
+        "Medicine": {
+            "dependency": "Intellect"
+        },
+        "Mechanics": {
+            "dependency": "Intellect"
+        },
+        "History": {
+            "dependency": "Intellect"
+        },
+        "Religion": {
+            "dependency": "Willpower"
+        }
+    }
+}
