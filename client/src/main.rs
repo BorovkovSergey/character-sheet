@@ -26,12 +26,17 @@ fn main() {
             .set(bevy::log::LogPlugin {
                 level: bevy::log::Level::INFO,
                 filter: "wgpu=error,naga=warn".to_string(),
-                ..default()
+                ..Default::default()
             }),
     )
-    .add_plugins(EguiPlugin)
+    .add_plugins(EguiPlugin::default())
     .add_plugins(NetworkingPlugin)
     .add_plugins(UiPlugin)
     .init_resource::<AppState>()
+    .add_systems(PreStartup, setup)
     .run();
+}
+
+fn setup(mut commands: Commands) {
+    commands.spawn(Camera2d);
 }

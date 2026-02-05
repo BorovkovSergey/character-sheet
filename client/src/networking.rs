@@ -1,3 +1,5 @@
+use bevy::ecs::message::{MessageReader, MessageWriter, Messages};
+use bevy::log::{error, info, warn};
 use bevy::prelude::*;
 use ewebsock::{WsEvent, WsMessage, WsReceiver, WsSender};
 use shared::{deserialize, serialize, ClientMessage, ServerMessage};
@@ -10,25 +12,25 @@ pub struct WebSocketConnection {
     pub receiver: WsReceiver,
 }
 
-/// Event to send messages to server
-#[derive(Event)]
+/// Message to send to the server
+#[derive(Message)]
 pub struct SendMessage(pub ClientMessage);
 
-/// Event when server message is received
-#[derive(Event)]
+/// Message when server message is received
+#[derive(Message)]
 pub struct ReceivedMessage(pub ServerMessage);
 
-/// Event to trigger reconnection attempt
-#[derive(Event)]
+/// Message to trigger reconnection attempt
+#[derive(Message)]
 pub struct ReconnectRequest;
 
 pub struct NetworkingPlugin;
 
 impl Plugin for NetworkingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<SendMessage>()
-            .add_event::<ReceivedMessage>()
-            .add_event::<ReconnectRequest>()
+        app.add_message::<SendMessage>()
+            .add_message::<ReceivedMessage>()
+            .add_message::<ReconnectRequest>()
             .add_systems(Startup, connect_to_server)
             .add_systems(
                 Update,
@@ -96,7 +98,10 @@ fn get_ws_url() -> String {
         // Detect this and connect to server directly
         if host.contains(":8081") {
             let server_host = host.replace(":8081", ":8080");
-            info!("Development mode detected, connecting to server at {}", server_host);
+            info!(
+                "Development mode detected, connecting to server at {}",
+                server_host
+            );
             return format!("ws://{}/ws", server_host);
         }
 
@@ -119,8 +124,8 @@ fn get_ws_url() -> String {
 }
 
 fn receive_messages(
-    connection: Option<NonSendMut<WebSocketConnection>>,
-    mut received_events: EventWriter<ReceivedMessage>,
+    connection: Option<NonSend<WebSocketConnection>>,
+    mut received_messages: MessageWriter<ReceivedMessage>,
     mut state: ResMut<AppState>,
 ) {
     let Some(conn) = connection else {
@@ -132,7 +137,7 @@ fn receive_messages(
             WsEvent::Message(WsMessage::Binary(data)) => {
                 match deserialize::<ServerMessage>(&data) {
                     Ok(msg) => {
-                        received_events.send(ReceivedMessage(msg));
+                        received_messages.write(ReceivedMessage(msg));
                     }
                     Err(e) => {
                         warn!("Failed to deserialize message: {}", e);
@@ -157,14 +162,14 @@ fn receive_messages(
 }
 
 fn send_messages(
-    connection: Option<NonSendMut<WebSocketConnection>>,
-    mut send_events: EventReader<SendMessage>,
+    mut connection: Option<NonSendMut<WebSocketConnection>>,
+    mut send_reader: MessageReader<SendMessage>,
 ) {
-    let Some(mut conn) = connection else {
+    let Some(ref mut conn) = connection else {
         return;
     };
 
-    for SendMessage(msg) in send_events.read() {
+    for SendMessage(msg) in send_reader.read() {
         match serialize(msg) {
             Ok(bytes) => {
                 conn.sender.send(WsMessage::Binary(bytes));
@@ -177,10 +182,10 @@ fn send_messages(
 }
 
 fn handle_server_messages(
-    mut received_events: EventReader<ReceivedMessage>,
+    mut received_reader: MessageReader<ReceivedMessage>,
     mut state: ResMut<AppState>,
 ) {
-    for ReceivedMessage(msg) in received_events.read() {
+    for ReceivedMessage(msg) in received_reader.read() {
         match msg {
             ServerMessage::CharacterList { characters } => {
                 info!("Received {} characters", characters.len());
@@ -204,13 +209,12 @@ fn handle_server_messages(
 fn handle_reconnect(world: &mut World) {
     // Check if there's a reconnect request
     let should_reconnect = {
-        let mut events = world.resource_mut::<Events<ReconnectRequest>>();
-        let mut reader = events.get_cursor();
-        let has_event = reader.read(&events).next().is_some();
-        if has_event {
-            events.clear();
+        let mut messages = world.resource_mut::<Messages<ReconnectRequest>>();
+        let has_message = !messages.is_empty();
+        if has_message {
+            messages.clear();
         }
-        has_event
+        has_message
     };
 
     if !should_reconnect {

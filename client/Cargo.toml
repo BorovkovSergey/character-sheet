@@ -13,6 +13,7 @@ bevy = { workspace = true, features = [
     "bevy_text",
     "bevy_ui",
     "bevy_sprite",
+    "bevy_log",
     "default_font",
     "webgl2",
     "x11",

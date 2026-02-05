@@ -1,5 +1,6 @@
+use bevy::ecs::message::MessageWriter;
 use bevy::prelude::*;
-use bevy_egui::{egui, EguiContexts};
+use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use shared::ClientMessage;
 
 use crate::networking::{ReconnectRequest, SendMessage};
@@ -12,17 +13,18 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, render_ui);
+        app.add_systems(EguiPrimaryContextPass, render_ui);
     }
 }
 
 fn render_ui(
     mut contexts: EguiContexts,
     mut state: ResMut<AppState>,
-    mut send_events: EventWriter<SendMessage>,
-    mut reconnect_events: EventWriter<ReconnectRequest>,
-) {
-    egui::CentralPanel::default().show(contexts.ctx_mut(), |ui| {
+    mut send_writer: MessageWriter<SendMessage>,
+    mut reconnect_writer: MessageWriter<ReconnectRequest>,
+) -> Result {
+    let ctx = contexts.ctx_mut()?;
+    egui::CentralPanel::default().show(ctx, |ui| {
         ui.heading("D&D Character Sheet");
 
         // Connection status
@@ -38,13 +40,13 @@ fn render_ui(
                 ConnectionStatus::Disconnected => {
                     ui.colored_label(egui::Color32::RED, "Disconnected");
                     if ui.button("Reconnect").clicked() {
-                        reconnect_events.send(ReconnectRequest);
+                        reconnect_writer.write(ReconnectRequest);
                     }
                 }
                 ConnectionStatus::Error(e) => {
                     ui.colored_label(egui::Color32::RED, format!("Error: {}", e));
                     if ui.button("Retry").clicked() {
-                        reconnect_events.send(ReconnectRequest);
+                        reconnect_writer.write(ReconnectRequest);
                     }
                 }
             }
@@ -63,7 +65,7 @@ fn render_ui(
             }
 
             if ui.button("Create").clicked() && !state.new_character_name.trim().is_empty() {
-                send_events.send(SendMessage(ClientMessage::CreateCharacter {
+                send_writer.write(SendMessage(ClientMessage::CreateCharacter {
                     name: state.new_character_name.clone(),
                 }));
                 state.new_character_name.clear();
@@ -102,7 +104,7 @@ fn render_ui(
 
                 // Handle deletion outside the loop to avoid borrow issues
                 if let Some(id) = to_delete {
-                    send_events.send(SendMessage(ClientMessage::DeleteCharacter { id }));
+                    send_writer.write(SendMessage(ClientMessage::DeleteCharacter { id }));
                 }
             });
         }
@@ -110,7 +112,9 @@ fn render_ui(
         // Refresh button
         ui.separator();
         if ui.button("Refresh List").clicked() {
-            send_events.send(SendMessage(ClientMessage::RequestCharacterList));
+            send_writer.write(SendMessage(ClientMessage::RequestCharacterList));
         }
     });
+
+    Ok(())
 }

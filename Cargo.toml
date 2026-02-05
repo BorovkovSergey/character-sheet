@@ -14,8 +14,8 @@ uuid = { version = "1.0", features = ["v4", "serde", "js"] }
 getrandom = { version = "0.3", features = ["wasm_js"] }
 
 # Client
-bevy = { version = "0.15", default-features = false }
-bevy_egui = "0.31"
+bevy = { version = "0.18.0", default-features = false }
+bevy_egui = "0.39"
 ewebsock = "0.6"
 
 # Server
