@@ -90,4 +90,20 @@ impl CharacterStore {
         }
         removed
     }
+
+    pub async fn update(&self, character: Character) -> Option<Character> {
+        let updated = {
+            let mut characters = self.characters.write().await;
+            if characters.contains_key(&character.id) {
+                characters.insert(character.id, character.clone());
+                Some(character)
+            } else {
+                None
+            }
+        };
+        if updated.is_some() {
+            self.save_to_file().await;
+        }
+        updated
+    }
 }

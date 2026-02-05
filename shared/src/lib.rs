@@ -1,7 +1,7 @@
 pub mod character;
 pub mod messages;
 
-pub use character::Character;
+pub use character::{Character, Resource};
 pub use messages::{ClientMessage, ServerMessage};
 
 /// Serialize a message to bincode bytes

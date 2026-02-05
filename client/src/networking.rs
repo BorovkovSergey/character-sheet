@@ -199,6 +199,10 @@ fn handle_server_messages(
                 info!("Character deleted: {}", id);
                 state.remove_character(*id);
             }
+            ServerMessage::CharacterUpdated { character } => {
+                info!("Character updated: {}", character.name);
+                state.update_character(character.clone());
+            }
             ServerMessage::Error { message } => {
                 error!("Server error: {}", message);
             }

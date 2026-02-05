@@ -34,4 +34,10 @@ impl AppState {
     pub fn remove_character(&mut self, id: uuid::Uuid) {
         self.characters.retain(|c| c.id != id);
     }
+
+    pub fn update_character(&mut self, character: Character) {
+        if let Some(existing) = self.characters.iter_mut().find(|c| c.id == character.id) {
+            *existing = character;
+        }
+    }
 }

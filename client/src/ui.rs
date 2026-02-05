@@ -1,7 +1,7 @@
 use bevy::ecs::message::MessageWriter;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
-use shared::ClientMessage;
+use shared::{ClientMessage, Resource};
 
 use crate::networking::{ReconnectRequest, SendMessage};
 use crate::state::{AppState, ConnectionStatus};
@@ -91,18 +91,47 @@ fn render_ui(
         } else {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 let mut to_delete = None;
+                let mut to_save = None;
 
-                for character in &state.characters {
-                    ui.horizontal(|ui| {
-                        ui.label(&character.name);
-                        ui.label(format!("({})", character.id));
-                        if ui.button("Delete").clicked() {
-                            to_delete = Some(character.id);
-                        }
-                    });
+                for character in &mut state.characters {
+                    egui::Frame::new()
+                        .inner_margin(8.0)
+                        .stroke(egui::Stroke::new(1.0, egui::Color32::GRAY))
+                        .corner_radius(4.0)
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.heading(&character.name);
+                                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                                    if ui.button("Delete").clicked() {
+                                        to_delete = Some(character.id);
+                                    }
+                                    if ui.button("Save").clicked() {
+                                        to_save = Some(character.clone());
+                                    }
+                                });
+                            });
+
+                            ui.add_space(4.0);
+
+                            // HP bar - changes apply locally
+                            render_resource_bar(ui, "HP", &mut character.hp, egui::Color32::RED);
+
+                            // Mana bar
+                            render_resource_bar(ui, "Mana", &mut character.mana, egui::Color32::BLUE);
+
+                            // Action Points bar
+                            render_resource_bar(ui, "AP", &mut character.action_points, egui::Color32::GOLD);
+                        });
+
+                    ui.add_space(8.0);
                 }
 
-                // Handle deletion outside the loop to avoid borrow issues
+                // Handle save
+                if let Some(character) = to_save {
+                    send_writer.write(SendMessage(ClientMessage::UpdateCharacter { character }));
+                }
+
+                // Handle deletion
                 if let Some(id) = to_delete {
                     send_writer.write(SendMessage(ClientMessage::DeleteCharacter { id }));
                 }
@@ -117,4 +146,29 @@ fn render_ui(
     });
 
     Ok(())
+}
+
+/// Renders a resource bar with +/- buttons. Modifies resource in place.
+fn render_resource_bar(ui: &mut egui::Ui, label: &str, resource: &mut Resource, color: egui::Color32) {
+    ui.horizontal(|ui| {
+        ui.label(format!("{:>4}:", label));
+
+        if ui.button("-").clicked() && resource.current > 0 {
+            resource.current -= 1;
+        }
+
+        let progress = resource.current as f32 / resource.max as f32;
+        let bar = egui::ProgressBar::new(progress)
+            .fill(color)
+            .text(format!("{}/{}", resource.current, resource.max));
+        ui.add_sized([150.0, 20.0], bar);
+
+        if ui.button("+").clicked() && resource.current < resource.max {
+            resource.current += 1;
+        }
+
+        if ui.button("Full").clicked() {
+            resource.current = resource.max;
+        }
+    });
 }

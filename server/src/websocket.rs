@@ -88,5 +88,14 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> ServerMes
                 }
             }
         }
+        ClientMessage::UpdateCharacter { character } => {
+            if let Some(updated) = store.update(character).await {
+                ServerMessage::CharacterUpdated { character: updated }
+            } else {
+                ServerMessage::Error {
+                    message: "Character not found".to_string(),
+                }
+            }
+        }
     }
 }
