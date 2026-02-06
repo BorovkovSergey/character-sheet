@@ -1,5 +1,7 @@
 use crate::egui::{self, Align2, Color32, CornerRadius, Rect, Stroke, StrokeKind, Vec2, Widget};
-use crate::traits::{Alignable, Corner, Roundable, Sizeable};
+use crate::traits::{Alignable, Corner, Roundable, Sizeable, WithText};
+
+use super::Text;
 
 /// The geometric shape to draw inside a `ShapeBox`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -22,6 +24,7 @@ pub struct ShapeBox {
     max_size: Option<Vec2>,
     min_size: Option<Vec2>,
     align: Align2,
+    text: Option<Text>,
 }
 
 impl ShapeBox {
@@ -39,6 +42,7 @@ impl ShapeBox {
             max_size: None,
             min_size: None,
             align: Align2::CENTER_CENTER,
+            text: None,
         }
     }
 
@@ -57,6 +61,48 @@ impl ShapeBox {
     /// Sets the shape kind (consumes and returns `Self` for builder chaining).
     pub fn shape(mut self, shape: Shape) -> Self {
         self.shape = shape;
+        self
+    }
+
+    /// Sets the text content (consumes and returns `Self` for builder chaining).
+    pub fn text(mut self, text: impl Into<String>) -> Self {
+        let s = text.into();
+        self.text = Some(match self.text {
+            Some(mut t) => { t.set_text(s); t }
+            None => Text::new(s),
+        });
+        self
+    }
+
+    /// Sets the text color (consumes and returns `Self` for builder chaining).
+    pub fn text_color(mut self, color: Color32) -> Self {
+        if let Some(ref mut t) = self.text {
+            t.set_text_color(color);
+        }
+        self
+    }
+
+    /// Sets the font size in points (consumes and returns `Self` for builder chaining).
+    pub fn text_size(mut self, size: f32) -> Self {
+        if let Some(ref mut t) = self.text {
+            t.set_text_size(size);
+        }
+        self
+    }
+
+    /// Sets the text alignment within the widget bounds (consumes and returns `Self` for builder chaining).
+    pub fn text_align(mut self, align: Align2) -> Self {
+        if let Some(ref mut t) = self.text {
+            t.set_text_align(align);
+        }
+        self
+    }
+
+    /// Sets the text rotation angle in radians (consumes and returns `Self` for builder chaining).
+    pub fn text_angle(mut self, angle: f32) -> Self {
+        if let Some(ref mut t) = self.text {
+            t.set_text_angle(angle);
+        }
         self
     }
 
@@ -95,6 +141,10 @@ impl ShapeBox {
                 painter.circle_stroke(center, radius, self.stroke);
             }
         }
+
+        if let Some(ref text) = self.text {
+            text.paint(painter, rect);
+        }
     }
 }
 
@@ -129,6 +179,45 @@ impl Roundable for ShapeBox {
             Corner::TopRight => self.rounding.ne = radius,
             Corner::BottomLeft => self.rounding.sw = radius,
             Corner::BottomRight => self.rounding.se = radius,
+        }
+        self
+    }
+}
+
+impl WithText for ShapeBox {
+    fn set_text(&mut self, text: impl Into<String>) -> &mut Self {
+        let s = text.into();
+        self.text = Some(match self.text.take() {
+            Some(mut t) => { t.set_text(s); t }
+            None => Text::new(s),
+        });
+        self
+    }
+
+    fn set_text_color(&mut self, color: Color32) -> &mut Self {
+        if let Some(ref mut t) = self.text {
+            t.set_text_color(color);
+        }
+        self
+    }
+
+    fn set_text_size(&mut self, size: f32) -> &mut Self {
+        if let Some(ref mut t) = self.text {
+            t.set_text_size(size);
+        }
+        self
+    }
+
+    fn set_text_align(&mut self, align: Align2) -> &mut Self {
+        if let Some(ref mut t) = self.text {
+            t.set_text_align(align);
+        }
+        self
+    }
+
+    fn set_text_angle(&mut self, angle: f32) -> &mut Self {
+        if let Some(ref mut t) = self.text {
+            t.set_text_angle(angle);
         }
         self
     }
