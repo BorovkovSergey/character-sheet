@@ -1,4 +1,5 @@
-use crate::egui::{self, Align, Align2, Color32, Rect};
+use crate::colors::STROKE_COLOR;
+use crate::egui::{self, Align, Align2, Rect};
 use crate::traits::WithText;
 
 /// A styled text element that can be painted inside a bounding rect.
@@ -7,7 +8,7 @@ use crate::traits::WithText;
 #[derive(Debug, Clone)]
 pub struct Text {
     content: String,
-    color: Color32,
+    color: egui::Color32,
     size: f32,
     align: Align2,
     angle: f32,
@@ -15,14 +16,14 @@ pub struct Text {
 
 impl Text {
     /// Creates a new `Text` with sensible defaults:
-    /// - white color
+    /// - stroke color (dark gray-blue)
     /// - 14pt proportional font
     /// - center-center alignment
     /// - no rotation
     pub fn new(content: impl Into<String>) -> Self {
         Self {
             content: content.into(),
-            color: Color32::WHITE,
+            color: STROKE_COLOR,
             size: 14.0,
             align: Align2::CENTER_CENTER,
             angle: 0.0,
@@ -30,7 +31,7 @@ impl Text {
     }
 
     /// Sets the text color (consumes and returns `Self` for builder chaining).
-    pub fn color(mut self, color: Color32) -> Self {
+    pub fn color(mut self, color: egui::Color32) -> Self {
         self.color = color;
         self
     }
@@ -85,7 +86,7 @@ impl WithText for Text {
         self
     }
 
-    fn set_text_color(&mut self, color: Color32) -> &mut Self {
+    fn set_text_color(&mut self, color: egui::Color32) -> &mut Self {
         self.color = color;
         self
     }

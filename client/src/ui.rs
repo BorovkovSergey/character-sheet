@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
+use ui_widgets::colors::MAIN_COLOR;
 use ui_widgets::composites::{
     Abilities, Characteristics, EquippedGear, IdentityBar, Inventory, Points, Portrait, Skills,
     Stats, StatusBar, Traits, Wallet,
@@ -16,7 +17,7 @@ impl Plugin for UiPlugin {
 fn render_ui(mut contexts: EguiContexts) -> Result {
     let ctx = contexts.ctx_mut()?;
     egui::CentralPanel::default()
-        .frame(egui::Frame::NONE)
+        .frame(egui::Frame::NONE.fill(MAIN_COLOR))
         .show(ctx, |ui| {
             let total_w = ui.available_width();
             let total_h = ui.available_height();

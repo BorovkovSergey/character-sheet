@@ -1,5 +1,6 @@
 use crate::atoms::{Shape, ShapeBox};
-use crate::egui::{self, Align2, Color32, Widget};
+use crate::colors::{SECONDARY_COLOR, STROKE_COLOR};
+use crate::egui::{self, Align2, Stroke, Widget};
 
 /// Displays the character's learned skills and their levels.
 pub struct Skills;
@@ -13,7 +14,8 @@ impl Skills {
 impl Widget for Skills {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         ShapeBox::new(Shape::Rectangle)
-            .fill(Color32::from_rgb(60, 120, 100))
+            .fill(SECONDARY_COLOR)
+            .stroke(Stroke::new(1.0, STROKE_COLOR))
             .text("Skills")
             .text_align(Align2::CENTER_BOTTOM)
             .ui(ui)

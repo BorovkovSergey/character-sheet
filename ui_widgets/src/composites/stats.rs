@@ -1,5 +1,6 @@
 use crate::atoms::{Shape, ShapeBox};
-use crate::egui::{self, Align2, Color32, Widget};
+use crate::colors::{SECONDARY_COLOR, STROKE_COLOR};
+use crate::egui::{self, Align2, Stroke, Widget};
 
 /// Displays the character's derived stats (HP, MP, etc.).
 pub struct Stats;
@@ -13,7 +14,8 @@ impl Stats {
 impl Widget for Stats {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         ShapeBox::new(Shape::Rectangle)
-            .fill(Color32::from_rgb(80, 120, 80))
+            .fill(SECONDARY_COLOR)
+            .stroke(Stroke::new(1.0, STROKE_COLOR))
             .text("Stats")
             .text_align(Align2::LEFT_TOP)
             .ui(ui)

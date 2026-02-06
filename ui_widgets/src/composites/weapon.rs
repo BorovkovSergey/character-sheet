@@ -1,5 +1,6 @@
 use crate::atoms::{Shape, ShapeBox};
-use crate::egui::{self, Align2, Color32, Widget};
+use crate::colors::{SECONDARY_COLOR, STROKE_COLOR};
+use crate::egui::{self, Align2, Stroke, Widget};
 
 /// Displays equipped weapon information.
 pub struct Weapon;
@@ -13,7 +14,8 @@ impl Weapon {
 impl Widget for Weapon {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
         ShapeBox::new(Shape::Rectangle)
-            .fill(Color32::from_rgb(120, 80, 40))
+            .fill(SECONDARY_COLOR)
+            .stroke(Stroke::new(1.0, STROKE_COLOR))
             .text("Weapon")
             .text_align(Align2::CENTER_TOP)
             .text_angle(std::f32::consts::FRAC_PI_6)
