@@ -2,6 +2,9 @@ use bevy::ecs::message::MessageWriter;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use shared::{ClientMessage, Resource};
+use ui_widgets::atoms::{Shape, ShapeBox};
+use ui_widgets::egui::{Color32, Stroke, Vec2};
+use ui_widgets::traits::{Corner, Roundable, Sizeable};
 
 use crate::networking::{ReconnectRequest, SendMessage};
 use crate::state::{AppState, ConnectionStatus};
@@ -26,6 +29,49 @@ fn render_ui(
     let ctx = contexts.ctx_mut()?;
     egui::CentralPanel::default().show(ctx, |ui| {
         ui.heading("D&D Character Sheet");
+
+        // --- ShapeBox demo ---
+        let row_height = 60.0;
+        ui.horizontal(|ui| {
+            let spacing = ui.spacing().item_spacing.x;
+            let w = (ui.available_width() - spacing * 2.0) / 3.0;
+            let size = Vec2::new(w, row_height);
+
+            let mut r = ShapeBox::new(Shape::Rectangle).fill(Color32::from_rgb(70, 130, 180));
+            r.set_max_size(size);
+            r.set_rounding_all(12);
+            ui.add(r);
+
+            let mut g = ShapeBox::new(Shape::Rectangle)
+                .fill(Color32::from_rgb(60, 179, 113))
+                .stroke(Stroke::new(2.0, Color32::WHITE));
+            g.set_max_size(size);
+            g.set_rounding_only(&[Corner::TopLeft, Corner::BottomRight], 16);
+            ui.add(g);
+
+            let mut p = ShapeBox::new(Shape::Rectangle)
+                .fill(Color32::from_rgb(186, 85, 211))
+                .stroke(Stroke::new(2.0, Color32::from_rgb(220, 180, 255)));
+            p.set_max_size(size);
+            p.set_rounding_except(&[Corner::BottomLeft], 12);
+            ui.add(p);
+        });
+        ui.horizontal(|ui| {
+            let spacing = ui.spacing().item_spacing.x;
+            let w = (ui.available_width() - spacing) / 2.0;
+            let size = Vec2::new(w, row_height);
+
+            let mut c = ShapeBox::new(Shape::Circle)
+                .fill(Color32::from_rgb(255, 165, 0))
+                .stroke(Stroke::new(2.0, Color32::DARK_GRAY));
+            c.set_max_size(size);
+            ui.add(c);
+
+            let mut b = ShapeBox::new(Shape::Circle).fill(Color32::from_rgb(220, 20, 60));
+            b.set_max_size(size);
+            ui.add(b);
+        });
+        ui.add_space(4.0);
 
         // Connection status
         ui.horizontal(|ui| {

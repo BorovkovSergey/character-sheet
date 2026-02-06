@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 shared.workspace = true
+ui_widgets.workspace = true
 bevy = { workspace = true, features = [
     "bevy_asset",
     "bevy_winit",
