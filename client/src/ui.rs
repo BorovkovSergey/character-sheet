@@ -1,16 +1,8 @@
-use bevy::ecs::message::MessageWriter;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
-use shared::{ClientMessage, Resource};
 use ui_widgets::atoms::{Shape, ShapeBox};
-use ui_widgets::egui::{Color32, Stroke, Vec2};
-use ui_widgets::traits::{Corner, Roundable, Sizeable};
-
-use crate::networking::{ReconnectRequest, SendMessage};
-use crate::state::{AppState, ConnectionStatus};
-
-/// Maximum allowed character name length to prevent memory issues
-const MAX_CHARACTER_NAME_LENGTH: usize = 100;
+use ui_widgets::egui::{Color32, Vec2};
+use ui_widgets::traits::Sizeable;
 
 pub struct UiPlugin;
 
@@ -20,219 +12,50 @@ impl Plugin for UiPlugin {
     }
 }
 
-fn render_ui(
-    mut contexts: EguiContexts,
-    mut state: ResMut<AppState>,
-    mut send_writer: MessageWriter<SendMessage>,
-    mut reconnect_writer: MessageWriter<ReconnectRequest>,
-) -> Result {
+fn render_ui(mut contexts: EguiContexts) -> Result {
     let ctx = contexts.ctx_mut()?;
-    egui::CentralPanel::default().show(ctx, |ui| {
-        ui.heading("D&D Character Sheet");
+    egui::CentralPanel::default()
+        .frame(egui::Frame::NONE)
+        .show(ctx, |ui| {
+            let total_w = ui.available_width();
+            let total_h = ui.available_height();
 
-        // --- ShapeBox demo ---
-        let row_height = 60.0;
-        ui.horizontal(|ui| {
-            let spacing = ui.spacing().item_spacing.x;
-            let w = (ui.available_width() - spacing * 2.0) / 3.0;
-            let size = Vec2::new(w, row_height);
+            let margin = total_w * 0.02;
+            let gap = total_w * 0.01;
+            let col1_w = total_w * 0.24;
+            let col2_w = total_w * 0.46;
+            let col3_w = total_w * 0.24;
 
-            let mut r = ShapeBox::new(Shape::Rectangle).fill(Color32::from_rgb(70, 130, 180));
-            r.set_max_size(size);
-            r.set_rounding_all(12);
-            ui.add(r);
+            let top_margin = margin / 2.0;
+            let col_h = total_h - top_margin;
 
-            let mut g = ShapeBox::new(Shape::Rectangle)
-                .fill(Color32::from_rgb(60, 179, 113))
-                .stroke(Stroke::new(2.0, Color32::WHITE));
-            g.set_max_size(size);
-            g.set_rounding_only(&[Corner::TopLeft, Corner::BottomRight], 16);
-            ui.add(g);
+            ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
-            let mut p = ShapeBox::new(Shape::Rectangle)
-                .fill(Color32::from_rgb(186, 85, 211))
-                .stroke(Stroke::new(2.0, Color32::from_rgb(220, 180, 255)));
-            p.set_max_size(size);
-            p.set_rounding_except(&[Corner::BottomLeft], 12);
-            ui.add(p);
-        });
-        ui.horizontal(|ui| {
-            let spacing = ui.spacing().item_spacing.x;
-            let w = (ui.available_width() - spacing) / 2.0;
-            let size = Vec2::new(w, row_height);
+            ui.add_space(top_margin);
 
-            let mut c = ShapeBox::new(Shape::Circle)
-                .fill(Color32::from_rgb(255, 165, 0))
-                .stroke(Stroke::new(2.0, Color32::DARK_GRAY));
-            c.set_max_size(size);
-            ui.add(c);
+            ui.horizontal(|ui| {
+                ui.add_space(margin);
 
-            let mut b = ShapeBox::new(Shape::Circle).fill(Color32::from_rgb(220, 20, 60));
-            b.set_max_size(size);
-            ui.add(b);
-        });
-        ui.add_space(4.0);
+                let mut s1 = ShapeBox::new(Shape::Rectangle)
+                    .fill(Color32::from_rgb(70, 130, 180));
+                s1.set_max_size(Vec2::new(col1_w, col_h));
+                ui.add(s1);
 
-        // Connection status
-        ui.horizontal(|ui| {
-            ui.label("Status:");
-            match &state.connection_status {
-                ConnectionStatus::Connected => {
-                    ui.colored_label(egui::Color32::GREEN, "Connected");
-                }
-                ConnectionStatus::Connecting => {
-                    ui.colored_label(egui::Color32::YELLOW, "Connecting...");
-                }
-                ConnectionStatus::Disconnected => {
-                    ui.colored_label(egui::Color32::RED, "Disconnected");
-                    if ui.button("Reconnect").clicked() {
-                        reconnect_writer.write(ReconnectRequest);
-                    }
-                }
-                ConnectionStatus::Error(e) => {
-                    ui.colored_label(egui::Color32::RED, format!("Error: {}", e));
-                    if ui.button("Retry").clicked() {
-                        reconnect_writer.write(ReconnectRequest);
-                    }
-                }
-            }
-        });
+                ui.add_space(gap);
 
-        ui.separator();
+                let mut s2 = ShapeBox::new(Shape::Rectangle)
+                    .fill(Color32::from_rgb(60, 179, 113));
+                s2.set_max_size(Vec2::new(col2_w, col_h));
+                ui.add(s2);
 
-        // Create new character section
-        ui.horizontal(|ui| {
-            ui.label("New character name:");
-            ui.text_edit_singleline(&mut state.new_character_name);
+                ui.add_space(gap);
 
-            // Enforce character name length limit
-            if state.new_character_name.len() > MAX_CHARACTER_NAME_LENGTH {
-                state.new_character_name.truncate(MAX_CHARACTER_NAME_LENGTH);
-            }
-
-            if ui.button("Create").clicked() && !state.new_character_name.trim().is_empty() {
-                send_writer.write(SendMessage(ClientMessage::CreateCharacter {
-                    name: state.new_character_name.clone(),
-                }));
-                state.new_character_name.clear();
-            }
-        });
-
-        // Show character count if approaching limit
-        if state.new_character_name.len() > MAX_CHARACTER_NAME_LENGTH - 20 {
-            ui.label(format!(
-                "{}/{} characters",
-                state.new_character_name.len(),
-                MAX_CHARACTER_NAME_LENGTH
-            ));
-        }
-
-        ui.separator();
-
-        // Character list
-        ui.heading("Characters");
-
-        if state.characters.is_empty() {
-            ui.label("No characters yet. Create one above!");
-        } else {
-            egui::ScrollArea::vertical().show(ui, |ui| {
-                let mut to_delete = None;
-                let mut to_save = None;
-
-                for character in &mut state.characters {
-                    egui::Frame::new()
-                        .inner_margin(8.0)
-                        .stroke(egui::Stroke::new(1.0, egui::Color32::GRAY))
-                        .corner_radius(4.0)
-                        .show(ui, |ui| {
-                            ui.horizontal(|ui| {
-                                ui.heading(&character.name);
-                                ui.with_layout(
-                                    egui::Layout::right_to_left(egui::Align::Center),
-                                    |ui| {
-                                        if ui.button("Delete").clicked() {
-                                            to_delete = Some(character.id);
-                                        }
-                                        if ui.button("Save").clicked() {
-                                            to_save = Some(character.clone());
-                                        }
-                                    },
-                                );
-                            });
-
-                            ui.add_space(4.0);
-
-                            // HP bar - changes apply locally
-                            render_resource_bar(ui, "HP", &mut character.hp, egui::Color32::RED);
-
-                            // Mana bar
-                            render_resource_bar(
-                                ui,
-                                "Mana",
-                                &mut character.mana,
-                                egui::Color32::BLUE,
-                            );
-
-                            // Action Points bar
-                            render_resource_bar(
-                                ui,
-                                "AP",
-                                &mut character.action_points,
-                                egui::Color32::GOLD,
-                            );
-                        });
-
-                    ui.add_space(8.0);
-                }
-
-                // Handle save
-                if let Some(character) = to_save {
-                    send_writer.write(SendMessage(ClientMessage::UpdateCharacter { character }));
-                }
-
-                // Handle deletion
-                if let Some(id) = to_delete {
-                    send_writer.write(SendMessage(ClientMessage::DeleteCharacter { id }));
-                }
+                let mut s3 = ShapeBox::new(Shape::Rectangle)
+                    .fill(Color32::from_rgb(186, 85, 211));
+                s3.set_max_size(Vec2::new(col3_w, col_h));
+                ui.add(s3);
             });
-        }
-
-        // Refresh button
-        ui.separator();
-        if ui.button("Refresh List").clicked() {
-            send_writer.write(SendMessage(ClientMessage::RequestCharacterList));
-        }
-    });
+        });
 
     Ok(())
-}
-
-/// Renders a resource bar with +/- buttons. Modifies resource in place.
-fn render_resource_bar(
-    ui: &mut egui::Ui,
-    label: &str,
-    resource: &mut Resource,
-    color: egui::Color32,
-) {
-    ui.horizontal(|ui| {
-        ui.label(format!("{:>4}:", label));
-
-        if ui.button("-").clicked() && resource.current > 0 {
-            resource.current -= 1;
-        }
-
-        let progress = resource.current as f32 / resource.max as f32;
-        let bar = egui::ProgressBar::new(progress)
-            .fill(color)
-            .text(format!("{}/{}", resource.current, resource.max));
-        ui.add_sized([150.0, 20.0], bar);
-
-        if ui.button("+").clicked() && resource.current < resource.max {
-            resource.current += 1;
-        }
-
-        if ui.button("Full").clicked() {
-            resource.current = resource.max;
-        }
-    });
 }

@@ -1,12 +1,8 @@
-mod networking;
-mod state;
 mod ui;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 
-use networking::NetworkingPlugin;
-use state::AppState;
 use ui::UiPlugin;
 
 fn main() {
@@ -30,9 +26,7 @@ fn main() {
             }),
     )
     .add_plugins(EguiPlugin::default())
-    .add_plugins(NetworkingPlugin)
     .add_plugins(UiPlugin)
-    .init_resource::<AppState>()
     .add_systems(PreStartup, setup)
     .run();
 }
