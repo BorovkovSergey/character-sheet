@@ -1,4 +1,4 @@
-use crate::egui::{self, Align2, Color32, Rect, CornerRadius, Stroke, StrokeKind, Vec2, Widget};
+use crate::egui::{self, Align2, Color32, CornerRadius, Rect, Stroke, StrokeKind, Vec2, Widget};
 use crate::traits::{Alignable, Corner, Roundable, Sizeable};
 
 /// The geometric shape to draw inside a `ShapeBox`.

@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
-use ui_widgets::atoms::{Shape, ShapeBox};
-use ui_widgets::egui::{Color32, Vec2};
-use ui_widgets::traits::Sizeable;
+use ui_widgets::composites::{
+    Abilities, Characteristics, EquippedGear, IdentityBar, Inventory, Points, Portrait, Skills,
+    Stats, StatusBar, Traits, Wallet,
+};
 
 pub struct UiPlugin;
 
@@ -36,24 +37,67 @@ fn render_ui(mut contexts: EguiContexts) -> Result {
             ui.horizontal(|ui| {
                 ui.add_space(margin);
 
-                let mut s1 = ShapeBox::new(Shape::Rectangle)
-                    .fill(Color32::from_rgb(70, 130, 180));
-                s1.set_max_size(Vec2::new(col1_w, col_h));
-                ui.add(s1);
+                let gap_between = col_h * 0.03 / 4.0;
+
+                let portrait_h = col_h * 0.30;
+                let identity_h = col_h * 0.11;
+                let status1_h = col_h * 0.16;
+                let stats_h = col_h * 0.20;
+                let status2_h = col_h * 0.20;
+
+                ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
+
+                    ui.add_sized([col1_w, portrait_h], Portrait::new());
+                    ui.add_space(gap_between);
+                    ui.add_sized([col1_w, identity_h], IdentityBar::new());
+                    ui.add_space(gap_between);
+                    ui.add_sized([col1_w, status1_h], StatusBar::new());
+                    ui.add_space(gap_between);
+                    ui.add_sized([col1_w, stats_h], Stats::new());
+                    ui.add_space(gap_between);
+                    ui.add_sized([col1_w, status2_h], StatusBar::new());
+                });
 
                 ui.add_space(gap);
 
-                let mut s2 = ShapeBox::new(Shape::Rectangle)
-                    .fill(Color32::from_rgb(60, 179, 113));
-                s2.set_max_size(Vec2::new(col2_w, col_h));
-                ui.add(s2);
+                let characteristics_h = col_h * 0.14;
+                let points_h = col_h * 0.05;
+                let skills_h = col_h * 0.24;
+                let traits_h = col_h * 0.14;
+                let abilities_h = col_h * 0.40;
+
+                ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
+
+                    ui.add_sized([col2_w, characteristics_h], Characteristics::new());
+                    ui.add_space(gap_between);
+                    ui.add_sized([col2_w, points_h], Points::new());
+                    ui.add_space(gap_between);
+                    ui.add_sized([col2_w, skills_h], Skills::new());
+                    ui.add_space(gap_between);
+                    ui.add_sized([col2_w, traits_h], Traits::new());
+                    ui.add_space(gap_between);
+                    ui.add_sized([col2_w, abilities_h], Abilities::new());
+                });
 
                 ui.add_space(gap);
 
-                let mut s3 = ShapeBox::new(Shape::Rectangle)
-                    .fill(Color32::from_rgb(186, 85, 211));
-                s3.set_max_size(Vec2::new(col3_w, col_h));
-                ui.add(s3);
+                let gap_between_col3 = col_h * 0.03 / 2.0;
+
+                let equipped_gear_h = col_h * 0.41;
+                let wallet_h = col_h * 0.08;
+                let inventory_h = col_h * 0.48;
+
+                ui.vertical(|ui| {
+                    ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
+
+                    ui.add_sized([col3_w, equipped_gear_h], EquippedGear::new());
+                    ui.add_space(gap_between_col3);
+                    ui.add_sized([col3_w, wallet_h], Wallet::new());
+                    ui.add_space(gap_between_col3);
+                    ui.add_sized([col3_w, inventory_h], Inventory::new());
+                });
             });
         });
 
