@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use super::effect::{Effect, GetEffects, Resist};
+use super::effect::{Effect, GetEffects, Protection, Resist};
 
 /// Character race
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,6 +21,33 @@ impl fmt::Display for Race {
         match self {
             Race::DarkHalfElf => write!(f, "Dark Half-Elf"),
         }
+    }
+}
+
+/// Character size, determined by race.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Size {
+    Small,
+    Medium,
+    Big,
+}
+
+impl Race {
+    pub fn size(&self) -> Size {
+        match self {
+            Race::DarkHalfElf => Size::Medium,
+        }
+    }
+}
+
+impl GetEffects for Size {
+    fn get_effects(&self) -> Vec<Effect> {
+        let body = match self {
+            Size::Small => 9,
+            Size::Medium => 10,
+            Size::Big => 11,
+        };
+        vec![Effect::Protection(Protection::Body, body)]
     }
 }
 

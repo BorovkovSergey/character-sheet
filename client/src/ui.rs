@@ -93,7 +93,15 @@ fn render_ui(
                         .into_iter()
                         .map(|(r, v)| (r.to_string(), v))
                         .collect();
-                    ui.add_sized([col1_w, stats_h], Stats::new(heart_icon, resists));
+                    let protections = character
+                        .get_protections()
+                        .into_iter()
+                        .map(|(p, v)| (p.to_string(), v))
+                        .collect();
+                    ui.add_sized(
+                        [col1_w, stats_h],
+                        Stats::new(heart_icon, resists, protections),
+                    );
                     ui.add_space(gap_between);
                     ui.add_sized([col1_w, status2_h], StatusBar::new());
                 });

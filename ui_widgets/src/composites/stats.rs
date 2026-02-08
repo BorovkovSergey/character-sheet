@@ -10,11 +10,20 @@ use crate::traits::Roundable;
 pub struct Stats {
     icon: TextureId,
     resists: BTreeMap<String, u32>,
+    protections: BTreeMap<String, u32>,
 }
 
 impl Stats {
-    pub fn new(icon: TextureId, resists: BTreeMap<String, u32>) -> Self {
-        Self { icon, resists }
+    pub fn new(
+        icon: TextureId,
+        resists: BTreeMap<String, u32>,
+        protections: BTreeMap<String, u32>,
+    ) -> Self {
+        Self {
+            icon,
+            resists,
+            protections,
+        }
     }
 }
 
@@ -26,9 +35,6 @@ impl Widget for Stats {
         let top_h = height * 0.54;
         let bottom_h = height * 0.44;
         let gap = height * 0.02;
-
-        let defense_labels = ["Melee", "Range", "Magic", "Body", "Mind"];
-        let resist_labels = ["Fire", "Ice", "Lightning", "Poison", "Spirit", "Dark"];
 
         ui.vertical(|ui| {
             ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -44,7 +50,7 @@ impl Widget for Stats {
                         .content_fill(MAIN_COLOR)
                         .content_rounding(14)
                         .show(ui, |ui| {
-                            inner_titled_boxes(ui, &defense_labels, false, self.icon, None);
+                            inner_titled_boxes(ui, &self.protections, 16, self.icon);
                         });
                 },
             );
@@ -62,13 +68,7 @@ impl Widget for Stats {
                         .content_fill(MAIN_COLOR)
                         .content_rounding(14)
                         .show(ui, |ui| {
-                            inner_titled_boxes(
-                                ui,
-                                &resist_labels,
-                                true,
-                                self.icon,
-                                Some(&self.resists),
-                            );
+                            inner_titled_boxes(ui, &self.resists, 12, self.icon);
                         });
                 },
             );
@@ -80,12 +80,11 @@ impl Widget for Stats {
 /// Lays out a row of equally-spaced inner [`TitledBox`] widgets.
 fn inner_titled_boxes(
     ui: &mut egui::Ui,
-    labels: &[&str],
-    is_resist: bool,
+    values: &BTreeMap<String, u32>,
+    rounding: u8,
     icon: TextureId,
-    values: Option<&BTreeMap<String, u32>>,
 ) {
-    let count = labels.len() as f32;
+    let count = values.len() as f32;
     let spacing = 4.0;
     let available_width = ui.available_width();
     let available_height = ui.available_height();
@@ -100,24 +99,14 @@ fn inner_titled_boxes(
         ui.horizontal(|ui| {
             ui.add_space(pad_x);
             ui.spacing_mut().item_spacing = egui::vec2(spacing, 0.0);
-            for label in labels {
-                let text = if let Some(vals) = values {
-                    let v = *vals.get(*label).unwrap_or(&0) as i32;
-                    format_signed(v)
-                } else {
-                    let value = pseudo_value(label, is_resist);
-                    if is_resist {
-                        format_signed(value)
-                    } else {
-                        value.to_string()
-                    }
-                };
+            for (label, value) in values {
+                let text = format_signed(*value as i32);
 
                 ui.allocate_ui_with_layout(
                     egui::vec2(item_width, inner_height),
                     egui::Layout::left_to_right(egui::Align::Center),
                     |ui| {
-                        TitledBox::new(*label)
+                        TitledBox::new(label.as_str())
                             .title_position(TitlePosition::Top)
                             .fill(Color32::TRANSPARENT)
                             .rounding(8)
@@ -128,8 +117,7 @@ fn inner_titled_boxes(
                                     .text(text.clone())
                                     .text_color(TEXT_COLOR)
                                     .icon(icon);
-                                let radius = if is_resist { 12 } else { 16 };
-                                shape.set_rounding(CornerRadius::same(radius));
+                                shape.set_rounding(CornerRadius::same(rounding));
                                 ui.add(shape);
                             });
                     },
@@ -137,17 +125,6 @@ fn inner_titled_boxes(
             }
         });
     });
-}
-
-fn pseudo_value(label: &str, signed: bool) -> i32 {
-    let hash: u32 = label
-        .bytes()
-        .fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u32));
-    if signed {
-        (hash % 11) as i32 - 5
-    } else {
-        (hash % 20) as i32 + 1
-    }
 }
 
 fn format_signed(value: i32) -> String {
