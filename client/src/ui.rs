@@ -161,7 +161,10 @@ fn render_center_column(ui: &mut egui::Ui, width: f32, height: f32, character: &
             .collect();
         ui.add_sized([width, height * 0.14], Characteristics::new(char_values));
         ui.add_space(gap);
-        ui.add_sized([width, height * 0.05], Points::new());
+        ui.add_sized(
+            [width, height * 0.05],
+            Points::new(character.characteristic_points, character.skill_points),
+        );
         ui.add_space(gap);
         ui.add_sized([width, height * 0.24], Skills::new());
         ui.add_space(gap);
