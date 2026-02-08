@@ -37,11 +37,7 @@ impl Widget for Points {
                     se: 12,
                 },
             ),
-            (
-                "Skill points",
-                self.skill_points,
-                CornerRadius::same(12),
-            ),
+            ("Skill points", self.skill_points, CornerRadius::same(12)),
         ];
 
         ui.horizontal(|ui| {

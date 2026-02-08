@@ -117,7 +117,17 @@ fn render_left_column(
             ),
         );
         ui.add_space(gap);
-        ui.add_sized([width, height * 0.16], StatusBar::new());
+        ui.add_sized(
+            [width, height * 0.16],
+            StatusBar::new(
+                character.hp.current,
+                character.hp.max,
+                character.mana.current,
+                character.mana.max,
+                character.action_points.current,
+                character.action_points.max,
+            ),
+        );
         ui.add_space(gap);
 
         let resists = character
@@ -135,7 +145,17 @@ fn render_left_column(
             Stats::new(heart_icon, resists, protections),
         );
         ui.add_space(gap);
-        ui.add_sized([width, height * 0.20], StatusBar::new());
+        ui.add_sized(
+            [width, height * 0.20],
+            StatusBar::new(
+                character.hp.current,
+                character.hp.max,
+                character.mana.current,
+                character.mana.max,
+                character.action_points.current,
+                character.action_points.max,
+            ),
+        );
     });
 }
 
