@@ -85,7 +85,7 @@ fn render_ui(
                 ui.add_space(margin);
                 render_left_column(ui, total_w * COL1_WIDTH, col_h, character, heart_icon);
                 ui.add_space(gap);
-                render_center_column(ui, total_w * COL2_WIDTH, col_h);
+                render_center_column(ui, total_w * COL2_WIDTH, col_h, character);
                 ui.add_space(gap);
                 render_right_column(ui, total_w * COL3_WIDTH, col_h);
             });
@@ -139,13 +139,27 @@ fn render_left_column(
     });
 }
 
-fn render_center_column(ui: &mut egui::Ui, width: f32, height: f32) {
+fn render_center_column(ui: &mut egui::Ui, width: f32, height: f32, character: &Character) {
     let gap = height * 0.03 / 4.0;
 
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
-        ui.add_sized([width, height * 0.14], Characteristics::new());
+        let characteristics = [
+            ("STR", character.stats.strength.level),
+            ("DEX", character.stats.dexterity.level),
+            ("END", character.stats.endurance.level),
+            ("PER", character.stats.perception.level),
+            ("MAG", character.stats.magic.level),
+            ("WIL", character.stats.willpower.level),
+            ("INT", character.stats.intellect.level),
+            ("CHA", character.stats.charisma.level),
+        ];
+        let char_values = characteristics
+            .into_iter()
+            .map(|(k, v)| (k.to_string(), v))
+            .collect();
+        ui.add_sized([width, height * 0.14], Characteristics::new(char_values));
         ui.add_space(gap);
         ui.add_sized([width, height * 0.05], Points::new());
         ui.add_space(gap);

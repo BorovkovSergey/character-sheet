@@ -26,6 +26,7 @@ pub enum TitlePosition {
 pub struct TitledBox {
     title: String,
     title_position: TitlePosition,
+    title_angle: Option<f32>,
     fill: Color32,
     rounding: CornerRadius,
     content_fill: Option<Color32>,
@@ -38,6 +39,7 @@ impl TitledBox {
         Self {
             title: title.into(),
             title_position: TitlePosition::default(),
+            title_angle: None,
             fill: SECONDARY_COLOR,
             rounding: CornerRadius::ZERO,
             content_fill: None,
@@ -48,6 +50,16 @@ impl TitledBox {
     /// Sets the position of the title strip.
     pub fn title_position(mut self, position: TitlePosition) -> Self {
         self.title_position = position;
+        self
+    }
+
+    /// Overrides the title text rotation angle (in radians).
+    ///
+    /// By default, [`TitlePosition::Left`] uses `-PI/2` and [`TitlePosition::Top`]
+    /// uses `0.0`. This method lets you override that (e.g. keep text horizontal
+    /// in a left-side strip by passing `0.0`).
+    pub fn title_angle(mut self, angle: f32) -> Self {
+        self.title_angle = Some(angle);
         self
     }
 
@@ -106,24 +118,23 @@ impl TitledBox {
 
     /// Paints the outer background and title strip, returning the content rect.
     fn paint_chrome(&self, painter: &egui::Painter, rect: Rect) -> Rect {
-        if self.rounding != CornerRadius::ZERO {
-            let clipped = painter.with_clip_rect(rect);
-            clipped.rect_filled(rect.expand(1.0), self.rounding, self.fill);
-        } else {
-            painter.rect_filled(rect, CornerRadius::ZERO, self.fill);
-        }
+        painter.rect_filled(rect, self.rounding, self.fill);
 
         let (header_rect, content_rect) = Self::split_rect(rect, self.title_position);
+
+        let default_angle = match self.title_position {
+            TitlePosition::Left => -FRAC_PI_2,
+            TitlePosition::Top => 0.0,
+        };
+        let angle = self.title_angle.unwrap_or(default_angle);
 
         let title = Text::new(&self.title)
             .color(TEXT_COLOR)
             .size(12.0)
-            .align(Align2::CENTER_CENTER);
+            .align(Align2::CENTER_CENTER)
+            .angle(angle);
 
-        match self.title_position {
-            TitlePosition::Left => title.angle(-FRAC_PI_2).paint(painter, header_rect),
-            TitlePosition::Top => title.paint(painter, header_rect),
-        }
+        title.paint(painter, header_rect);
 
         content_rect
     }

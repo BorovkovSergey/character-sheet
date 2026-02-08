@@ -131,12 +131,7 @@ impl ShapeBox {
 
         match self.shape {
             Shape::Rectangle => {
-                if self.rounding != CornerRadius::ZERO {
-                    let clipped = painter.with_clip_rect(shape_rect);
-                    clipped.rect_filled(shape_rect.expand(1.0), self.rounding, self.fill);
-                } else {
-                    painter.rect_filled(shape_rect, CornerRadius::ZERO, self.fill);
-                }
+                painter.rect_filled(shape_rect, self.rounding, self.fill);
                 if self.stroke.width > 0.0 {
                     painter.rect_stroke(shape_rect, self.rounding, self.stroke, StrokeKind::Inside);
                 }
