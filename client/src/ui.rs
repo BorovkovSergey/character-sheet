@@ -126,6 +126,7 @@ fn render_left_column(
                 character.mana.max,
                 character.action_points.current,
                 character.action_points.max,
+                character.get_initiative(),
             ),
         );
         ui.add_space(gap);
@@ -154,6 +155,7 @@ fn render_left_column(
                 character.mana.max,
                 character.action_points.current,
                 character.action_points.max,
+                character.get_initiative(),
             ),
         );
     });

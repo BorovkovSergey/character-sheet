@@ -53,6 +53,7 @@ pub enum Protection {
 pub enum Effect {
     Resist(Resist, u32),
     Protection(Protection, u32),
+    Initiative(i32),
 }
 
 /// Trait for getting effects

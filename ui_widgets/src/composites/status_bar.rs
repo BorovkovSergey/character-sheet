@@ -15,6 +15,7 @@ pub struct StatusBar {
     mp_max: u32,
     ap_current: u32,
     ap_max: u32,
+    initiative: i32,
 }
 
 impl StatusBar {
@@ -25,6 +26,7 @@ impl StatusBar {
         mp_max: u32,
         ap_current: u32,
         ap_max: u32,
+        initiative: i32,
     ) -> Self {
         Self {
             hp_current,
@@ -33,6 +35,7 @@ impl StatusBar {
             mp_max,
             ap_current,
             ap_max,
+            initiative,
         }
     }
 }
@@ -115,7 +118,7 @@ impl Widget for StatusBar {
                 .fill(SECONDARY_COLOR)
                 .stroke(Stroke::NONE)
                 .set_rounding(CornerRadius::same(8))
-                .set_text("3")
+                .set_text(&self.initiative.to_string())
                 .set_text_color(TEXT_COLOR)
                 .set_text_size(text_size)
                 .paint(painter, box_rect);

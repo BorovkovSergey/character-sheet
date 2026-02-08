@@ -100,4 +100,18 @@ impl Character {
             _ => None,
         })
     }
+
+    /// Calculates initiative as Perception level + sum of Initiative effects.
+    pub fn get_initiative(&self) -> i32 {
+        let perception = self.stats.perception.level as i32;
+        let bonus: i32 = self
+            .active_effects
+            .iter()
+            .filter_map(|e| match e {
+                Effect::Initiative(v) => Some(*v),
+                _ => None,
+            })
+            .sum();
+        perception + bonus
+    }
 }
