@@ -20,6 +20,7 @@ bevy = { workspace = true, features = [
     "x11",
 ] }
 bevy_egui.workspace = true
+ewebsock.workspace = true
 
 # Required for WASM
 [target.'cfg(target_arch = "wasm32")'.dependencies]
