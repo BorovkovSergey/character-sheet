@@ -67,16 +67,16 @@ fn connect_to_server(world: &mut World) {
 }
 
 fn receive_messages(world: &mut World) {
-    let has_connection = world.get_non_send_resource::<WsConnection>().is_some();
-    if !has_connection {
-        return;
-    }
-
-    let conn = world.non_send_resource::<WsConnection>();
-    let mut events = Vec::new();
-    while let Some(event) = conn.receiver.try_recv() {
-        events.push(event);
-    }
+    let events = {
+        let Some(conn) = world.get_non_send_resource::<WsConnection>() else {
+            return;
+        };
+        let mut events = Vec::new();
+        while let Some(event) = conn.receiver.try_recv() {
+            events.push(event);
+        }
+        events
+    };
 
     let mut should_remove = false;
     let mut new_characters = None;

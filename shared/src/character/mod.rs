@@ -70,28 +70,34 @@ impl Character {
         self.active_effects.extend(self.race.size().get_effects());
     }
 
-    /// Aggregates resist values from active effects, summing magnitudes per resist type.
-    pub fn get_resists(&self) -> BTreeMap<Resist, u32> {
-        let mut resists: BTreeMap<Resist, u32> = Resist::iter().map(|r| (r, 0)).collect();
+    /// Aggregates effect values of a specific kind, summing magnitudes per key.
+    fn aggregate<K>(&self, extract: impl Fn(&Effect) -> Option<(K, u32)>) -> BTreeMap<K, u32>
+    where
+        K: Ord + Copy + IntoEnumIterator,
+    {
+        let mut result: BTreeMap<K, u32> = K::iter().map(|k| (k, 0)).collect();
         for effect in &self.active_effects {
-            if let Effect::Resist(resist, magnitude) = effect {
-                let entry = resists.entry(*resist).or_insert(0u32);
-                *entry = entry.saturating_add(*magnitude);
+            if let Some((key, magnitude)) = extract(effect) {
+                let entry = result.entry(key).or_insert(0);
+                *entry = entry.saturating_add(magnitude);
             }
         }
-        resists
+        result
+    }
+
+    /// Aggregates resist values from active effects, summing magnitudes per resist type.
+    pub fn get_resists(&self) -> BTreeMap<Resist, u32> {
+        self.aggregate(|e| match e {
+            Effect::Resist(r, m) => Some((*r, *m)),
+            _ => None,
+        })
     }
 
     /// Aggregates protection values from active effects, summing magnitudes per protection type.
     pub fn get_protections(&self) -> BTreeMap<Protection, u32> {
-        let mut protections: BTreeMap<Protection, u32> =
-            Protection::iter().map(|p| (p, 0)).collect();
-        for effect in &self.active_effects {
-            if let Effect::Protection(protection, magnitude) = effect {
-                let entry = protections.entry(*protection).or_insert(0u32);
-                *entry = entry.saturating_add(*magnitude);
-            }
-        }
-        protections
+        self.aggregate(|e| match e {
+            Effect::Protection(p, m) => Some((*p, *m)),
+            _ => None,
+        })
     }
 }

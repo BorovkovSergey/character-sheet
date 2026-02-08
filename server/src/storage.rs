@@ -65,10 +65,25 @@ impl CharacterStore {
             }
         };
 
-        if let Ok(json) = serde_json::to_string_pretty(&data) {
-            if let Err(e) = tokio::fs::write(&self.data_path, json).await {
-                error!("Failed to save characters to {:?}: {}", self.data_path, e);
+        let json = match serde_json::to_string_pretty(&data) {
+            Ok(json) => json,
+            Err(e) => {
+                error!("Failed to serialize characters: {}", e);
+                return;
             }
+        };
+
+        // Write to temp file then rename for atomicity
+        let tmp_path = self.data_path.with_extension("json.tmp");
+        if let Err(e) = tokio::fs::write(&tmp_path, &json).await {
+            error!("Failed to write temp file {:?}: {}", tmp_path, e);
+            return;
+        }
+        if let Err(e) = tokio::fs::rename(&tmp_path, &self.data_path).await {
+            error!(
+                "Failed to rename {:?} to {:?}: {}",
+                tmp_path, self.data_path, e
+            );
         }
     }
 

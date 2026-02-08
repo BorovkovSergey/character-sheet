@@ -1,6 +1,7 @@
 use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{SECONDARY_COLOR, STROKE_COLOR};
 use crate::egui::{self, Align2, Stroke, Widget};
+use crate::traits::WithText;
 
 /// Character portrait display area.
 pub struct Portrait;
@@ -16,8 +17,8 @@ impl Widget for Portrait {
         ShapeBox::new(Shape::Rectangle)
             .fill(SECONDARY_COLOR)
             .stroke(Stroke::new(1.0, STROKE_COLOR))
-            .text("Portrait")
-            .text_align(Align2::CENTER_CENTER)
+            .set_text("Portrait")
+            .set_text_align(Align2::CENTER_CENTER)
             .ui(ui)
     }
 }

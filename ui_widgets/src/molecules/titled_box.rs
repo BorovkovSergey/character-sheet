@@ -104,7 +104,8 @@ impl TitledBox {
         }
     }
 
-    fn paint(&self, painter: &egui::Painter, rect: Rect) {
+    /// Paints the outer background and title strip, returning the content rect.
+    fn paint_chrome(&self, painter: &egui::Painter, rect: Rect) -> Rect {
         if self.rounding != CornerRadius::ZERO {
             let clipped = painter.with_clip_rect(rect);
             clipped.rect_filled(rect.expand(1.0), self.rounding, self.fill);
@@ -114,7 +115,6 @@ impl TitledBox {
 
         let (header_rect, content_rect) = Self::split_rect(rect, self.title_position);
 
-        // Title text in the header strip
         let title = Text::new(&self.title)
             .color(TEXT_COLOR)
             .size(12.0)
@@ -125,9 +125,14 @@ impl TitledBox {
             TitlePosition::Top => title.paint(painter, header_rect),
         }
 
+        content_rect
+    }
+
+    fn paint(&self, painter: &egui::Painter, rect: Rect) {
+        let content_rect = self.paint_chrome(painter, rect);
+
         if let Some(content_fill) = self.content_fill {
-            let padding = 4.0;
-            let inner_rect = content_rect.shrink(padding);
+            let inner_rect = content_rect.shrink(4.0);
             let mut shape = ShapeBox::new(Shape::Rectangle)
                 .fill(content_fill)
                 .stroke(Stroke::NONE);
@@ -145,30 +150,8 @@ impl TitledBox {
         let available = ui.available_size();
         let (rect, response) = ui.allocate_exact_size(available, egui::Sense::hover());
 
-        let painter = ui.painter();
+        let content_rect = self.paint_chrome(ui.painter(), rect);
 
-        // Paint outer background
-        if self.rounding != CornerRadius::ZERO {
-            let clipped = painter.with_clip_rect(rect);
-            clipped.rect_filled(rect.expand(1.0), self.rounding, self.fill);
-        } else {
-            painter.rect_filled(rect, CornerRadius::ZERO, self.fill);
-        }
-
-        let (header_rect, content_rect) = Self::split_rect(rect, self.title_position);
-
-        // Title text in the header strip
-        let title = Text::new(&self.title)
-            .color(TEXT_COLOR)
-            .size(12.0)
-            .align(Align2::CENTER_CENTER);
-
-        match self.title_position {
-            TitlePosition::Left => title.angle(-FRAC_PI_2).paint(painter, header_rect),
-            TitlePosition::Top => title.paint(painter, header_rect),
-        }
-
-        // Paint content fill background if set
         let pad_top = content_rect.height() * 0.02;
         let pad_bottom = pad_top;
         let pad_right = pad_top;
@@ -186,10 +169,9 @@ impl TitledBox {
                 .fill(content_fill)
                 .stroke(Stroke::NONE);
             shape.set_rounding(self.content_rounding);
-            shape.paint(painter, inner_rect);
+            shape.paint(ui.painter(), inner_rect);
         }
 
-        // Create a child UI inside the padded content area
         let mut child_ui = ui.new_child(
             egui::UiBuilder::new()
                 .max_rect(inner_rect)

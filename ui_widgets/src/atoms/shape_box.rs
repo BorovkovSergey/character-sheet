@@ -68,51 +68,6 @@ impl ShapeBox {
         self
     }
 
-    /// Sets the text content (consumes and returns `Self` for builder chaining).
-    pub fn text(mut self, text: impl Into<String>) -> Self {
-        let s = text.into();
-        self.text = Some(match self.text {
-            Some(mut t) => {
-                t.set_text(s);
-                t
-            }
-            None => Text::new(s),
-        });
-        self
-    }
-
-    /// Sets the text color (consumes and returns `Self` for builder chaining).
-    pub fn text_color(mut self, color: Color32) -> Self {
-        if let Some(ref mut t) = self.text {
-            t.set_text_color(color);
-        }
-        self
-    }
-
-    /// Sets the font size in points (consumes and returns `Self` for builder chaining).
-    pub fn text_size(mut self, size: f32) -> Self {
-        if let Some(ref mut t) = self.text {
-            t.set_text_size(size);
-        }
-        self
-    }
-
-    /// Sets the text alignment within the widget bounds (consumes and returns `Self` for builder chaining).
-    pub fn text_align(mut self, align: Align2) -> Self {
-        if let Some(ref mut t) = self.text {
-            t.set_text_align(align);
-        }
-        self
-    }
-
-    /// Sets the text rotation angle in radians (consumes and returns `Self` for builder chaining).
-    pub fn text_angle(mut self, angle: f32) -> Self {
-        if let Some(ref mut t) = self.text {
-            t.set_text_angle(angle);
-        }
-        self
-    }
-
     /// Sets the icon texture (consumes and returns `Self` for builder chaining).
     /// Creates an `Icon` with default alignment (center-bottom) and size (20x20).
     pub fn icon(mut self, texture_id: TextureId) -> Self {
@@ -244,43 +199,32 @@ impl Roundable for ShapeBox {
 }
 
 impl WithText for ShapeBox {
-    fn set_text(&mut self, text: impl Into<String>) -> &mut Self {
+    fn set_text(mut self, text: impl Into<String>) -> Self {
         let s = text.into();
         self.text = Some(match self.text.take() {
-            Some(mut t) => {
-                t.set_text(s);
-                t
-            }
+            Some(t) => t.set_text(s),
             None => Text::new(s),
         });
         self
     }
 
-    fn set_text_color(&mut self, color: Color32) -> &mut Self {
-        if let Some(ref mut t) = self.text {
-            t.set_text_color(color);
-        }
+    fn set_text_color(mut self, color: Color32) -> Self {
+        self.text = self.text.map(|t| t.set_text_color(color));
         self
     }
 
-    fn set_text_size(&mut self, size: f32) -> &mut Self {
-        if let Some(ref mut t) = self.text {
-            t.set_text_size(size);
-        }
+    fn set_text_size(mut self, size: f32) -> Self {
+        self.text = self.text.map(|t| t.set_text_size(size));
         self
     }
 
-    fn set_text_align(&mut self, align: Align2) -> &mut Self {
-        if let Some(ref mut t) = self.text {
-            t.set_text_align(align);
-        }
+    fn set_text_align(mut self, align: Align2) -> Self {
+        self.text = self.text.map(|t| t.set_text_align(align));
         self
     }
 
-    fn set_text_angle(&mut self, angle: f32) -> &mut Self {
-        if let Some(ref mut t) = self.text {
-            t.set_text_angle(angle);
-        }
+    fn set_text_angle(mut self, angle: f32) -> Self {
+        self.text = self.text.map(|t| t.set_text_angle(angle));
         self
     }
 }

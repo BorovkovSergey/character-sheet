@@ -1,6 +1,7 @@
 use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{SECONDARY_COLOR, STROKE_COLOR};
 use crate::egui::{self, Align2, Stroke, Widget};
+use crate::traits::WithText;
 
 /// Displays the character's current status effects and conditions.
 pub struct StatusBar;
@@ -16,8 +17,8 @@ impl Widget for StatusBar {
         ShapeBox::new(Shape::Rectangle)
             .fill(SECONDARY_COLOR)
             .stroke(Stroke::new(1.0, STROKE_COLOR))
-            .text("StatusBar")
-            .text_align(Align2::RIGHT_CENTER)
+            .set_text("StatusBar")
+            .set_text_align(Align2::RIGHT_CENTER)
             .ui(ui)
     }
 }

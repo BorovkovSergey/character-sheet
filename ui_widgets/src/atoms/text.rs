@@ -115,27 +115,27 @@ impl Text {
 }
 
 impl WithText for Text {
-    fn set_text(&mut self, text: impl Into<String>) -> &mut Self {
+    fn set_text(mut self, text: impl Into<String>) -> Self {
         self.content = text.into();
         self
     }
 
-    fn set_text_color(&mut self, color: egui::Color32) -> &mut Self {
+    fn set_text_color(mut self, color: egui::Color32) -> Self {
         self.color = color;
         self
     }
 
-    fn set_text_size(&mut self, size: f32) -> &mut Self {
+    fn set_text_size(mut self, size: f32) -> Self {
         self.size = size;
         self
     }
 
-    fn set_text_align(&mut self, align: Align2) -> &mut Self {
+    fn set_text_align(mut self, align: Align2) -> Self {
         self.align = align;
         self
     }
 
-    fn set_text_angle(&mut self, angle: f32) -> &mut Self {
+    fn set_text_angle(mut self, angle: f32) -> Self {
         self.angle = angle;
         self
     }

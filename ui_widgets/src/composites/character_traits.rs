@@ -1,6 +1,7 @@
 use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{SECONDARY_COLOR, STROKE_COLOR};
 use crate::egui::{self, Align2, Stroke, Widget};
+use crate::traits::WithText;
 
 /// Displays the character's passive traits and perks.
 pub struct Traits;
@@ -16,8 +17,8 @@ impl Widget for Traits {
         ShapeBox::new(Shape::Rectangle)
             .fill(SECONDARY_COLOR)
             .stroke(Stroke::new(1.0, STROKE_COLOR))
-            .text("Traits")
-            .text_align(Align2::RIGHT_BOTTOM)
+            .set_text("Traits")
+            .set_text_align(Align2::RIGHT_BOTTOM)
             .ui(ui)
     }
 }

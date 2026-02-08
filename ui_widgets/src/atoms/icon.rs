@@ -25,24 +25,6 @@ impl Icon {
         }
     }
 
-    /// Sets the alignment within the parent rect (consumes and returns `Self`).
-    pub fn align(mut self, align: Align2) -> Self {
-        self.align = align;
-        self
-    }
-
-    /// Sets the icon size in points (consumes and returns `Self`).
-    pub fn size(mut self, size: Vec2) -> Self {
-        self.size = size;
-        self
-    }
-
-    /// Sets the tint color (consumes and returns `Self`).
-    pub fn tint(mut self, tint: Color32) -> Self {
-        self.tint = tint;
-        self
-    }
-
     pub fn set_align(&mut self, align: Align2) -> &mut Self {
         self.align = align;
         self

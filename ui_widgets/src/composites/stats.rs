@@ -4,7 +4,7 @@ use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 use crate::egui::{self, Color32, CornerRadius, Stroke, TextureId, Widget};
 use crate::molecules::{TitlePosition, TitledBox};
-use crate::traits::Roundable;
+use crate::traits::{Roundable, WithText};
 
 /// Displays the character's defense and resistance stats.
 pub struct Stats {
@@ -114,9 +114,9 @@ fn inner_titled_boxes(
                                 let mut shape = ShapeBox::new(Shape::Rectangle)
                                     .fill(Color32::TRANSPARENT)
                                     .stroke(Stroke::new(1.0, STROKE_COLOR))
-                                    .text(text.clone())
-                                    .text_color(TEXT_COLOR)
-                                    .icon(icon);
+                                    .icon(icon)
+                                    .set_text(text.clone())
+                                    .set_text_color(TEXT_COLOR);
                                 shape.set_rounding(CornerRadius::same(rounding));
                                 ui.add(shape);
                             });
