@@ -6,6 +6,8 @@ use ui_widgets::composites::{
     Stats, StatusBar, Traits, Wallet,
 };
 
+use crate::character_select::AppScreen;
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
@@ -14,8 +16,18 @@ impl Plugin for UiPlugin {
     }
 }
 
-fn render_ui(mut contexts: EguiContexts) -> Result {
+fn render_ui(mut contexts: EguiContexts, app_screen: Res<AppScreen>) -> Result {
+    let character = match &*app_screen {
+        AppScreen::CharacterSelect => return Ok(()),
+        AppScreen::CharacterSheet(character) => character,
+    };
+
     let ctx = contexts.ctx_mut()?;
+
+    let name = &character.name;
+    let race = character.race.to_string();
+    let class = character.class.to_string();
+
     egui::CentralPanel::default()
         .frame(egui::Frame::NONE.fill(MAIN_COLOR))
         .show(ctx, |ui| {
@@ -51,10 +63,7 @@ fn render_ui(mut contexts: EguiContexts) -> Result {
 
                     ui.add_sized([col1_w, portrait_h], Portrait::new());
                     ui.add_space(gap_between);
-                    ui.add_sized(
-                        [col1_w, identity_h],
-                        IdentityBar::new("Eldrin", "Half-Elf", "Ranger"),
-                    );
+                    ui.add_sized([col1_w, identity_h], IdentityBar::new(name, &race, &class));
                     ui.add_space(gap_between);
                     ui.add_sized([col1_w, status1_h], StatusBar::new());
                     ui.add_space(gap_between);

@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 /// Character class
@@ -9,5 +11,13 @@ pub enum Class {
 impl Default for Class {
     fn default() -> Self {
         Self::Bard
+    }
+}
+
+impl fmt::Display for Class {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Class::Bard => write!(f, "Bard"),
+        }
     }
 }

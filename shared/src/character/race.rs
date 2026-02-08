@@ -1,3 +1,5 @@
+use std::fmt;
+
 use serde::{Deserialize, Serialize};
 
 use super::effect::{Effect, GetEffects, Resist};
@@ -11,6 +13,14 @@ pub enum Race {
 impl Default for Race {
     fn default() -> Self {
         Self::DarkHalfElf
+    }
+}
+
+impl fmt::Display for Race {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Race::DarkHalfElf => write!(f, "Dark Half-Elf"),
+        }
     }
 }
 

@@ -1,8 +1,10 @@
+mod character_select;
 mod ui;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 
+use character_select::CharacterSelectPlugin;
 use ui::UiPlugin;
 
 fn main() {
@@ -26,6 +28,7 @@ fn main() {
             }),
     )
     .add_plugins(EguiPlugin::default())
+    .add_plugins(CharacterSelectPlugin)
     .add_plugins(UiPlugin)
     .add_systems(PreStartup, setup)
     .run();
