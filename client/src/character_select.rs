@@ -104,7 +104,11 @@ fn render_character_entry(ui: &mut egui::Ui, character: &Character) -> bool {
     let id = ui.id().with(character.id);
     let was_hovered = ui.data(|d| d.get_temp::<bool>(id).unwrap_or(false));
 
-    let fill = if was_hovered { MAIN_COLOR } else { SECONDARY_COLOR };
+    let fill = if was_hovered {
+        MAIN_COLOR
+    } else {
+        SECONDARY_COLOR
+    };
 
     let frame_response = egui::Frame::new()
         .corner_radius(6.0)

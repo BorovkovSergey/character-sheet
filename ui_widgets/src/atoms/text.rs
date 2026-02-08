@@ -82,7 +82,20 @@ impl Text {
             Align::Max => rect.bottom() - galley_size.y,
         };
 
-        let pos = egui::pos2(anchor_x, anchor_y);
+        // When rotated, TextShape pivots around `pos`. Adjust pos so the
+        // rotated galley's visual center lands where the unrotated center would be.
+        let pos = if self.angle == 0.0 {
+            egui::pos2(anchor_x, anchor_y)
+        } else {
+            let half_w = galley_size.x * 0.5;
+            let half_h = galley_size.y * 0.5;
+            let cos = self.angle.cos();
+            let sin = self.angle.sin();
+            egui::pos2(
+                anchor_x + half_w * (1.0 - cos) + half_h * sin,
+                anchor_y + half_h * (1.0 - cos) - half_w * sin,
+            )
+        };
         let clipped = painter.with_clip_rect(rect);
 
         if self.bold {

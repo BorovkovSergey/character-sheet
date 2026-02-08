@@ -130,18 +130,29 @@ impl ShapeBox {
     }
 
     /// Paints the shape into the given rect using the provided painter.
-    fn paint(&self, painter: &egui::Painter, rect: Rect) {
+    pub(crate) fn paint(&self, painter: &egui::Painter, rect: Rect) {
         match self.shape {
             Shape::Rectangle => {
-                painter.rect_filled(rect, self.rounding, self.fill);
-                painter.rect_stroke(rect, self.rounding, self.stroke, StrokeKind::Inside);
+                if self.rounding != CornerRadius::ZERO {
+                    // Expand fill by 1px and clip to rect so AA artifacts fall outside the
+                    // visible area, preventing thin lines at rounded corners.
+                    let clipped = painter.with_clip_rect(rect);
+                    clipped.rect_filled(rect.expand(1.0), self.rounding, self.fill);
+                } else {
+                    painter.rect_filled(rect, CornerRadius::ZERO, self.fill);
+                }
+                if self.stroke.width > 0.0 {
+                    painter.rect_stroke(rect, self.rounding, self.stroke, StrokeKind::Inside);
+                }
             }
             Shape::Circle => {
                 let diameter = rect.width().min(rect.height());
                 let radius = diameter * 0.5;
                 let center = rect.center();
                 painter.circle_filled(center, radius, self.fill);
-                painter.circle_stroke(center, radius, self.stroke);
+                if self.stroke.width > 0.0 {
+                    painter.circle_stroke(center, radius, self.stroke);
+                }
             }
         }
 
