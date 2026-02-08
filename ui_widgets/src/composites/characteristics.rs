@@ -88,12 +88,12 @@ impl Widget for Characteristics {
                             egui::vec2(box_side, box_side),
                         );
 
-                        let mut shape = ShapeBox::new(Shape::Rectangle)
+                        let shape = ShapeBox::new(Shape::Rectangle)
                             .fill(MAIN_COLOR)
                             .stroke(Stroke::NONE)
                             .set_text(value.to_string())
-                            .set_text_color(TEXT_COLOR);
-                        shape.set_rounding(CornerRadius::same(12));
+                            .set_text_color(TEXT_COLOR)
+                            .set_rounding(CornerRadius::same(12));
                         shape.paint(painter, box_rect);
 
                         idx += 1;

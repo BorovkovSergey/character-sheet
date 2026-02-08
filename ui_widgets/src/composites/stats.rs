@@ -111,13 +111,13 @@ fn inner_titled_boxes(
                             .fill(Color32::TRANSPARENT)
                             .rounding(8)
                             .show(ui, |ui| {
-                                let mut shape = ShapeBox::new(Shape::Rectangle)
+                                let shape = ShapeBox::new(Shape::Rectangle)
                                     .fill(Color32::TRANSPARENT)
                                     .stroke(Stroke::new(1.0, STROKE_COLOR))
                                     .icon(icon)
                                     .set_text(text.clone())
-                                    .set_text_color(TEXT_COLOR);
-                                shape.set_rounding(CornerRadius::same(rounding));
+                                    .set_text_color(TEXT_COLOR)
+                                    .set_rounding(CornerRadius::same(rounding));
                                 ui.add(shape);
                             });
                     },

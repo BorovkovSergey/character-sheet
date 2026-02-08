@@ -144,10 +144,10 @@ impl TitledBox {
 
         if let Some(content_fill) = self.content_fill {
             let inner_rect = content_rect.shrink(4.0);
-            let mut shape = ShapeBox::new(Shape::Rectangle)
+            let shape = ShapeBox::new(Shape::Rectangle)
                 .fill(content_fill)
-                .stroke(Stroke::NONE);
-            shape.set_rounding(self.content_rounding);
+                .stroke(Stroke::NONE)
+                .set_rounding(self.content_rounding);
             shape.paint(painter, inner_rect);
         }
     }
@@ -176,10 +176,10 @@ impl TitledBox {
         );
 
         if let Some(content_fill) = self.content_fill {
-            let mut shape = ShapeBox::new(Shape::Rectangle)
+            let shape = ShapeBox::new(Shape::Rectangle)
                 .fill(content_fill)
-                .stroke(Stroke::NONE);
-            shape.set_rounding(self.content_rounding);
+                .stroke(Stroke::NONE)
+                .set_rounding(self.content_rounding);
             shape.paint(ui.painter(), inner_rect);
         }
 

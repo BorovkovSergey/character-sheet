@@ -177,12 +177,12 @@ impl Alignable for ShapeBox {
 }
 
 impl Roundable for ShapeBox {
-    fn set_rounding(&mut self, rounding: CornerRadius) -> &mut Self {
+    fn set_rounding(mut self, rounding: CornerRadius) -> Self {
         self.rounding = rounding;
         self
     }
 
-    fn set_corner_rounding(&mut self, corner: Corner, radius: u8) -> &mut Self {
+    fn set_corner_rounding(mut self, corner: Corner, radius: u8) -> Self {
         match corner {
             Corner::TopLeft => self.rounding.nw = radius,
             Corner::TopRight => self.rounding.ne = radius,
