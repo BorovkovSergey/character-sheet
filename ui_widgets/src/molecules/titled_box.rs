@@ -5,12 +5,27 @@ use crate::colors::{SECONDARY_COLOR, TEXT_COLOR};
 use crate::egui::{self, Align2, Color32, CornerRadius, Rect, Stroke, Widget};
 use crate::traits::Roundable;
 
-/// A rectangular box with a rotated title strip on the left and a content area on the right.
+/// Controls where the title strip is placed within a [`TitledBox`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TitlePosition {
+    /// Vertical header strip on the left with rotated text (bottom-to-top).
+    #[default]
+    Left,
+    /// Horizontal header strip on top with normal text.
+    Top,
+}
+
+/// A rectangular box with a title strip and a content area.
 ///
-/// The title text is rotated 90 degrees counter-clockwise (reads bottom-to-top) and painted
-/// in a narrow vertical header strip. The content area fills the remaining space to the right.
+/// When [`TitlePosition::Left`] (the default), the title text is rotated 90 degrees
+/// counter-clockwise (reads bottom-to-top) and painted in a narrow vertical header strip.
+/// The content area fills the remaining space to the right.
+///
+/// When [`TitlePosition::Top`], the title text is drawn horizontally in a narrow strip
+/// across the top. The content area fills the remaining space below.
 pub struct TitledBox {
     title: String,
+    title_position: TitlePosition,
     fill: Color32,
     rounding: CornerRadius,
     content_fill: Option<Color32>,
@@ -22,11 +37,18 @@ impl TitledBox {
     pub fn new(title: impl Into<String>) -> Self {
         Self {
             title: title.into(),
+            title_position: TitlePosition::default(),
             fill: SECONDARY_COLOR,
             rounding: CornerRadius::ZERO,
             content_fill: None,
             content_rounding: CornerRadius::ZERO,
         }
+    }
+
+    /// Sets the position of the title strip.
+    pub fn title_position(mut self, position: TitlePosition) -> Self {
+        self.title_position = position;
+        self
     }
 
     /// Sets the fill color for the outer box.
@@ -53,14 +75,33 @@ impl TitledBox {
         self
     }
 
-    /// Splits the allocated rect into a header strip (left) and content area (right).
-    fn split_rect(rect: Rect) -> (Rect, Rect) {
-        let header_width = (rect.width() * 0.08).max(20.0);
-        let header_rect =
-            Rect::from_min_max(rect.min, egui::pos2(rect.min.x + header_width, rect.max.y));
-        let content_rect =
-            Rect::from_min_max(egui::pos2(rect.min.x + header_width, rect.min.y), rect.max);
-        (header_rect, content_rect)
+    /// Splits the allocated rect into a header strip and content area based on `position`.
+    ///
+    /// - [`TitlePosition::Left`]: vertical strip on the left (8% of width, min 20px).
+    /// - [`TitlePosition::Top`]: horizontal strip on the top (8% of height, min 20px).
+    fn split_rect(rect: Rect, position: TitlePosition) -> (Rect, Rect) {
+        match position {
+            TitlePosition::Left => {
+                let header_width = (rect.width() * 0.08).max(20.0);
+                let header_rect =
+                    Rect::from_min_max(rect.min, egui::pos2(rect.min.x + header_width, rect.max.y));
+                let content_rect =
+                    Rect::from_min_max(egui::pos2(rect.min.x + header_width, rect.min.y), rect.max);
+                (header_rect, content_rect)
+            }
+            TitlePosition::Top => {
+                let header_height = (rect.height() * 0.08).max(20.0);
+                let header_rect = Rect::from_min_max(
+                    rect.min,
+                    egui::pos2(rect.max.x, rect.min.y + header_height),
+                );
+                let content_rect = Rect::from_min_max(
+                    egui::pos2(rect.min.x, rect.min.y + header_height),
+                    rect.max,
+                );
+                (header_rect, content_rect)
+            }
+        }
     }
 
     fn paint(&self, painter: &egui::Painter, rect: Rect) {
@@ -71,15 +112,18 @@ impl TitledBox {
             painter.rect_filled(rect, CornerRadius::ZERO, self.fill);
         }
 
-        let (header_rect, content_rect) = Self::split_rect(rect);
+        let (header_rect, content_rect) = Self::split_rect(rect, self.title_position);
 
-        // Rotated title text in the header strip
-        Text::new(&self.title)
+        // Title text in the header strip
+        let title = Text::new(&self.title)
             .color(TEXT_COLOR)
             .size(12.0)
-            .align(Align2::CENTER_CENTER)
-            .angle(-FRAC_PI_2)
-            .paint(painter, header_rect);
+            .align(Align2::CENTER_CENTER);
+
+        match self.title_position {
+            TitlePosition::Left => title.angle(-FRAC_PI_2).paint(painter, header_rect),
+            TitlePosition::Top => title.paint(painter, header_rect),
+        }
 
         if let Some(content_fill) = self.content_fill {
             let padding = 4.0;
@@ -90,6 +134,70 @@ impl TitledBox {
             shape.set_rounding(self.content_rounding);
             shape.paint(painter, inner_rect);
         }
+    }
+
+    /// Renders the titled box and places child widgets inside the content area.
+    ///
+    /// Unlike the [`Widget`] impl, this method accepts a closure that receives
+    /// a `&mut Ui` scoped to the padded content rect, so you can place
+    /// arbitrary child widgets inside the box.
+    pub fn show(self, ui: &mut egui::Ui, content: impl FnOnce(&mut egui::Ui)) -> egui::Response {
+        let available = ui.available_size();
+        let (rect, response) = ui.allocate_exact_size(available, egui::Sense::hover());
+
+        let painter = ui.painter();
+
+        // Paint outer background
+        if self.rounding != CornerRadius::ZERO {
+            let clipped = painter.with_clip_rect(rect);
+            clipped.rect_filled(rect.expand(1.0), self.rounding, self.fill);
+        } else {
+            painter.rect_filled(rect, CornerRadius::ZERO, self.fill);
+        }
+
+        let (header_rect, content_rect) = Self::split_rect(rect, self.title_position);
+
+        // Title text in the header strip
+        let title = Text::new(&self.title)
+            .color(TEXT_COLOR)
+            .size(12.0)
+            .align(Align2::CENTER_CENTER);
+
+        match self.title_position {
+            TitlePosition::Left => title.angle(-FRAC_PI_2).paint(painter, header_rect),
+            TitlePosition::Top => title.paint(painter, header_rect),
+        }
+
+        // Paint content fill background if set
+        let pad_top = content_rect.height() * 0.02;
+        let pad_bottom = pad_top;
+        let pad_right = pad_top;
+        let pad_left = content_rect.width() * 0.005;
+        let inner_rect = Rect::from_min_max(
+            egui::pos2(content_rect.min.x + pad_left, content_rect.min.y + pad_top),
+            egui::pos2(
+                content_rect.max.x - pad_right,
+                content_rect.max.y - pad_bottom,
+            ),
+        );
+
+        if let Some(content_fill) = self.content_fill {
+            let mut shape = ShapeBox::new(Shape::Rectangle)
+                .fill(content_fill)
+                .stroke(Stroke::NONE);
+            shape.set_rounding(self.content_rounding);
+            shape.paint(painter, inner_rect);
+        }
+
+        // Create a child UI inside the padded content area
+        let mut child_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(inner_rect)
+                .layout(egui::Layout::left_to_right(egui::Align::Min)),
+        );
+        content(&mut child_ui);
+
+        response
     }
 }
 

@@ -1,3 +1,3 @@
 mod titled_box;
 
-pub use titled_box::TitledBox;
+pub use titled_box::{TitlePosition, TitledBox};

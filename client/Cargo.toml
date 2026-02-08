@@ -16,10 +16,12 @@ bevy = { workspace = true, features = [
     "bevy_sprite",
     "bevy_log",
     "default_font",
+    "png",
     "webgl2",
     "x11",
 ] }
 bevy_egui.workspace = true
+image = { version = "0.25", default-features = false, features = ["png"] }
 ewebsock.workspace = true
 
 # Required for WASM

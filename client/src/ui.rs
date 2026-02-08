@@ -8,6 +8,18 @@ use ui_widgets::composites::{
 
 use crate::character_select::AppScreen;
 
+struct UiIcons {
+    heart: egui::TextureHandle,
+}
+
+fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::TextureHandle {
+    let img = image::load_from_memory(png_bytes).expect("failed to decode PNG");
+    let rgba = img.to_rgba8();
+    let size = [rgba.width() as usize, rgba.height() as usize];
+    let color_image = egui::ColorImage::from_rgba_unmultiplied(size, &rgba);
+    ctx.load_texture(name, color_image, egui::TextureOptions::default())
+}
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
@@ -16,13 +28,22 @@ impl Plugin for UiPlugin {
     }
 }
 
-fn render_ui(mut contexts: EguiContexts, app_screen: Res<AppScreen>) -> Result {
+fn render_ui(
+    mut contexts: EguiContexts,
+    mut icons: Local<Option<UiIcons>>,
+    app_screen: Res<AppScreen>,
+) -> Result {
     let character = match &*app_screen {
         AppScreen::CharacterSelect => return Ok(()),
         AppScreen::CharacterSheet(character) => character,
     };
 
     let ctx = contexts.ctx_mut()?;
+
+    let icons = icons.get_or_insert_with(|| UiIcons {
+        heart: load_png_texture(ctx, "heart", include_bytes!("../assets/heart.png")),
+    });
+    let heart_icon = icons.heart.id();
 
     let name = &character.name;
     let race = character.race.to_string();
@@ -67,7 +88,7 @@ fn render_ui(mut contexts: EguiContexts, app_screen: Res<AppScreen>) -> Result {
                     ui.add_space(gap_between);
                     ui.add_sized([col1_w, status1_h], StatusBar::new());
                     ui.add_space(gap_between);
-                    ui.add_sized([col1_w, stats_h], Stats::new());
+                    ui.add_sized([col1_w, stats_h], Stats::new(heart_icon));
                     ui.add_space(gap_between);
                     ui.add_sized([col1_w, status2_h], StatusBar::new());
                 });
