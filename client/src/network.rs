@@ -121,7 +121,10 @@ fn receive_messages(world: &mut World) {
         }
     }
 
-    if let Some(characters) = new_characters {
+    if let Some(mut characters) = new_characters {
+        for c in &mut characters {
+            c.recalculate_effects();
+        }
         world.resource_mut::<CharacterList>().characters = characters;
     }
 

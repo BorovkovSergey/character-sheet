@@ -39,7 +39,14 @@ impl CharacterStore {
     async fn load_from_file(path: &PathBuf) -> HashMap<Uuid, Character> {
         match tokio::fs::read_to_string(path).await {
             Ok(content) => match serde_json::from_str::<StorageData>(&content) {
-                Ok(data) => data.characters.into_iter().map(|c| (c.id, c)).collect(),
+                Ok(data) => data
+                    .characters
+                    .into_iter()
+                    .map(|mut c| {
+                        c.recalculate_effects();
+                        (c.id, c)
+                    })
+                    .collect(),
                 Err(e) => {
                     warn!("Failed to parse characters file {:?}: {}", path, e);
                     HashMap::new()

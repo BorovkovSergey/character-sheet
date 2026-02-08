@@ -88,7 +88,12 @@ fn render_ui(
                     ui.add_space(gap_between);
                     ui.add_sized([col1_w, status1_h], StatusBar::new());
                     ui.add_space(gap_between);
-                    ui.add_sized([col1_w, stats_h], Stats::new(heart_icon));
+                    let resists = character
+                        .get_resists()
+                        .into_iter()
+                        .map(|(r, v)| (r.to_string(), v))
+                        .collect();
+                    ui.add_sized([col1_w, stats_h], Stats::new(heart_icon, resists));
                     ui.add_space(gap_between);
                     ui.add_sized([col1_w, status2_h], StatusBar::new());
                 });

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 use crate::egui::{self, Color32, CornerRadius, Stroke, TextureId, Widget};
@@ -7,11 +9,12 @@ use crate::traits::Roundable;
 /// Displays the character's defense and resistance stats.
 pub struct Stats {
     icon: TextureId,
+    resists: BTreeMap<String, u32>,
 }
 
 impl Stats {
-    pub fn new(icon: TextureId) -> Self {
-        Self { icon }
+    pub fn new(icon: TextureId, resists: BTreeMap<String, u32>) -> Self {
+        Self { icon, resists }
     }
 }
 
@@ -41,7 +44,7 @@ impl Widget for Stats {
                         .content_fill(MAIN_COLOR)
                         .content_rounding(14)
                         .show(ui, |ui| {
-                            inner_titled_boxes(ui, &defense_labels, false, self.icon);
+                            inner_titled_boxes(ui, &defense_labels, false, self.icon, None);
                         });
                 },
             );
@@ -59,7 +62,13 @@ impl Widget for Stats {
                         .content_fill(MAIN_COLOR)
                         .content_rounding(14)
                         .show(ui, |ui| {
-                            inner_titled_boxes(ui, &resist_labels, true, self.icon);
+                            inner_titled_boxes(
+                                ui,
+                                &resist_labels,
+                                true,
+                                self.icon,
+                                Some(&self.resists),
+                            );
                         });
                 },
             );
@@ -69,7 +78,13 @@ impl Widget for Stats {
 }
 
 /// Lays out a row of equally-spaced inner [`TitledBox`] widgets.
-fn inner_titled_boxes(ui: &mut egui::Ui, labels: &[&str], is_resist: bool, icon: TextureId) {
+fn inner_titled_boxes(
+    ui: &mut egui::Ui,
+    labels: &[&str],
+    is_resist: bool,
+    icon: TextureId,
+    values: Option<&BTreeMap<String, u32>>,
+) {
     let count = labels.len() as f32;
     let spacing = 4.0;
     let available_width = ui.available_width();
@@ -86,11 +101,16 @@ fn inner_titled_boxes(ui: &mut egui::Ui, labels: &[&str], is_resist: bool, icon:
             ui.add_space(pad_x);
             ui.spacing_mut().item_spacing = egui::vec2(spacing, 0.0);
             for label in labels {
-                let value = pseudo_value(label, is_resist);
-                let text = if is_resist {
-                    format_signed(value)
+                let text = if let Some(vals) = values {
+                    let v = *vals.get(*label).unwrap_or(&0) as i32;
+                    format_signed(v)
                 } else {
-                    value.to_string()
+                    let value = pseudo_value(label, is_resist);
+                    if is_resist {
+                        format_signed(value)
+                    } else {
+                        value.to_string()
+                    }
                 };
 
                 ui.allocate_ui_with_layout(
