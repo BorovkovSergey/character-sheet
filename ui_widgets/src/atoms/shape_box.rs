@@ -68,7 +68,10 @@ impl ShapeBox {
     pub fn text(mut self, text: impl Into<String>) -> Self {
         let s = text.into();
         self.text = Some(match self.text {
-            Some(mut t) => { t.set_text(s); t }
+            Some(mut t) => {
+                t.set_text(s);
+                t
+            }
             None => Text::new(s),
         });
         self
@@ -188,7 +191,10 @@ impl WithText for ShapeBox {
     fn set_text(&mut self, text: impl Into<String>) -> &mut Self {
         let s = text.into();
         self.text = Some(match self.text.take() {
-            Some(mut t) => { t.set_text(s); t }
+            Some(mut t) => {
+                t.set_text(s);
+                t
+            }
             None => Text::new(s),
         });
         self

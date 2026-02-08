@@ -9,3 +9,4 @@ pub const MP_SPENT_COLOR: Color32 = Color32::from_rgb(0xC8, 0xD9, 0xFA);
 pub const AP_COLOR: Color32 = Color32::from_rgb(0x32, 0xFA, 0xBE);
 pub const AP_SPENT_COLOR: Color32 = Color32::from_rgb(0xC8, 0xFA, 0xEB);
 pub const STROKE_COLOR: Color32 = Color32::from_rgb(0xDD, 0xDD, 0xEB);
+pub const TEXT_COLOR: Color32 = Color32::from_rgb(0x1D, 0x1D, 0x1F);

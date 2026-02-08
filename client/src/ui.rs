@@ -51,7 +51,10 @@ fn render_ui(mut contexts: EguiContexts) -> Result {
 
                     ui.add_sized([col1_w, portrait_h], Portrait::new());
                     ui.add_space(gap_between);
-                    ui.add_sized([col1_w, identity_h], IdentityBar::new());
+                    ui.add_sized(
+                        [col1_w, identity_h],
+                        IdentityBar::new("Eldrin", "Half-Elf", "Ranger"),
+                    );
                     ui.add_space(gap_between);
                     ui.add_sized([col1_w, status1_h], StatusBar::new());
                     ui.add_space(gap_between);
