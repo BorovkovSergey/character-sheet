@@ -50,7 +50,8 @@
       "skills": [],
       "traits": [
         "Magic Allergy"
-      ]
+      ],
+      "wallet": 123456
     },
     {
       "id": "a1b2c3d4-1111-4aaa-bbbb-111111111111",
@@ -115,7 +116,8 @@
         "Leader",
         "Priest of Love",
         "Magic Allergy"
-      ]
+      ],
+      "wallet": 123456
     },
     {
       "id": "b2c3d4e5-2222-4bbb-cccc-222222222222",
@@ -174,7 +176,8 @@
         "Magician",
         "Cat's Eye",
         "Educated"
-      ]
+      ],
+      "wallet": 123456
     },
     {
       "id": "c3d4e5f6-3333-4ccc-dddd-333333333333",
@@ -238,7 +241,8 @@
         "Thick-Skinned",
         "Fistfighter",
         "Cold Calculation"
-      ]
+      ],
+      "wallet": 123456
     },
     {
       "id": "d4e5f6a7-4444-4ddd-eeee-444444444444",
@@ -291,7 +295,8 @@
       "traits": [
         "Artist",
         "Heightened Senses"
-      ]
+      ],
+      "wallet": 123456
     },
     {
       "id": "e5f6a7b8-5555-4eee-ffff-555555555555",
@@ -350,7 +355,8 @@
         "Blessed",
         "Second Chance",
         "Strength of Spirit"
-      ]
+      ],
+      "wallet": 123456
     },
     {
       "id": "f6a7b8c9-6666-4fff-aaaa-666666666666",
@@ -415,7 +421,8 @@
         "Summoner",
         "Magic Conduit",
         "Keen Eye"
-      ]
+      ],
+      "wallet": 123456
     }
   ]
 }

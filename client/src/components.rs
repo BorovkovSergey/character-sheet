@@ -65,6 +65,23 @@ pub struct CharacterSkillList(pub Vec<CharacterSkill>);
 pub struct CharacterTraitNames(pub Vec<String>);
 
 #[derive(Component)]
+pub struct Wallet(pub u64);
+
+impl Wallet {
+    pub fn gold(&self) -> u32 {
+        (self.0 / 1000) as u32
+    }
+
+    pub fn silver(&self) -> u32 {
+        ((self.0 % 1000) / 10) as u32
+    }
+
+    pub fn copper(&self) -> u32 {
+        (self.0 % 10) as u32
+    }
+}
+
+#[derive(Component)]
 pub struct ActiveEffects(pub Vec<Effect>);
 
 impl ActiveEffects {
@@ -129,6 +146,7 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
             SkillPoints(character.skill_points),
             CharacterSkillList(character.skills.clone()),
             CharacterTraitNames(character.traits.clone()),
+            Wallet(character.wallet),
             ActiveEffects(character.active_effects.clone()),
         ))
         .id()

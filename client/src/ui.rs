@@ -3,15 +3,16 @@ use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use ui_widgets::colors::MAIN_COLOR;
 use ui_widgets::composites::{
     Abilities, Characteristics, EquippedGear, IdentityBar, Inventory, Points, Portrait, SkillEntry,
-    Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits, Wallet,
+    Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits, Wallet as WalletWidget,
+    WalletResponse,
 };
 
 use crate::components::{
     ActionPoints, ActiveCharacter, ActiveEffects, CharacterClass, CharacterName, CharacterRace,
     CharacterSkillList, CharacterStats, CharacterTraitNames, CharacteristicPoints, Experience, Hp,
-    Level, Mana, SkillPoints,
+    Level, Mana, SkillPoints, Wallet,
 };
-use crate::events::ResourceChanged;
+use crate::events::{ResourceChanged, WalletChanged};
 use crate::state::AppScreen;
 use shared::character::OnLvlUp;
 use shared::Effect;
@@ -22,6 +23,9 @@ struct UiIcons {
     avatar_border_1: egui::TextureHandle,
     avatar_border_2: egui::TextureHandle,
     avatar_placeholder: egui::TextureHandle,
+    wallet_gold: egui::TextureHandle,
+    wallet_silver: egui::TextureHandle,
+    wallet_copper: egui::TextureHandle,
 }
 
 fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::TextureHandle {
@@ -37,6 +41,7 @@ pub struct UiPlugin;
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ResourceChanged>()
+            .add_message::<WalletChanged>()
             .add_systems(
                 EguiPrimaryContextPass,
                 (
@@ -44,7 +49,7 @@ impl Plugin for UiPlugin {
                     render_ui.run_if(in_state(AppScreen::CharacterSheet)),
                 ),
             )
-            .add_systems(Update, apply_resource_changes);
+            .add_systems(Update, (apply_resource_changes, apply_wallet_changes));
     }
 }
 
@@ -66,6 +71,21 @@ fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> Result {
             ctx,
             "avatar_placeholder",
             include_bytes!("../assets/avatar_placeholder.png"),
+        ),
+        wallet_gold: load_png_texture(
+            ctx,
+            "wallet_gold",
+            include_bytes!("../assets/wallet_gold.png"),
+        ),
+        wallet_silver: load_png_texture(
+            ctx,
+            "wallet_silver",
+            include_bytes!("../assets/wallet_silver.png"),
+        ),
+        wallet_copper: load_png_texture(
+            ctx,
+            "wallet_copper",
+            include_bytes!("../assets/wallet_copper.png"),
         ),
     });
     Ok(())
@@ -92,6 +112,7 @@ struct CharacterQueryData {
     char_pts: &'static CharacteristicPoints,
     skill_pts: &'static SkillPoints,
     skills: &'static CharacterSkillList,
+    wallet: &'static Wallet,
     effects: &'static ActiveEffects,
 }
 
@@ -102,6 +123,7 @@ fn render_ui(
     trait_registry: Res<crate::network::ClientTraitRegistry>,
     skill_registry: Res<crate::network::ClientSkillRegistry>,
     mut events: MessageWriter<ResourceChanged>,
+    mut wallet_events: MessageWriter<WalletChanged>,
 ) -> Result {
     let Some(icons) = icons else {
         return Ok(());
@@ -147,7 +169,14 @@ fn render_ui(
                     &skill_registry,
                 );
                 ui.add_space(gap);
-                render_right_column(ui, total_w * COL3_WIDTH, col_h);
+                render_right_column(
+                    ui,
+                    total_w * COL3_WIDTH,
+                    col_h,
+                    &icons,
+                    &character,
+                    &mut wallet_events,
+                );
             });
         });
 
@@ -366,16 +395,61 @@ fn format_effect(effect: &Effect) -> String {
     }
 }
 
-fn render_right_column(ui: &mut egui::Ui, width: f32, height: f32) {
+fn render_right_column(
+    ui: &mut egui::Ui,
+    width: f32,
+    height: f32,
+    icons: &UiIcons,
+    character: &CharacterQueryDataItem,
+    wallet_events: &mut MessageWriter<WalletChanged>,
+) {
     let gap = height * 0.03 / 2.0;
+    let wallet = character.wallet;
 
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
         ui.add_sized([width, height * 0.41], EquippedGear::new());
         ui.add_space(gap);
-        ui.add_sized([width, height * 0.08], Wallet::new());
+
+        let wallet_size = egui::vec2(width, height * 0.08);
+        let (wallet_rect, _) = ui.allocate_exact_size(wallet_size, egui::Sense::hover());
+        let mut wallet_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(wallet_rect)
+                .layout(egui::Layout::top_down(egui::Align::Min)),
+        );
+        let result = WalletWidget::new(
+            wallet.gold(),
+            wallet.silver(),
+            wallet.copper(),
+            icons.wallet_gold.id(),
+            icons.wallet_silver.id(),
+            icons.wallet_copper.id(),
+        )
+        .show(&mut wallet_ui);
+        send_wallet_events(wallet_events, result);
+
         ui.add_space(gap);
         ui.add_sized([width, height * 0.48], Inventory::new());
     });
+}
+
+fn send_wallet_events(events: &mut MessageWriter<WalletChanged>, result: WalletResponse) {
+    for delta in [result.gold, result.silver, result.copper].into_iter().flatten() {
+        events.write(WalletChanged(delta));
+    }
+}
+
+fn apply_wallet_changes(
+    mut query: Query<&mut Wallet, With<ActiveCharacter>>,
+    mut reader: MessageReader<WalletChanged>,
+) {
+    let Ok(mut wallet) = query.single_mut() else {
+        return;
+    };
+    for event in reader.read() {
+        let new_val = wallet.0 as i64 + event.0;
+        wallet.0 = new_val.max(0) as u64;
+    }
 }

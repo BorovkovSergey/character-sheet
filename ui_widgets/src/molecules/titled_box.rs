@@ -132,7 +132,8 @@ impl TitledBox {
     fn paint_chrome(&self, painter: &egui::Painter, rect: Rect) -> Rect {
         painter.rect_filled(rect, self.rounding, self.fill);
 
-        let (header_rect, content_rect) = Self::split_rect(rect, self.title_position, self.header_ratio);
+        let (header_rect, content_rect) =
+            Self::split_rect(rect, self.title_position, self.header_ratio);
 
         let default_angle = match self.title_position {
             TitlePosition::Left => -FRAC_PI_2,

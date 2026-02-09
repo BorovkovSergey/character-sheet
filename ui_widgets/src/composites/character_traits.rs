@@ -90,9 +90,7 @@ impl Widget for Traits {
 
                         // Effects tooltip on hover
                         if response.hovered() && !entry.effects.is_empty() {
-                            let tooltip_pos = response
-                                .hover_pos()
-                                .unwrap_or(rect.right_bottom())
+                            let tooltip_pos = response.hover_pos().unwrap_or(rect.right_bottom())
                                 + egui::vec2(8.0, 8.0);
                             egui::Area::new(response.id.with("tooltip"))
                                 .order(egui::Order::Tooltip)

@@ -18,11 +18,7 @@ pub struct LabeledValue {
 }
 
 impl LabeledValue {
-    pub fn new(
-        label: impl Into<String>,
-        tag: impl Into<String>,
-        value: impl Into<String>,
-    ) -> Self {
+    pub fn new(label: impl Into<String>, tag: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             label: label.into(),
             tag: tag.into(),

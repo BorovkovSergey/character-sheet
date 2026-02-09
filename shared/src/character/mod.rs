@@ -41,6 +41,10 @@ pub struct Character {
     pub skills: Vec<CharacterSkill>,
     #[serde(default)]
     pub traits: Vec<String>,
+    /// Total currency stored as a single value.
+    /// Gold = value / 1000, Silver = (value % 1000) / 10, Copper = value % 10.
+    #[serde(default)]
+    pub wallet: u64,
     #[serde(skip)]
     pub active_effects: Vec<Effect>,
 }
@@ -62,6 +66,7 @@ impl Character {
             skill_points: 0,
             skills: Vec::new(),
             traits: Vec::new(),
+            wallet: 0,
             active_effects: Vec::new(),
         };
         // Effects will be calculated after traits are assigned
