@@ -1,11 +1,9 @@
-use crate::atoms::{Shape, ShapeBox, Text};
 use crate::colors::{
     AP_COLOR, AP_SPENT_COLOR, HP_COLOR, HP_SPENT_COLOR, MAIN_COLOR, MP_COLOR, MP_SPENT_COLOR,
-    SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR,
+    STROKE_COLOR,
 };
-use crate::egui::{self, Align2, CornerRadius, Rect, Stroke};
-use crate::molecules::ProgressBar;
-use crate::traits::{Roundable, WithText};
+use crate::egui::{self, CornerRadius, Rect, Stroke};
+use crate::molecules::{LabeledValue, ProgressBar};
 
 /// Result of rendering a `StatusBar`. Each field is `Some(new_value)` when
 /// the corresponding progress bar was clicked.
@@ -120,46 +118,12 @@ impl StatusBar {
 
         // Initiative sub-widget below progress bars
         {
-            let painter = ui.painter();
-            let text_size = rect.height() * 0.10;
-            let box_height = rect.height() * 0.20;
-            let box_width = rect.width() * 0.14;
-
-            let initiative_center_y = (inner_rect.max.y + rect.max.y) / 2.0;
-
-            let box_rect = Rect::from_center_size(
-                egui::pos2(inner_rect.max.x - box_width / 2.0, initiative_center_y),
-                egui::vec2(box_width, box_height),
+            let init_rect = Rect::from_min_max(
+                egui::pos2(inner_rect.min.x, inner_rect.max.y),
+                egui::pos2(inner_rect.max.x, rect.max.y - pad),
             );
-
-            ShapeBox::new(Shape::Rectangle)
-                .fill(SECONDARY_COLOR)
-                .stroke(Stroke::NONE)
-                .set_rounding(CornerRadius::same(8))
-                .set_text(&self.initiative.to_string())
-                .set_text_color(TEXT_COLOR)
-                .set_text_size(text_size)
-                .paint(painter, box_rect);
-
-            let per_rect = Rect::from_min_max(
-                egui::pos2(inner_rect.min.x, box_rect.min.y),
-                egui::pos2(box_rect.min.x - 6.0, box_rect.max.y),
-            );
-            Text::new("Per")
-                .color(TEXT_COLOR)
-                .size(text_size)
-                .align(Align2::RIGHT_CENTER)
-                .paint(painter, per_rect);
-
-            let initiative_rect = Rect::from_min_max(
-                egui::pos2(inner_rect.min.x, box_rect.min.y),
-                egui::pos2(per_rect.max.x, box_rect.max.y),
-            );
-            Text::new("Initiative")
-                .color(TEXT_COLOR)
-                .size(text_size)
-                .align(Align2::LEFT_CENTER)
-                .paint(painter, initiative_rect);
+            LabeledValue::new("Initiative", "Per", &self.initiative.to_string())
+                .paint(ui.painter(), init_rect);
         }
 
         StatusBarResponse { hp, mp, ap }

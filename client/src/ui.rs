@@ -2,14 +2,14 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use ui_widgets::colors::MAIN_COLOR;
 use ui_widgets::composites::{
-    Abilities, Characteristics, EquippedGear, IdentityBar, Inventory, Points, Portrait, Skills,
-    Stats, StatusBar, StatusBarResponse, TraitEntry, Traits, Wallet,
+    Abilities, Characteristics, EquippedGear, IdentityBar, Inventory, Points, Portrait, SkillEntry,
+    Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits, Wallet,
 };
 
 use crate::components::{
     ActionPoints, ActiveCharacter, ActiveEffects, CharacterClass, CharacterName, CharacterRace,
-    CharacterStats, CharacterTraitNames, CharacteristicPoints, Experience, Hp, Level, Mana,
-    SkillPoints,
+    CharacterSkillList, CharacterStats, CharacterTraitNames, CharacteristicPoints, Experience, Hp,
+    Level, Mana, SkillPoints,
 };
 use crate::events::ResourceChanged;
 use crate::state::AppScreen;
@@ -91,6 +91,7 @@ struct CharacterQueryData {
     trait_names: &'static CharacterTraitNames,
     char_pts: &'static CharacteristicPoints,
     skill_pts: &'static SkillPoints,
+    skills: &'static CharacterSkillList,
     effects: &'static ActiveEffects,
 }
 
@@ -99,6 +100,7 @@ fn render_ui(
     icons: Option<Res<UiIcons>>,
     character_query: Query<CharacterQueryData, With<ActiveCharacter>>,
     trait_registry: Res<crate::network::ClientTraitRegistry>,
+    skill_registry: Res<crate::network::ClientSkillRegistry>,
     mut events: MessageWriter<ResourceChanged>,
 ) -> Result {
     let Some(icons) = icons else {
@@ -136,7 +138,14 @@ fn render_ui(
                     &mut events,
                 );
                 ui.add_space(gap);
-                render_center_column(ui, total_w * COL2_WIDTH, col_h, &character, &trait_registry);
+                render_center_column(
+                    ui,
+                    total_w * COL2_WIDTH,
+                    col_h,
+                    &character,
+                    &trait_registry,
+                    &skill_registry,
+                );
                 ui.add_space(gap);
                 render_right_column(ui, total_w * COL3_WIDTH, col_h);
             });
@@ -270,6 +279,7 @@ fn render_center_column(
     height: f32,
     character: &CharacterQueryDataItem,
     trait_registry: &crate::network::ClientTraitRegistry,
+    skill_registry: &crate::network::ClientSkillRegistry,
 ) {
     let gap = height * 0.03 / 4.0;
     let stats = &character.stats.0;
@@ -298,7 +308,26 @@ fn render_center_column(
             Points::new(character.char_pts.0, character.skill_pts.0),
         );
         ui.add_space(gap);
-        ui.add_sized([width, height * 0.24], Skills::new());
+        let skill_entries: Vec<SkillEntry> = skill_registry
+            .0
+            .get_class_skills(&character.class.0)
+            .into_iter()
+            .flat_map(|skills| skills.iter())
+            .map(|(name, skill)| {
+                let level = character
+                    .skills
+                    .0
+                    .iter()
+                    .find(|s| s.name == *name)
+                    .map_or(0, |s| s.level);
+                SkillEntry {
+                    name: name.clone(),
+                    dependency: skill.dependency.abbrev().to_string(),
+                    level: level as i32,
+                }
+            })
+            .collect();
+        ui.add_sized([width, height * 0.24], Skills::new(skill_entries));
         ui.add_space(gap);
         let trait_entries: Vec<TraitEntry> = character
             .trait_names

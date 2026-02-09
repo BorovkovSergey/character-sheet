@@ -53,6 +53,12 @@ pub struct SkillRegistry {
 }
 
 impl SkillRegistry {
+    /// Load from a JSON string.
+    pub fn load_from_str(json: &str) -> Result<Self, serde_json::Error> {
+        let classes: BTreeMap<Class, BTreeMap<String, Skill>> = serde_json::from_str(json)?;
+        Ok(Self { classes })
+    }
+
     /// Load from file
     #[cfg(not(target_arch = "wasm32"))]
     pub fn load_from_file(path: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {

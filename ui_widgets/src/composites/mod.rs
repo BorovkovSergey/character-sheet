@@ -20,7 +20,7 @@ pub use identity_bar::IdentityBar;
 pub use inventory::Inventory;
 pub use points::Points;
 pub use portrait::Portrait;
-pub use skills::Skills;
+pub use skills::{SkillEntry, Skills};
 pub use stats::Stats;
 pub use status_bar::{StatusBar, StatusBarResponse};
 pub use wallet::Wallet;
