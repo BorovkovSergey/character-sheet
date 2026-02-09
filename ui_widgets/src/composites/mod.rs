@@ -22,6 +22,6 @@ pub use points::Points;
 pub use portrait::Portrait;
 pub use skills::Skills;
 pub use stats::Stats;
-pub use status_bar::StatusBar;
+pub use status_bar::{StatusBar, StatusBarResponse};
 pub use wallet::Wallet;
 pub use weapon::Weapon;

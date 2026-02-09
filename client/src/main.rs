@@ -1,4 +1,5 @@
 mod character_select;
+mod events;
 mod network;
 mod ui;
 

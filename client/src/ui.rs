@@ -4,10 +4,11 @@ use shared::Character;
 use ui_widgets::colors::MAIN_COLOR;
 use ui_widgets::composites::{
     Abilities, Characteristics, EquippedGear, IdentityBar, Inventory, Points, Portrait, Skills,
-    Stats, StatusBar, Traits, Wallet,
+    Stats, StatusBar, StatusBarResponse, Traits, Wallet,
 };
 
 use crate::character_select::AppScreen;
+use crate::events::ResourceChanged;
 
 #[derive(Resource)]
 struct UiIcons {
@@ -26,13 +27,15 @@ pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            EguiPrimaryContextPass,
-            (
-                init_icons.run_if(not(resource_exists::<UiIcons>)),
-                render_ui,
-            ),
-        );
+        app.add_message::<ResourceChanged>()
+            .add_systems(
+                EguiPrimaryContextPass,
+                (
+                    init_icons.run_if(not(resource_exists::<UiIcons>)),
+                    render_ui,
+                ),
+            )
+            .add_systems(Update, apply_resource_changes);
     }
 }
 
@@ -54,6 +57,7 @@ fn render_ui(
     mut contexts: EguiContexts,
     icons: Option<Res<UiIcons>>,
     app_screen: Res<AppScreen>,
+    mut events: MessageWriter<ResourceChanged>,
 ) -> Result {
     let character = match &*app_screen {
         AppScreen::CharacterSelect => return Ok(()),
@@ -83,7 +87,14 @@ fn render_ui(
 
             ui.horizontal(|ui| {
                 ui.add_space(margin);
-                render_left_column(ui, total_w * COL1_WIDTH, col_h, character, heart_icon);
+                render_left_column(
+                    ui,
+                    total_w * COL1_WIDTH,
+                    col_h,
+                    character,
+                    heart_icon,
+                    &mut events,
+                );
                 ui.add_space(gap);
                 render_center_column(ui, total_w * COL2_WIDTH, col_h, character);
                 ui.add_space(gap);
@@ -100,6 +111,7 @@ fn render_left_column(
     height: f32,
     character: &Character,
     heart_icon: egui::TextureId,
+    events: &mut MessageWriter<ResourceChanged>,
 ) {
     let gap = height * 0.03 / 4.0;
 
@@ -117,18 +129,8 @@ fn render_left_column(
             ),
         );
         ui.add_space(gap);
-        ui.add_sized(
-            [width, height * 0.16],
-            StatusBar::new(
-                character.hp.current,
-                character.hp.max,
-                character.mana.current,
-                character.mana.max,
-                character.action_points.current,
-                character.action_points.max,
-                character.get_initiative(),
-            ),
-        );
+
+        send_status_bar_events(ui, width, height * 0.16, character, events);
         ui.add_space(gap);
 
         let resists = character
@@ -146,19 +148,68 @@ fn render_left_column(
             Stats::new(heart_icon, resists, protections),
         );
         ui.add_space(gap);
-        ui.add_sized(
-            [width, height * 0.20],
-            StatusBar::new(
-                character.hp.current,
-                character.hp.max,
-                character.mana.current,
-                character.mana.max,
-                character.action_points.current,
-                character.action_points.max,
-                character.get_initiative(),
-            ),
-        );
+
+        send_status_bar_events(ui, width, height * 0.20, character, events);
     });
+}
+
+/// Allocates space for a `StatusBar`, renders it via `show`, and fires
+/// [`ResourceChanged`] events for any clicked cells.
+fn send_status_bar_events(
+    ui: &mut egui::Ui,
+    width: f32,
+    height: f32,
+    character: &Character,
+    events: &mut MessageWriter<ResourceChanged>,
+) {
+    let status_size = egui::vec2(width, height);
+    let (status_rect, _) = ui.allocate_exact_size(status_size, egui::Sense::hover());
+    let mut status_ui = ui.new_child(
+        egui::UiBuilder::new()
+            .max_rect(status_rect)
+            .layout(egui::Layout::top_down(egui::Align::Min)),
+    );
+    let result = StatusBar::new(
+        character.hp.current,
+        character.hp.max,
+        character.mana.current,
+        character.mana.max,
+        character.action_points.current,
+        character.action_points.max,
+        character.get_initiative(),
+    )
+    .show(&mut status_ui);
+
+    send_resource_events(events, result);
+}
+
+fn send_resource_events(events: &mut MessageWriter<ResourceChanged>, result: StatusBarResponse) {
+    if let Some(v) = result.hp {
+        events.write(ResourceChanged::Hp(v));
+    }
+    if let Some(v) = result.mp {
+        events.write(ResourceChanged::Mp(v));
+    }
+    if let Some(v) = result.ap {
+        events.write(ResourceChanged::Ap(v));
+    }
+}
+
+fn apply_resource_changes(
+    mut app_screen: ResMut<AppScreen>,
+    mut reader: MessageReader<ResourceChanged>,
+) {
+    let character = match &mut *app_screen {
+        AppScreen::CharacterSheet(c) => c,
+        _ => return,
+    };
+    for event in reader.read() {
+        match event {
+            ResourceChanged::Hp(v) => character.hp.current = *v,
+            ResourceChanged::Mp(v) => character.mana.current = *v,
+            ResourceChanged::Ap(v) => character.action_points.current = *v,
+        }
+    }
 }
 
 fn render_center_column(ui: &mut egui::Ui, width: f32, height: f32, character: &Character) {

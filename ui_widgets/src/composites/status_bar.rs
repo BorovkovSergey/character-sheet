@@ -3,9 +3,17 @@ use crate::colors::{
     AP_COLOR, AP_SPENT_COLOR, HP_COLOR, HP_SPENT_COLOR, MAIN_COLOR, MP_COLOR, MP_SPENT_COLOR,
     SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR,
 };
-use crate::egui::{self, Align2, CornerRadius, Rect, Stroke, Widget};
+use crate::egui::{self, Align2, CornerRadius, Rect, Stroke};
 use crate::molecules::ProgressBar;
 use crate::traits::{Roundable, WithText};
+
+/// Result of rendering a `StatusBar`. Each field is `Some(new_value)` when
+/// the corresponding progress bar was clicked.
+pub struct StatusBarResponse {
+    pub hp: Option<u32>,
+    pub mp: Option<u32>,
+    pub ap: Option<u32>,
+}
 
 /// Displays the character's HP, MP, and AP as three horizontal progress bars.
 pub struct StatusBar {
@@ -38,14 +46,12 @@ impl StatusBar {
             initiative,
         }
     }
-}
 
-impl Widget for StatusBar {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    pub fn show(self, ui: &mut egui::Ui) -> StatusBarResponse {
         let available_width = ui.available_width();
         let available_height = ui.available_height();
 
-        let (rect, response) = ui.allocate_exact_size(
+        let (rect, _response) = ui.allocate_exact_size(
             egui::vec2(available_width, available_height),
             egui::Sense::hover(),
         );
@@ -73,31 +79,44 @@ impl Widget for StatusBar {
             egui::vec2(rect.width() - pad * 2.0, content_height),
         );
 
-        // Create child UI for the 3 progress bars
-        {
-            let mut child_ui = ui.new_child(
-                egui::UiBuilder::new()
-                    .max_rect(inner_rect)
-                    .layout(egui::Layout::top_down(egui::Align::Min)),
-            );
+        // Render progress bars, collecting click results
+        let bar_spacing = inner_rect.height() * 0.05;
+        let bar_height = (inner_rect.height() - bar_spacing * 2.0) / 3.0;
 
-            let bar_spacing = inner_rect.height() * 0.05;
-            let bar_height = (inner_rect.height() - bar_spacing * 2.0) / 3.0;
-            child_ui.spacing_mut().item_spacing = egui::vec2(0.0, bar_spacing);
+        let hp_rect = Rect::from_min_size(
+            egui::pos2(inner_rect.min.x, inner_rect.min.y),
+            egui::vec2(inner_rect.width(), bar_height),
+        );
+        let mp_rect = Rect::from_min_size(
+            egui::pos2(
+                inner_rect.min.x,
+                inner_rect.min.y + bar_height + bar_spacing,
+            ),
+            egui::vec2(inner_rect.width(), bar_height),
+        );
+        let ap_rect = Rect::from_min_size(
+            egui::pos2(
+                inner_rect.min.x,
+                inner_rect.min.y + 2.0 * (bar_height + bar_spacing),
+            ),
+            egui::vec2(inner_rect.width(), bar_height),
+        );
 
-            child_ui.add_sized(
-                [inner_rect.width(), bar_height],
-                ProgressBar::new("HP", self.hp_current, self.hp_max, HP_COLOR, HP_SPENT_COLOR),
-            );
-            child_ui.add_sized(
-                [inner_rect.width(), bar_height],
-                ProgressBar::new("MP", self.mp_current, self.mp_max, MP_COLOR, MP_SPENT_COLOR),
-            );
-            child_ui.add_sized(
-                [inner_rect.width(), bar_height],
-                ProgressBar::new("AP", self.ap_current, self.ap_max, AP_COLOR, AP_SPENT_COLOR),
-            );
-        }
+        let hp = {
+            let mut bar_ui = ui.new_child(egui::UiBuilder::new().max_rect(hp_rect));
+            ProgressBar::new("HP", self.hp_current, self.hp_max, HP_COLOR, HP_SPENT_COLOR)
+                .show(&mut bar_ui)
+        };
+        let mp = {
+            let mut bar_ui = ui.new_child(egui::UiBuilder::new().max_rect(mp_rect));
+            ProgressBar::new("MP", self.mp_current, self.mp_max, MP_COLOR, MP_SPENT_COLOR)
+                .show(&mut bar_ui)
+        };
+        let ap = {
+            let mut bar_ui = ui.new_child(egui::UiBuilder::new().max_rect(ap_rect));
+            ProgressBar::new("AP", self.ap_current, self.ap_max, AP_COLOR, AP_SPENT_COLOR)
+                .show(&mut bar_ui)
+        };
 
         // Initiative sub-widget below progress bars
         {
@@ -108,7 +127,6 @@ impl Widget for StatusBar {
 
             let initiative_center_y = (inner_rect.max.y + rect.max.y) / 2.0;
 
-            // ShapeBox on the right
             let box_rect = Rect::from_center_size(
                 egui::pos2(inner_rect.max.x - box_width / 2.0, initiative_center_y),
                 egui::vec2(box_width, box_height),
@@ -123,7 +141,6 @@ impl Widget for StatusBar {
                 .set_text_size(text_size)
                 .paint(painter, box_rect);
 
-            // "Per" text with 6px gap to ShapeBox
             let per_rect = Rect::from_min_max(
                 egui::pos2(inner_rect.min.x, box_rect.min.y),
                 egui::pos2(box_rect.min.x - 6.0, box_rect.max.y),
@@ -134,7 +151,6 @@ impl Widget for StatusBar {
                 .align(Align2::RIGHT_CENTER)
                 .paint(painter, per_rect);
 
-            // "Initiative" text on the left
             let initiative_rect = Rect::from_min_max(
                 egui::pos2(inner_rect.min.x, box_rect.min.y),
                 egui::pos2(per_rect.max.x, box_rect.max.y),
@@ -146,6 +162,6 @@ impl Widget for StatusBar {
                 .paint(painter, initiative_rect);
         }
 
-        response
+        StatusBarResponse { hp, mp, ap }
     }
 }
