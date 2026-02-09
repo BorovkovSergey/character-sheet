@@ -52,8 +52,8 @@ impl TraitRegistry {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::effect::{OnLvlUp, Protection, Resist};
+    use super::*;
 
     #[test]
     fn test_load_traits_from_json() {
@@ -81,7 +81,9 @@ mod tests {
         );
 
         // Protection effect
-        let magic_allergy = registry.get("Magic Allergy").expect("Magic Allergy not found");
+        let magic_allergy = registry
+            .get("Magic Allergy")
+            .expect("Magic Allergy not found");
         assert_eq!(
             magic_allergy.effects,
             vec![Effect::Protection(Protection::Magic, 2)]
@@ -100,7 +102,9 @@ mod tests {
         assert_eq!(restless.effects, vec![Effect::Initiative(2)]);
 
         // Armor effect
-        let thick_skinned = registry.get("Thick-Skinned").expect("Thick-Skinned not found");
+        let thick_skinned = registry
+            .get("Thick-Skinned")
+            .expect("Thick-Skinned not found");
         assert_eq!(thick_skinned.effects, vec![Effect::Armor(1)]);
         assert_eq!(
             thick_skinned.condition,
@@ -133,7 +137,9 @@ mod tests {
         );
 
         // Resist Poison
-        let poison_expert = registry.get("Poison Expert").expect("Poison Expert not found");
+        let poison_expert = registry
+            .get("Poison Expert")
+            .expect("Poison Expert not found");
         assert_eq!(
             poison_expert.effects,
             vec![Effect::Resist(Resist::Poison, 2)]

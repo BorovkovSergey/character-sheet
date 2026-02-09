@@ -30,13 +30,12 @@ impl CharacterStore {
             }
         }
 
-        let trait_registry = Arc::new(
-            TraitRegistry::load_from_file(&traits_path)
-                .unwrap_or_else(|e| {
-                    warn!("Failed to load traits from {:?}: {}", traits_path, e);
-                    TraitRegistry::default()
-                }),
-        );
+        let trait_registry = Arc::new(TraitRegistry::load_from_file(&traits_path).unwrap_or_else(
+            |e| {
+                warn!("Failed to load traits from {:?}: {}", traits_path, e);
+                TraitRegistry::default()
+            },
+        ));
 
         let characters = Self::load_from_file(&data_path, &trait_registry).await;
 
@@ -107,7 +106,8 @@ impl CharacterStore {
     }
 
     pub async fn create(&self, name: String) -> Character {
-        let character = Character::new(name);
+        let mut character = Character::new(name);
+        character.recalculate_effects(&self.trait_registry);
         {
             let mut characters = self.characters.write().await;
             characters.insert(character.id, character.clone());
@@ -127,7 +127,8 @@ impl CharacterStore {
         removed
     }
 
-    pub async fn update(&self, character: Character) -> Option<Character> {
+    pub async fn update(&self, mut character: Character) -> Option<Character> {
+        character.recalculate_effects(&self.trait_registry);
         let updated = {
             let mut characters = self.characters.write().await;
             if characters.contains_key(&character.id) {

@@ -3,17 +3,10 @@ use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use shared::Character;
 use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 
-/// Tracks which screen the app is currently displaying.
-#[derive(Debug, Clone, Resource, Default)]
-pub enum AppScreen {
-    /// The character selection menu is visible.
-    #[default]
-    CharacterSelect,
-    /// The character sheet is visible for the selected character.
-    CharacterSheet(Character),
-}
+use crate::components::spawn_character;
+use crate::state::AppScreen;
 
-/// Holds the list of available characters for selection.
+/// Holds the list of available characters received from the server.
 #[derive(Debug, Clone, Resource, Default)]
 pub struct CharacterList {
     pub characters: Vec<Character>,
@@ -23,21 +16,19 @@ pub struct CharacterSelectPlugin;
 
 impl Plugin for CharacterSelectPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<AppScreen>()
-            .init_resource::<CharacterList>()
-            .add_systems(EguiPrimaryContextPass, render_character_select);
+        app.init_resource::<CharacterList>().add_systems(
+            EguiPrimaryContextPass,
+            render_character_select.run_if(in_state(AppScreen::CharacterSelect)),
+        );
     }
 }
 
 fn render_character_select(
     mut contexts: EguiContexts,
-    mut app_screen: ResMut<AppScreen>,
+    mut commands: Commands,
     character_list: Res<CharacterList>,
+    mut next_state: ResMut<NextState<AppScreen>>,
 ) -> Result {
-    if !matches!(*app_screen, AppScreen::CharacterSelect) {
-        return Ok(());
-    }
-
     let ctx = contexts.ctx_mut()?;
 
     egui::CentralPanel::default()
@@ -92,7 +83,8 @@ fn render_character_select(
         });
 
     if let Some(character) = selected {
-        *app_screen = AppScreen::CharacterSheet(character);
+        spawn_character(&mut commands, &character);
+        next_state.set(AppScreen::CharacterSheet);
     }
 
     Ok(())

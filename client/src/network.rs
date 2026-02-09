@@ -9,15 +9,18 @@ use crate::character_select::CharacterList;
 /// Stored as non-send because [`WsReceiver`] uses `std::sync::mpsc::Receiver`
 /// internally, which is not `Sync`.
 pub struct WsConnection {
-    /// Sender for transmitting messages to the server.
-    /// Will be used when client-to-server messaging is implemented.
     #[allow(dead_code)]
     pub sender: WsSender,
     pub receiver: WsReceiver,
 }
 
-#[derive(bevy::prelude::Resource)]
+#[derive(Resource)]
 pub struct ClientTraitRegistry(pub TraitRegistry);
+
+/// Buffer for server messages drained from the WebSocket.
+/// Filled by the exclusive `drain_ws` system, consumed by `process_server_messages`.
+#[derive(Resource, Default)]
+struct PendingServerMessages(Vec<ServerMessage>);
 
 pub struct NetworkPlugin;
 
@@ -26,8 +29,9 @@ impl Plugin for NetworkPlugin {
         let registry = TraitRegistry::load_from_str(include_str!("../../data/traits.json"))
             .expect("failed to parse embedded traits.json");
         app.insert_resource(ClientTraitRegistry(registry))
+            .init_resource::<PendingServerMessages>()
             .add_systems(Startup, connect_to_server)
-            .add_systems(Update, receive_messages);
+            .add_systems(Update, (drain_ws, process_server_messages).chain());
     }
 }
 
@@ -72,7 +76,8 @@ fn connect_to_server(world: &mut World) {
     }
 }
 
-fn receive_messages(world: &mut World) {
+/// Minimal exclusive system: drains the WebSocket and buffers decoded messages.
+fn drain_ws(world: &mut World) {
     let events = {
         let Some(conn) = world.get_non_send_resource::<WsConnection>() else {
             return;
@@ -85,7 +90,7 @@ fn receive_messages(world: &mut World) {
     };
 
     let mut should_remove = false;
-    let mut new_characters = None;
+    let mut pending = world.resource_mut::<PendingServerMessages>();
 
     for event in events {
         match event {
@@ -94,25 +99,8 @@ fn receive_messages(world: &mut World) {
             }
             WsEvent::Message(WsMessage::Binary(bytes)) => {
                 match deserialize::<ServerMessage>(&bytes) {
-                    Ok(ServerMessage::CharacterList { characters }) => {
-                        info!("Received {} character(s) from server", characters.len());
-                        new_characters = Some(characters);
-                    }
-                    Ok(ServerMessage::CharacterCreated { .. }) => {
-                        warn!("Received unhandled CharacterCreated message");
-                    }
-                    Ok(ServerMessage::CharacterUpdated { .. }) => {
-                        warn!("Received unhandled CharacterUpdated message");
-                    }
-                    Ok(ServerMessage::CharacterDeleted { .. }) => {
-                        warn!("Received unhandled CharacterDeleted message");
-                    }
-                    Ok(ServerMessage::Error { message }) => {
-                        error!("Server error: {message}");
-                    }
-                    Err(e) => {
-                        warn!("Failed to deserialize server message: {e}");
-                    }
+                    Ok(msg) => pending.0.push(msg),
+                    Err(e) => warn!("Failed to deserialize server message: {e}"),
                 }
             }
             WsEvent::Error(err) => {
@@ -127,16 +115,39 @@ fn receive_messages(world: &mut World) {
         }
     }
 
-    if let Some(mut characters) = new_characters {
-        let trait_registry = &world.resource::<ClientTraitRegistry>().0;
-        for c in &mut characters {
-            c.recalculate_effects(trait_registry);
-        }
-        world.resource_mut::<CharacterList>().characters = characters;
-    }
-
     if should_remove {
         world.remove_non_send_resource::<WsConnection>();
         info!("Cleaned up WebSocket connection resource");
+    }
+}
+
+/// Normal system: processes buffered server messages and updates game state.
+fn process_server_messages(
+    mut pending: ResMut<PendingServerMessages>,
+    trait_registry: Res<ClientTraitRegistry>,
+    mut character_list: ResMut<CharacterList>,
+) {
+    for msg in pending.0.drain(..) {
+        match msg {
+            ServerMessage::CharacterList { mut characters } => {
+                info!("Received {} character(s) from server", characters.len());
+                for c in &mut characters {
+                    c.recalculate_effects(&trait_registry.0);
+                }
+                character_list.characters = characters;
+            }
+            ServerMessage::CharacterCreated { .. } => {
+                warn!("Received unhandled CharacterCreated message");
+            }
+            ServerMessage::CharacterUpdated { .. } => {
+                warn!("Received unhandled CharacterUpdated message");
+            }
+            ServerMessage::CharacterDeleted { .. } => {
+                warn!("Received unhandled CharacterDeleted message");
+            }
+            ServerMessage::Error { message } => {
+                error!("Server error: {message}");
+            }
+        }
     }
 }

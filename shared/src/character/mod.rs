@@ -12,13 +12,13 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use uuid::Uuid;
 
+pub use character_trait::{CharacterTrait, TraitCondition, TraitRegistry};
 pub use characteristic::{
     Characteristic, CharacteristicKind, CharacteristicKindMarker, CharacteristicTrait,
     Characteristics, Charisma, Dexterity, Endurance, Intellect, Magic, Perception, Strength,
     Willpower,
 };
 pub use class::Class;
-pub use character_trait::{CharacterTrait, TraitCondition, TraitRegistry};
 pub use effect::{Effect, GetEffects, OnLvlUp, Protection, Resist};
 pub use race::{Race, Size};
 pub use resource::Resource;
