@@ -1,4 +1,4 @@
-use shared::Character;
+use shared::{Character, TraitRegistry};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -14,12 +14,14 @@ struct StorageData {
 #[derive(Clone)]
 pub struct CharacterStore {
     characters: Arc<RwLock<HashMap<Uuid, Character>>>,
+    trait_registry: Arc<TraitRegistry>,
     data_path: PathBuf,
 }
 
 impl CharacterStore {
     pub async fn new(data_dir: &str) -> Self {
         let data_path = PathBuf::from(data_dir).join("characters.json");
+        let traits_path = PathBuf::from(data_dir).join("traits.json");
 
         // Ensure data directory exists
         if let Some(parent) = data_path.parent() {
@@ -28,22 +30,34 @@ impl CharacterStore {
             }
         }
 
-        let characters = Self::load_from_file(&data_path).await;
+        let trait_registry = Arc::new(
+            TraitRegistry::load_from_file(&traits_path)
+                .unwrap_or_else(|e| {
+                    warn!("Failed to load traits from {:?}: {}", traits_path, e);
+                    TraitRegistry::default()
+                }),
+        );
+
+        let characters = Self::load_from_file(&data_path, &trait_registry).await;
 
         Self {
             characters: Arc::new(RwLock::new(characters)),
+            trait_registry,
             data_path,
         }
     }
 
-    async fn load_from_file(path: &PathBuf) -> HashMap<Uuid, Character> {
+    async fn load_from_file(
+        path: &PathBuf,
+        trait_registry: &TraitRegistry,
+    ) -> HashMap<Uuid, Character> {
         match tokio::fs::read_to_string(path).await {
             Ok(content) => match serde_json::from_str::<StorageData>(&content) {
                 Ok(data) => data
                     .characters
                     .into_iter()
                     .map(|mut c| {
-                        c.recalculate_effects();
+                        c.recalculate_effects(trait_registry);
                         (c.id, c)
                     })
                     .collect(),

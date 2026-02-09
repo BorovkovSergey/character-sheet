@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use ewebsock::{WsEvent, WsMessage, WsReceiver, WsSender};
-use shared::{deserialize, ServerMessage};
+use shared::{deserialize, ServerMessage, TraitRegistry};
 
 use crate::character_select::CharacterList;
 
@@ -16,11 +16,17 @@ pub struct WsConnection {
     pub receiver: WsReceiver,
 }
 
+#[derive(bevy::prelude::Resource)]
+pub struct ClientTraitRegistry(pub TraitRegistry);
+
 pub struct NetworkPlugin;
 
 impl Plugin for NetworkPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, connect_to_server)
+        let registry = TraitRegistry::load_from_str(include_str!("../../data/traits.json"))
+            .expect("failed to parse embedded traits.json");
+        app.insert_resource(ClientTraitRegistry(registry))
+            .add_systems(Startup, connect_to_server)
             .add_systems(Update, receive_messages);
     }
 }
@@ -122,8 +128,9 @@ fn receive_messages(world: &mut World) {
     }
 
     if let Some(mut characters) = new_characters {
+        let trait_registry = &world.resource::<ClientTraitRegistry>().0;
         for c in &mut characters {
-            c.recalculate_effects();
+            c.recalculate_effects(trait_registry);
         }
         world.resource_mut::<CharacterList>().characters = characters;
     }

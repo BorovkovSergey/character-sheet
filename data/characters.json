@@ -47,7 +47,10 @@
       },
       "characteristic_points": 0,
       "skill_points": 0,
-      "skills": []
+      "skills": [],
+      "traits": [
+        "Magic Allergy"
+      ]
     },
     {
       "id": "a1b2c3d4-1111-4aaa-bbbb-111111111111",
@@ -105,6 +108,11 @@
           "name": "MeleeAttack",
           "level": 2
         }
+      ],
+      "traits": [
+        "Restless",
+        "Leader",
+        "Priest of Love"
       ]
     },
     {
@@ -159,6 +167,11 @@
           "name": "Eloquence",
           "level": 2
         }
+      ],
+      "traits": [
+        "Magician",
+        "Cat's Eye",
+        "Educated"
       ]
     },
     {
@@ -217,6 +230,12 @@
           "name": "Eloquence",
           "level": 1
         }
+      ],
+      "traits": [
+        "Battle Rage",
+        "Thick-Skinned",
+        "Fistfighter",
+        "Cold Calculation"
       ]
     },
     {
@@ -266,7 +285,11 @@
       },
       "characteristic_points": 5,
       "skill_points": 3,
-      "skills": []
+      "skills": [],
+      "traits": [
+        "Artist",
+        "Heightened Senses"
+      ]
     },
     {
       "id": "e5f6a7b8-5555-4eee-ffff-555555555555",
@@ -320,6 +343,11 @@
           "name": "MeleeAttack",
           "level": 4
         }
+      ],
+      "traits": [
+        "Blessed",
+        "Second Chance",
+        "Strength of Spirit"
       ]
     },
     {
@@ -378,6 +406,13 @@
           "name": "MeleeAttack",
           "level": 3
         }
+      ],
+      "traits": [
+        "Pyromancer",
+        "Elemental Child",
+        "Summoner",
+        "Magic Conduit",
+        "Keen Eye"
       ]
     }
   ]

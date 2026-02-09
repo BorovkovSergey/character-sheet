@@ -2,10 +2,10 @@ pub mod character;
 pub mod messages;
 
 pub use character::{
-    Character, CharacterSkill, Characteristic, CharacteristicKind, CharacteristicKindMarker,
-    CharacteristicTrait, Characteristics, Charisma, Class, Dexterity, Effect, Endurance,
-    GetEffects, Intellect, Magic, Perception, Protection, Race, Resist, Resource, Size, Skill,
-    SkillRegistry, Strength, Willpower,
+    Character, CharacterSkill, CharacterTrait, Characteristic, CharacteristicKind,
+    CharacteristicKindMarker, CharacteristicTrait, Characteristics, Charisma, Class, Dexterity,
+    Effect, Endurance, GetEffects, Intellect, Magic, Perception, Protection, Race, Resist,
+    Resource, Size, Skill, SkillRegistry, Strength, TraitCondition, TraitRegistry, Willpower,
 };
 pub use messages::{ClientMessage, ServerMessage};
 
@@ -27,8 +27,7 @@ mod tests {
     fn test_character_serialization_roundtrip() {
         let character = Character::new("Test Hero".to_string());
         let bytes = serialize(&character).unwrap();
-        let mut decoded: Character = deserialize(&bytes).unwrap();
-        decoded.recalculate_effects();
+        let decoded: Character = deserialize(&bytes).unwrap();
         assert_eq!(character, decoded);
     }
 
@@ -54,9 +53,8 @@ mod tests {
         let bytes = serialize(&msg).unwrap();
         let decoded: ServerMessage = deserialize(&bytes).unwrap();
         match decoded {
-            ServerMessage::CharacterList { mut characters } => {
+            ServerMessage::CharacterList { characters } => {
                 assert_eq!(characters.len(), 1);
-                characters[0].recalculate_effects();
                 assert_eq!(characters[0], character);
             }
             _ => panic!("Wrong message type"),

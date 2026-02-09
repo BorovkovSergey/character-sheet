@@ -1,3 +1,4 @@
+mod character_trait;
 mod characteristic;
 mod class;
 mod effect;
@@ -17,7 +18,8 @@ pub use characteristic::{
     Willpower,
 };
 pub use class::Class;
-pub use effect::{Effect, GetEffects, Protection, Resist};
+pub use character_trait::{CharacterTrait, TraitCondition, TraitRegistry};
+pub use effect::{Effect, GetEffects, OnLvlUp, Protection, Resist};
 pub use race::{Race, Size};
 pub use resource::Resource;
 pub use skill::{CharacterSkill, Skill, SkillRegistry};
@@ -37,13 +39,15 @@ pub struct Character {
     pub characteristic_points: u32,
     pub skill_points: u32,
     pub skills: Vec<CharacterSkill>,
+    #[serde(default)]
+    pub traits: Vec<String>,
     #[serde(skip)]
     pub active_effects: Vec<Effect>,
 }
 
 impl Character {
     pub fn new(name: String) -> Self {
-        let mut character = Self {
+        let character = Self {
             id: Uuid::new_v4(),
             name,
             race: Race::default(),
@@ -57,17 +61,24 @@ impl Character {
             characteristic_points: 0,
             skill_points: 0,
             skills: Vec::new(),
+            traits: Vec::new(),
             active_effects: Vec::new(),
         };
-        character.recalculate_effects();
+        // Effects will be calculated after traits are assigned
         character
     }
 
-    /// Recalculates active effects from all sources (race, class, items, etc.).
-    pub fn recalculate_effects(&mut self) {
+    /// Recalculates active effects from all sources (race, traits, etc.).
+    pub fn recalculate_effects(&mut self, trait_registry: &TraitRegistry) {
         self.active_effects.clear();
         self.active_effects.extend(self.race.get_effects());
         self.active_effects.extend(self.race.size().get_effects());
+        for trait_name in &self.traits {
+            if let Some(character_trait) = trait_registry.get(trait_name) {
+                self.active_effects
+                    .extend(character_trait.effects.iter().cloned());
+            }
+        }
     }
 
     /// Aggregates effect values of a specific kind, summing magnitudes per key.

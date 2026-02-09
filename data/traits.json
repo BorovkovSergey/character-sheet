@@ -1,0 +1,395 @@
+{
+    "Accuracy": {
+        "description": "Rerolling a check when crafting an item. Chance to not consume an artifact's charge.",
+        "effects": []
+    },
+    "Acrobat": {
+        "description": "The hero is incredibly flexible. Can navigate narrow spaces and hard-to-reach places.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Dexterity",
+                "lvl": 4
+            }
+        }
+    },
+    "Magic Allergy": {
+        "description": "The hero is adversely affected by any spell.",
+        "effects": [
+            { "Protection": ["Magic", 2] }
+        ],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Intellect",
+                "lvl": 4
+            }
+        }
+    },
+    "Artist": {
+        "description": "Ability to play musical instruments, sing, compose poetry, and disguise.",
+        "effects": []
+    },
+    "Athleticism": {
+        "description": "The hero has an athletic build TODO: +3 Hit Points. +1 Body Defense. .",
+        "effects": []
+    },
+    "Harmless": {
+        "description": "Enemies do not see the hero as a threat and try not to attack him. -1 intimidation checks, +1 disguise checks.",
+        "effects": []
+    },
+    "Blessed": {
+        "description": "The hero honors all gods. Receives an additional effect when praying and making offerings.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Willpower",
+                "lvl": 4
+            }
+        }
+    },
+    "Battle Rage": {
+        "description": "No penalty for the first level of Wound.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Strength",
+                "lvl": 4
+            }
+        }
+    },
+    "Faithful Friend": {
+        "description": "The hero chooses an ally. That ally gains +1 to all checks when they act together.",
+        "effects": []
+    },
+    "Sudden Insight": {
+        "description": "+2 Attribute Points. This talent can be used an unlimited number of times.",
+        "effects": []
+    },
+    "Lone Wolf": {
+        "description": "+1 bonus to all checks, attacks, and damage when acting alone, without allies.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Endurance",
+                "lvl": 4
+            }
+        }
+    },
+    "Streetwise": {
+        "description": "+1 damage with small melee weapons (knives, fists)",
+        "effects": []
+    },
+    "Second Chance": {
+        "description": "Upon receiving fatal damage, the Hero is reduced to 1 Hit Point. Once per battle.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Willpower",
+                "lvl": 4
+            }
+        }
+    },
+    "Bruiser": {
+        "description": "The Hero deals +1 damage with his left melee weapon.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Strength",
+                "lvl": 4
+            }
+        }
+    },
+    "Wild": {
+        "description": "The Hero feels at one with the wild. +1 to all checks and AP if no armor equipped.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Strength",
+                "lvl": 4
+            }
+        }
+    },
+    "Elemental Child": {
+        "description": "The Hero receives a +1 bonus to checks and damage if near a related element.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Magic",
+                "lvl": 4
+            }
+        }
+    },
+    "Sitting Duck": {
+        "description": "Enemies will try to attack the Hero first.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Magic",
+                "lvl": 4
+            }
+        }
+    },
+    "Tenacious": {
+        "description": "The Hero always receives more than half the effect from healing potions and abilities.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Endurance",
+                "lvl": 4
+            }
+        }
+    },
+    "Priest of Love": {
+        "description": "The hero is incredibly attractive and skilled in love. +1 on seduction checks.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Charisma",
+                "lvl": 4
+            }
+        }
+    },
+    "Inveterate Gambler": {
+        "description": "+11 to all gambling checks, knowledge of bluffing and betting rules.",
+        "effects": []
+    },
+    "Feral Reflexes": {
+        "description": "All Defenses: +2 against area attacks and opportunity attacks.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Perception",
+                "lvl": 4
+            }
+        }
+    },
+    "Beasts Expert": {
+        "description": "+1 on creature-related checks. By spending a round, the hero can identify a weak spot.",
+        "effects": []
+    },
+    "Poison Expert": {
+        "description": "Chance to avoid poisoning. +1 bonus when working with poisons.",
+        "effects": [
+            { "Resist": ["Poison", 2] }
+        ]
+    },
+    "Perfect Memory": {
+        "description": "The hero can memorize every minute detail and text with just one glance.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Intellect",
+                "lvl": 4
+            }
+        }
+    },
+    "Chosen": {
+        "description": "Hears the voice of the chosen deity and follows their instructions.",
+        "effects": []
+    },
+    "Intuition": {
+        "description": "The hero is always considered armed and can sense danger.",
+        "effects": []
+    },
+    "Cartographer": {
+        "description": "Accelerated movement on the map. Bonus to discovering new locations.",
+        "effects": []
+    },
+    "Cat's Eye": {
+        "description": "The hero gains low-light vision.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Perception",
+                "lvl": 4
+            }
+        }
+    },
+    "Fistfighter": {
+        "description": "Unarmed Damage d4. Armor +1 in melee combat without armor.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Strength",
+                "lvl": 4
+            }
+        }
+    },
+    "Chef": {
+        "description": "Advantage when preparing high-quality food. Signature dish, which provides additional bonuses.",
+        "effects": []
+    },
+    "Light Step": {
+        "description": "No penalty for rough terrain.",
+        "effects": [
+            { "ActionPoints": 1 }
+        ],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Dexterity",
+                "lvl": 4
+            }
+        }
+    },
+    "Leader": {
+        "description": "Inspires allies, giving them +1 to non-combat checks. Charismatic orator.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Charisma",
+                "lvl": 4
+            }
+        }
+    },
+    "Fate's Favorite": {
+        "description": "The hero has the incredible ability to emerge unharmed from the most dangerous situations.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Charisma",
+                "lvl": 4
+            }
+        }
+    },
+    "Magician": {
+        "description": "Can cast spells.",
+        "effects": []
+    },
+    "Restless": {
+        "description": "Additional free action.",
+        "effects": [
+            { "Initiative": 2 }
+        ],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Dexterity",
+                "lvl": 4
+            }
+        }
+    },
+    "Heightened Senses": {
+        "description": "+1 to all hearing, smell, and touch checks. Distinguishes the slightest smells and tastes.",
+        "effects": []
+    },
+    "Educated": {
+        "description": "Additional 1 skill point at each level. Knowledge of the natural sciences.",
+        "effects": [
+            { "OnLvlUp": { "AddSkillPoints": 1 } }
+        ]
+    },
+    "Gifted": {
+        "description": "Hero easily learns new skills. Receives more bonus skill points.",
+        "effects": []
+    },
+    "Keen Eye": {
+        "description": "All range +2. The hero is incredibly farsighted.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Perception",
+                "lvl": 4
+            }
+        }
+    },
+    "Pyromancer": {
+        "description": "The hero loves fire. +1 chance to set on fire, +1 fire damage, +2 fire resistance.",
+        "effects": [
+            { "Resist": ["Fire", 2] }
+        ]
+    },
+    "Field Medic": {
+        "description": "The hero can revive a coma during combat and heal allies with a Medicine check.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Intellect",
+                "lvl": 4
+            }
+        }
+    },
+    "Summoner": {
+        "description": "Grants the ability to subjugate a summoned or enchanted creature.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Magic",
+                "lvl": 4
+            }
+        }
+    },
+    "Magic Conduit": {
+        "description": "The hero can cast artifacts and enchantments with a \"touch\" from a distance of 2 squares.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Magic",
+                "lvl": 4
+            }
+        }
+    },
+    "Ritualist": {
+        "description": "+1 major and 2 minor rituals per day. The hero can reroll ritual checks.",
+        "effects": []
+    },
+    "Strength of Spirit": {
+        "description": "+1 Mana for each Will point. +1 Intelligence. The hero is strong in character and will.",
+        "effects": [
+            { "Characteristic": ["Intellect", 1] },
+            { "Mana": { "dependent": "Willpower", "increase_per_point": 1 } }
+        ]
+    },
+    "Theorist": {
+        "description": "+Makes any two skills dependent on Intelligence, granting theoretical knowledge.",
+        "effects": []
+    },
+    "Thick-Skinned": {
+        "description": "The hero gains 1 point of Armor.",
+        "effects": [
+            { "Armor": 1 }
+        ],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Endurance",
+                "lvl": 4
+            }
+        }
+    },
+    "Hasty": {
+        "description": "-1 AP to all non-attacking actions (drinking potion, taking an item from a bag, etc.)",
+        "effects": []
+    },
+    "Monster Slayer": {
+        "description": " +1 to Attacks and damage against large creatures. +1 when searching for information about monsters.",
+        "effects": []
+    },
+    "Lucky": {
+        "description": "Once per day, the hero can re-roll a forehead check.",
+        "effects": []
+    },
+    "Cold Calculation": {
+        "description": "Allows the hero to make a forehead check with advantage once per scene.",
+        "effects": [],
+        "condition": {
+            "CharacteristicsRequired": {
+                "characteristic": "Willpower",
+                "lvl": 4
+            }
+        }
+    },
+    "Body Language": {
+        "description": "Influences beasts, savages, and intelligent creatures speaking a different language.",
+        "effects": []
+    },
+    "Linguist": {
+        "description": "Knowledge of an additional language for every second INT point.",
+        "effects": []
+    },
+    "Warlock": {
+        "description": "has magical powers and can perform spells and rituals.",
+        "effects": []
+    },
+    "Son of Night": {
+        "description": "At night, he can reroll any check once per night. At night, he heals himself for 1d4 hit points.",
+        "effects": []
+    }
+}
