@@ -3,15 +3,18 @@ use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use ui_widgets::colors::MAIN_COLOR;
 use ui_widgets::composites::{
     Abilities, Characteristics, EquippedGear, IdentityBar, Inventory, Points, Portrait, Skills,
-    Stats, StatusBar, StatusBarResponse, Traits, Wallet,
+    Stats, StatusBar, StatusBarResponse, TraitEntry, Traits, Wallet,
 };
 
 use crate::components::{
     ActionPoints, ActiveCharacter, ActiveEffects, CharacterClass, CharacterName, CharacterRace,
-    CharacterStats, CharacteristicPoints, Experience, Hp, Level, Mana, SkillPoints,
+    CharacterStats, CharacterTraitNames, CharacteristicPoints, Experience, Hp, Level, Mana,
+    SkillPoints,
 };
 use crate::events::ResourceChanged;
 use crate::state::AppScreen;
+use shared::character::OnLvlUp;
+use shared::Effect;
 
 #[derive(Resource)]
 struct UiIcons {
@@ -85,6 +88,7 @@ struct CharacterQueryData {
     mana: &'static Mana,
     ap: &'static ActionPoints,
     stats: &'static CharacterStats,
+    trait_names: &'static CharacterTraitNames,
     char_pts: &'static CharacteristicPoints,
     skill_pts: &'static SkillPoints,
     effects: &'static ActiveEffects,
@@ -94,6 +98,7 @@ fn render_ui(
     mut contexts: EguiContexts,
     icons: Option<Res<UiIcons>>,
     character_query: Query<CharacterQueryData, With<ActiveCharacter>>,
+    trait_registry: Res<crate::network::ClientTraitRegistry>,
     mut events: MessageWriter<ResourceChanged>,
 ) -> Result {
     let Some(icons) = icons else {
@@ -122,9 +127,16 @@ fn render_ui(
 
             ui.horizontal(|ui| {
                 ui.add_space(margin);
-                render_left_column(ui, total_w * COL1_WIDTH, col_h, &icons, &character, &mut events);
+                render_left_column(
+                    ui,
+                    total_w * COL1_WIDTH,
+                    col_h,
+                    &icons,
+                    &character,
+                    &mut events,
+                );
                 ui.add_space(gap);
-                render_center_column(ui, total_w * COL2_WIDTH, col_h, &character);
+                render_center_column(ui, total_w * COL2_WIDTH, col_h, &character, &trait_registry);
                 ui.add_space(gap);
                 render_right_column(ui, total_w * COL3_WIDTH, col_h);
             });
@@ -142,7 +154,8 @@ fn render_left_column(
     events: &mut MessageWriter<ResourceChanged>,
 ) {
     let gap = height * 0.03 / 4.0;
-    let initiative = character.stats.0.perception.level as i32 + character.effects.initiative_bonus();
+    let initiative =
+        character.stats.0.perception.level as i32 + character.effects.initiative_bonus();
 
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -256,6 +269,7 @@ fn render_center_column(
     width: f32,
     height: f32,
     character: &CharacterQueryDataItem,
+    trait_registry: &crate::network::ClientTraitRegistry,
 ) {
     let gap = height * 0.03 / 4.0;
     let stats = &character.stats.0;
@@ -286,10 +300,41 @@ fn render_center_column(
         ui.add_space(gap);
         ui.add_sized([width, height * 0.24], Skills::new());
         ui.add_space(gap);
-        ui.add_sized([width, height * 0.14], Traits::new());
+        let trait_entries: Vec<TraitEntry> = character
+            .trait_names
+            .0
+            .iter()
+            .filter_map(|name| {
+                trait_registry.0.get(name).map(|ct| TraitEntry {
+                    name: name.clone(),
+                    description: ct.description.clone(),
+                    effects: ct.effects.iter().map(format_effect).collect(),
+                })
+            })
+            .collect();
+        ui.add_sized([width, height * 0.14], Traits::new(trait_entries));
         ui.add_space(gap);
         ui.add_sized([width, height * 0.40], Abilities::new());
     });
+}
+
+fn format_effect(effect: &Effect) -> String {
+    match effect {
+        Effect::Resist(r, v) => format!("{r} Resist +{v}"),
+        Effect::Skill(name, v) => format!("{name} {v:+}"),
+        Effect::Protection(p, v) => format!("{p} Protection +{v}"),
+        Effect::Initiative(v) => format!("Initiative {v:+}"),
+        Effect::Characteristic(c, v) => format!("{c:?} {v:+}"),
+        Effect::ActionPoints(v) => format!("Action Points {v:+}"),
+        Effect::Armor(v) => format!("Armor {v:+}"),
+        Effect::Mana {
+            dependent,
+            increase_per_point,
+        } => format!("Mana {increase_per_point:+}/point of {dependent:?}"),
+        Effect::OnLvlUp(OnLvlUp::AddSkillPoints(v)) => {
+            format!("{v:+} Skill Points per level")
+        }
+    }
 }
 
 fn render_right_column(ui: &mut egui::Ui, width: f32, height: f32) {

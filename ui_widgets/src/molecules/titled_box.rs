@@ -27,6 +27,7 @@ pub struct TitledBox {
     title: String,
     title_position: TitlePosition,
     title_angle: Option<f32>,
+    header_ratio: Option<f32>,
     fill: Color32,
     rounding: CornerRadius,
     content_fill: Option<Color32>,
@@ -40,6 +41,7 @@ impl TitledBox {
             title: title.into(),
             title_position: TitlePosition::default(),
             title_angle: None,
+            header_ratio: None,
             fill: SECONDARY_COLOR,
             rounding: CornerRadius::ZERO,
             content_fill: None,
@@ -60,6 +62,15 @@ impl TitledBox {
     /// in a left-side strip by passing `0.0`).
     pub fn title_angle(mut self, angle: f32) -> Self {
         self.title_angle = Some(angle);
+        self
+    }
+
+    /// Overrides the header strip size as a fraction of the total box dimension.
+    ///
+    /// For [`TitlePosition::Left`] this controls width; for [`TitlePosition::Top`]
+    /// this controls height. Default is `0.08` (8%).
+    pub fn header_ratio(mut self, ratio: f32) -> Self {
+        self.header_ratio = Some(ratio);
         self
     }
 
@@ -91,10 +102,11 @@ impl TitledBox {
     ///
     /// - [`TitlePosition::Left`]: vertical strip on the left (8% of width, min 20px).
     /// - [`TitlePosition::Top`]: horizontal strip on the top (8% of height, min 20px).
-    fn split_rect(rect: Rect, position: TitlePosition) -> (Rect, Rect) {
+    fn split_rect(rect: Rect, position: TitlePosition, ratio: Option<f32>) -> (Rect, Rect) {
+        let default_ratio = 0.08;
         match position {
             TitlePosition::Left => {
-                let header_width = (rect.width() * 0.08).max(20.0);
+                let header_width = (rect.width() * ratio.unwrap_or(default_ratio)).max(20.0);
                 let header_rect =
                     Rect::from_min_max(rect.min, egui::pos2(rect.min.x + header_width, rect.max.y));
                 let content_rect =
@@ -102,7 +114,7 @@ impl TitledBox {
                 (header_rect, content_rect)
             }
             TitlePosition::Top => {
-                let header_height = (rect.height() * 0.08).max(20.0);
+                let header_height = (rect.height() * ratio.unwrap_or(default_ratio)).max(20.0);
                 let header_rect = Rect::from_min_max(
                     rect.min,
                     egui::pos2(rect.max.x, rect.min.y + header_height),
@@ -120,7 +132,7 @@ impl TitledBox {
     fn paint_chrome(&self, painter: &egui::Painter, rect: Rect) -> Rect {
         painter.rect_filled(rect, self.rounding, self.fill);
 
-        let (header_rect, content_rect) = Self::split_rect(rect, self.title_position);
+        let (header_rect, content_rect) = Self::split_rect(rect, self.title_position, self.header_ratio);
 
         let default_angle = match self.title_position {
             TitlePosition::Left => -FRAC_PI_2,
@@ -188,6 +200,7 @@ impl TitledBox {
                 .max_rect(inner_rect)
                 .layout(egui::Layout::left_to_right(egui::Align::Min)),
         );
+        child_ui.set_clip_rect(inner_rect.intersect(ui.clip_rect()));
         content(&mut child_ui);
 
         response

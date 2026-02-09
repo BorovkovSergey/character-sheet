@@ -13,7 +13,7 @@ mod wallet;
 mod weapon;
 
 pub use abilities::Abilities;
-pub use character_traits::Traits;
+pub use character_traits::{TraitEntry, Traits};
 pub use characteristics::Characteristics;
 pub use equipped_gear::EquippedGear;
 pub use identity_bar::IdentityBar;
