@@ -298,9 +298,9 @@ fn apply_resource_changes(
     };
     for event in reader.read() {
         match event {
-            ResourceChanged::Hp(v) => hp.current = *v,
-            ResourceChanged::Mp(v) => mana.current = *v,
-            ResourceChanged::Ap(v) => ap.current = *v,
+            ResourceChanged::Hp(v) => hp.current = (*v).min(hp.max),
+            ResourceChanged::Mp(v) => mana.current = (*v).min(mana.max),
+            ResourceChanged::Ap(v) => ap.current = (*v).min(ap.max),
         }
     }
 }

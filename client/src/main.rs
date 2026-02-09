@@ -40,7 +40,10 @@ fn main() {
     .add_plugins(NetworkPlugin)
     .add_plugins(UiPlugin)
     .add_systems(PreStartup, setup)
-    .add_systems(Update, recalculate_effects)
+    .add_systems(
+        Update,
+        recalculate_effects.run_if(in_state(AppScreen::CharacterSheet)),
+    )
     .add_systems(OnExit(AppScreen::CharacterSheet), despawn_active_character)
     .run();
 }

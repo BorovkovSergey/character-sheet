@@ -1,5 +1,5 @@
 use shared::{Character, TraitRegistry};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -13,7 +13,7 @@ struct StorageData {
 
 #[derive(Clone)]
 pub struct CharacterStore {
-    characters: Arc<RwLock<HashMap<Uuid, Character>>>,
+    characters: Arc<RwLock<BTreeMap<Uuid, Character>>>,
     trait_registry: Arc<TraitRegistry>,
     data_path: PathBuf,
 }
@@ -49,7 +49,7 @@ impl CharacterStore {
     async fn load_from_file(
         path: &PathBuf,
         trait_registry: &TraitRegistry,
-    ) -> HashMap<Uuid, Character> {
+    ) -> BTreeMap<Uuid, Character> {
         match tokio::fs::read_to_string(path).await {
             Ok(content) => match serde_json::from_str::<StorageData>(&content) {
                 Ok(data) => data
@@ -62,10 +62,10 @@ impl CharacterStore {
                     .collect(),
                 Err(e) => {
                     warn!("Failed to parse characters file {:?}: {}", path, e);
-                    HashMap::new()
+                    BTreeMap::new()
                 }
             },
-            Err(_) => HashMap::new(),
+            Err(_) => BTreeMap::new(),
         }
     }
 
