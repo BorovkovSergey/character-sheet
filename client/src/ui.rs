@@ -13,6 +13,9 @@ use crate::events::ResourceChanged;
 #[derive(Resource)]
 struct UiIcons {
     heart: egui::TextureHandle,
+    avatar_border_1: egui::TextureHandle,
+    avatar_border_2: egui::TextureHandle,
+    avatar_placeholder: egui::TextureHandle,
 }
 
 fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::TextureHandle {
@@ -20,7 +23,26 @@ fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::
     let rgba = img.to_rgba8();
     let size = [rgba.width() as usize, rgba.height() as usize];
     let color_image = egui::ColorImage::from_rgba_unmultiplied(size, &rgba);
-    ctx.load_texture(name, color_image, egui::TextureOptions::default())
+    ctx.load_texture(name, color_image, egui::TextureOptions::LINEAR)
+}
+
+fn load_svg_texture(
+    ctx: &egui::Context,
+    name: &str,
+    svg_bytes: &[u8],
+    scale: f32,
+) -> egui::TextureHandle {
+    let tree = resvg::usvg::Tree::from_data(svg_bytes, &resvg::usvg::Options::default())
+        .expect("failed to parse SVG");
+    let size = tree.size();
+    let w = (size.width() * scale).ceil() as u32;
+    let h = (size.height() * scale).ceil() as u32;
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(w, h).expect("failed to create pixmap");
+    let transform = resvg::tiny_skia::Transform::from_scale(scale, scale);
+    resvg::render(&tree, transform, &mut pixmap.as_mut());
+    let color_image =
+        egui::ColorImage::from_rgba_unmultiplied([w as usize, h as usize], pixmap.data());
+    ctx.load_texture(name, color_image, egui::TextureOptions::LINEAR)
 }
 
 pub struct UiPlugin;
@@ -43,6 +65,23 @@ fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> Result {
     let ctx = contexts.ctx_mut()?;
     commands.insert_resource(UiIcons {
         heart: load_png_texture(ctx, "heart", include_bytes!("../assets/heart.png")),
+        avatar_border_1: load_svg_texture(
+            ctx,
+            "avatar_border_1",
+            include_bytes!("../assets/avatar_border_1.svg"),
+            4.0,
+        ),
+        avatar_border_2: load_svg_texture(
+            ctx,
+            "avatar_border_2",
+            include_bytes!("../assets/avatar_border_2.svg"),
+            4.0,
+        ),
+        avatar_placeholder: load_png_texture(
+            ctx,
+            "avatar_placeholder",
+            include_bytes!("../assets/avatar_placeholder.png"),
+        ),
     });
     Ok(())
 }
@@ -93,6 +132,9 @@ fn render_ui(
                     col_h,
                     character,
                     heart_icon,
+                    icons.avatar_border_1.id(),
+                    icons.avatar_border_2.id(),
+                    icons.avatar_placeholder.id(),
                     &mut events,
                 );
                 ui.add_space(gap);
@@ -111,6 +153,9 @@ fn render_left_column(
     height: f32,
     character: &Character,
     heart_icon: egui::TextureId,
+    avatar_border_1: egui::TextureId,
+    avatar_border_2: egui::TextureId,
+    avatar_placeholder: egui::TextureId,
     events: &mut MessageWriter<ResourceChanged>,
 ) {
     let gap = height * 0.03 / 4.0;
@@ -118,7 +163,16 @@ fn render_left_column(
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
-        ui.add_sized([width, height * 0.30], Portrait::new());
+        ui.add_sized(
+            [width, height * 0.30],
+            Portrait::new(
+                avatar_border_1,
+                avatar_border_2,
+                avatar_placeholder,
+                character.level,
+                character.experience,
+            ),
+        );
         ui.add_space(gap);
         ui.add_sized(
             [width, height * 0.11],

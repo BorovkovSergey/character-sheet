@@ -55,7 +55,7 @@
       "race": "DarkHalfElf",
       "class": "Bard",
       "level": 5,
-      "experience": 6400,
+      "experience": 700,
       "hp": {
         "current": 35,
         "max": 35
@@ -113,7 +113,7 @@
       "race": "DarkHalfElf",
       "class": "Bard",
       "level": 3,
-      "experience": 2700,
+      "experience": 10,
       "hp": {
         "current": 24,
         "max": 24
@@ -167,7 +167,7 @@
       "race": "DarkHalfElf",
       "class": "Bard",
       "level": 8,
-      "experience": 34000,
+      "experience": 900,
       "hp": {
         "current": 52,
         "max": 52
