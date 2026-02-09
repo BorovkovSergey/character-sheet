@@ -54,6 +54,7 @@ pub struct SkillRegistry {
 
 impl SkillRegistry {
     /// Load from file
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn load_from_file(path: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
         let content = std::fs::read_to_string(path)?;
         let classes: BTreeMap<Class, BTreeMap<String, Skill>> = serde_json::from_str(&content)?;

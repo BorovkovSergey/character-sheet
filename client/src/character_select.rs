@@ -4,6 +4,7 @@ use shared::Character;
 use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 
 use crate::components::spawn_character;
+use crate::network::ClientTraitRegistry;
 use crate::state::AppScreen;
 
 /// Holds the list of available characters received from the server.
@@ -27,6 +28,7 @@ fn render_character_select(
     mut contexts: EguiContexts,
     mut commands: Commands,
     character_list: Res<CharacterList>,
+    trait_registry: Res<ClientTraitRegistry>,
     mut next_state: ResMut<NextState<AppScreen>>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
@@ -82,7 +84,8 @@ fn render_character_select(
                 });
         });
 
-    if let Some(character) = selected {
+    if let Some(mut character) = selected {
+        character.recalculate_effects(&trait_registry.0);
         spawn_character(&mut commands, &character);
         next_state.set(AppScreen::CharacterSheet);
     }

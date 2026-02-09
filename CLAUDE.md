@@ -23,6 +23,11 @@
 - Separate I/O (WebSocket drain, file reads) from game logic — I/O in exclusive system, logic in normal system
 - Use buffer `Resource` or `Events` to pass data from exclusive systems to normal ones
 
+### Non-send resources and WASM
+- On WASM, `ewebsock::WsSender`/`WsReceiver` contain `Rc<WebSocket>` — they are NOT `Send`
+- `commands.queue()` requires `Send`, so you CANNOT use it to insert non-send resources
+- Any system that creates or inserts `WsConnection` (or other non-send resources) MUST be an exclusive system (`fn(world: &mut World)`) calling `world.insert_non_send_resource()` directly
+
 ### Leverage change detection
 - Use `Changed<T>` and `Added<T>` query filters for reactive systems instead of recalculating every frame
 - Keep components granular to make change detection useful — `Changed<Hp>` is actionable, `Changed<GodStruct>` is not

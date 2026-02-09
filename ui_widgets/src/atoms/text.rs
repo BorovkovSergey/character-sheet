@@ -68,7 +68,7 @@ impl Text {
     /// offset to produce a faux-bold effect without requiring a dedicated bold font.
     pub fn paint(&self, painter: &egui::Painter, rect: Rect) {
         let font_id = egui::FontId::proportional(self.size);
-        let galley = painter.layout_no_wrap(self.content.clone(), font_id.clone(), self.color);
+        let galley = painter.layout_no_wrap(self.content.clone(), font_id, self.color);
         let galley_size = galley.size();
 
         let anchor_x = match self.align.x() {
@@ -101,9 +101,8 @@ impl Text {
         if self.bold {
             // Faux-bold: paint text twice with 1px horizontal offset
             let bold_offset = egui::pos2(pos.x + 1.0, pos.y);
-            let galley_copy = painter.layout_no_wrap(self.content.clone(), font_id, self.color);
             let mut text_shape_offset =
-                egui::epaint::TextShape::new(bold_offset, galley_copy, self.color);
+                egui::epaint::TextShape::new(bold_offset, galley.clone(), self.color);
             text_shape_offset.angle = self.angle;
             clipped.add(text_shape_offset);
         }

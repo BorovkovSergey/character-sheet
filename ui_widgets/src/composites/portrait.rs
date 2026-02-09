@@ -101,7 +101,7 @@ fn paint_ellipse_image(
     clip_rect: egui::Rect,
     image_rect: egui::Rect,
 ) {
-    const SEGMENTS: usize = 256;
+    const SEGMENTS: usize = 64;
 
     let center = clip_rect.center();
     let rx = clip_rect.width() / 2.0;
@@ -152,7 +152,7 @@ fn paint_xp_arc(painter: &egui::Painter, outer_rect: egui::Rect, thickness: f32,
         return;
     }
 
-    const SEGMENTS: usize = 128;
+    const SEGMENTS: usize = 64;
     let fraction = fraction.min(1.0);
     let seg_count = ((SEGMENTS as f32) * fraction).ceil() as usize;
 

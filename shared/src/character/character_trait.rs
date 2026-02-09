@@ -32,6 +32,7 @@ pub struct TraitRegistry {
 
 impl TraitRegistry {
     /// Load traits from a JSON file
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn load_from_file(path: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
         let content = std::fs::read_to_string(path)?;
         let traits: BTreeMap<String, CharacterTrait> = serde_json::from_str(&content)?;
@@ -56,6 +57,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[cfg(not(target_arch = "wasm32"))]
     fn test_load_traits_from_json() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()

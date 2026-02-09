@@ -29,25 +29,6 @@ fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::
     ctx.load_texture(name, color_image, egui::TextureOptions::LINEAR)
 }
 
-fn load_svg_texture(
-    ctx: &egui::Context,
-    name: &str,
-    svg_bytes: &[u8],
-    scale: f32,
-) -> egui::TextureHandle {
-    let tree = resvg::usvg::Tree::from_data(svg_bytes, &resvg::usvg::Options::default())
-        .expect("failed to parse SVG");
-    let size = tree.size();
-    let w = (size.width() * scale).ceil() as u32;
-    let h = (size.height() * scale).ceil() as u32;
-    let mut pixmap = resvg::tiny_skia::Pixmap::new(w, h).expect("failed to create pixmap");
-    let transform = resvg::tiny_skia::Transform::from_scale(scale, scale);
-    resvg::render(&tree, transform, &mut pixmap.as_mut());
-    let color_image =
-        egui::ColorImage::from_rgba_unmultiplied([w as usize, h as usize], pixmap.data());
-    ctx.load_texture(name, color_image, egui::TextureOptions::LINEAR)
-}
-
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
@@ -68,17 +49,15 @@ fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> Result {
     let ctx = contexts.ctx_mut()?;
     commands.insert_resource(UiIcons {
         heart: load_png_texture(ctx, "heart", include_bytes!("../assets/heart.png")),
-        avatar_border_1: load_svg_texture(
+        avatar_border_1: load_png_texture(
             ctx,
             "avatar_border_1",
-            include_bytes!("../assets/avatar_border_1.svg"),
-            4.0,
+            include_bytes!("../assets/avatar_border_1.png"),
         ),
-        avatar_border_2: load_svg_texture(
+        avatar_border_2: load_png_texture(
             ctx,
             "avatar_border_2",
-            include_bytes!("../assets/avatar_border_2.svg"),
-            4.0,
+            include_bytes!("../assets/avatar_border_2.png"),
         ),
         avatar_placeholder: load_png_texture(
             ctx,
@@ -95,41 +74,37 @@ const COL1_WIDTH: f32 = 0.24;
 const COL2_WIDTH: f32 = 0.46;
 const COL3_WIDTH: f32 = 0.24;
 
-#[allow(clippy::type_complexity)]
+#[derive(bevy::ecs::query::QueryData)]
+struct CharacterQueryData {
+    name: &'static CharacterName,
+    race: &'static CharacterRace,
+    class: &'static CharacterClass,
+    level: &'static Level,
+    exp: &'static Experience,
+    hp: &'static Hp,
+    mana: &'static Mana,
+    ap: &'static ActionPoints,
+    stats: &'static CharacterStats,
+    char_pts: &'static CharacteristicPoints,
+    skill_pts: &'static SkillPoints,
+    effects: &'static ActiveEffects,
+}
+
 fn render_ui(
     mut contexts: EguiContexts,
     icons: Option<Res<UiIcons>>,
-    character_query: Query<
-        (
-            &CharacterName,
-            &CharacterRace,
-            &CharacterClass,
-            &Level,
-            &Experience,
-            &Hp,
-            &Mana,
-            &ActionPoints,
-            &CharacterStats,
-            &CharacteristicPoints,
-            &SkillPoints,
-            &ActiveEffects,
-        ),
-        With<ActiveCharacter>,
-    >,
+    character_query: Query<CharacterQueryData, With<ActiveCharacter>>,
     mut events: MessageWriter<ResourceChanged>,
 ) -> Result {
     let Some(icons) = icons else {
         return Ok(());
     };
 
-    let Ok((name, race, class, level, exp, hp, mana, ap, stats, char_pts, skill_pts, effects)) =
-        character_query.single()
-    else {
+    let Ok(character) = character_query.single() else {
         return Ok(());
     };
 
     let ctx = contexts.ctx_mut()?;
-    let heart_icon = icons.heart.id();
 
     egui::CentralPanel::default()
         .frame(egui::Frame::NONE.fill(MAIN_COLOR))
@@ -147,28 +122,9 @@ fn render_ui(
 
             ui.horizontal(|ui| {
                 ui.add_space(margin);
-                render_left_column(
-                    ui,
-                    total_w * COL1_WIDTH,
-                    col_h,
-                    heart_icon,
-                    icons.avatar_border_1.id(),
-                    icons.avatar_border_2.id(),
-                    icons.avatar_placeholder.id(),
-                    &mut events,
-                    name,
-                    race,
-                    class,
-                    level,
-                    exp,
-                    hp,
-                    mana,
-                    ap,
-                    effects,
-                    stats,
-                );
+                render_left_column(ui, total_w * COL1_WIDTH, col_h, &icons, &character, &mut events);
                 ui.add_space(gap);
-                render_center_column(ui, total_w * COL2_WIDTH, col_h, stats, char_pts, skill_pts);
+                render_center_column(ui, total_w * COL2_WIDTH, col_h, &character);
                 ui.add_space(gap);
                 render_right_column(ui, total_w * COL3_WIDTH, col_h);
             });
@@ -177,29 +133,16 @@ fn render_ui(
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 fn render_left_column(
     ui: &mut egui::Ui,
     width: f32,
     height: f32,
-    heart_icon: egui::TextureId,
-    avatar_border_1: egui::TextureId,
-    avatar_border_2: egui::TextureId,
-    avatar_placeholder: egui::TextureId,
+    icons: &UiIcons,
+    character: &CharacterQueryDataItem,
     events: &mut MessageWriter<ResourceChanged>,
-    name: &CharacterName,
-    race: &CharacterRace,
-    class: &CharacterClass,
-    level: &Level,
-    exp: &Experience,
-    hp: &Hp,
-    mana: &Mana,
-    ap: &ActionPoints,
-    effects: &ActiveEffects,
-    stats: &CharacterStats,
 ) {
     let gap = height * 0.03 / 4.0;
-    let initiative = stats.0.perception.level as i32 + effects.initiative_bonus();
+    let initiative = character.stats.0.perception.level as i32 + character.effects.initiative_bonus();
 
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -207,51 +150,54 @@ fn render_left_column(
         ui.add_sized(
             [width, height * 0.30],
             Portrait::new(
-                avatar_border_1,
-                avatar_border_2,
-                avatar_placeholder,
-                level.0,
-                exp.0,
+                icons.avatar_border_1.id(),
+                icons.avatar_border_2.id(),
+                icons.avatar_placeholder.id(),
+                character.level.0,
+                character.exp.0,
             ),
         );
         ui.add_space(gap);
         ui.add_sized(
             [width, height * 0.11],
-            IdentityBar::new(&name.0, &race.0.to_string(), &class.0.to_string()),
+            IdentityBar::new(
+                &character.name.0,
+                &character.race.0.to_string(),
+                &character.class.0.to_string(),
+            ),
         );
         ui.add_space(gap);
 
-        send_status_bar_events(ui, width, height * 0.16, hp, mana, ap, initiative, events);
+        send_status_bar_events(ui, width, height * 0.16, character, initiative, events);
         ui.add_space(gap);
 
-        let resists = effects
+        let resists = character
+            .effects
             .get_resists()
             .into_iter()
             .map(|(r, v)| (r.to_string(), v))
             .collect();
-        let protections = effects
+        let protections = character
+            .effects
             .get_protections()
             .into_iter()
             .map(|(p, v)| (p.to_string(), v))
             .collect();
         ui.add_sized(
             [width, height * 0.20],
-            Stats::new(heart_icon, resists, protections),
+            Stats::new(icons.heart.id(), resists, protections),
         );
         ui.add_space(gap);
 
-        send_status_bar_events(ui, width, height * 0.20, hp, mana, ap, initiative, events);
+        send_status_bar_events(ui, width, height * 0.20, character, initiative, events);
     });
 }
 
-#[allow(clippy::too_many_arguments)]
 fn send_status_bar_events(
     ui: &mut egui::Ui,
     width: f32,
     height: f32,
-    hp: &Hp,
-    mana: &Mana,
-    ap: &ActionPoints,
+    character: &CharacterQueryDataItem,
     initiative: i32,
     events: &mut MessageWriter<ResourceChanged>,
 ) {
@@ -263,12 +209,12 @@ fn send_status_bar_events(
             .layout(egui::Layout::top_down(egui::Align::Min)),
     );
     let result = StatusBar::new(
-        hp.current,
-        hp.max,
-        mana.current,
-        mana.max,
-        ap.current,
-        ap.max,
+        character.hp.current,
+        character.hp.max,
+        character.mana.current,
+        character.mana.max,
+        character.ap.current,
+        character.ap.max,
         initiative,
     )
     .show(&mut status_ui);
@@ -309,24 +255,23 @@ fn render_center_column(
     ui: &mut egui::Ui,
     width: f32,
     height: f32,
-    stats: &CharacterStats,
-    char_pts: &CharacteristicPoints,
-    skill_pts: &SkillPoints,
+    character: &CharacterQueryDataItem,
 ) {
     let gap = height * 0.03 / 4.0;
+    let stats = &character.stats.0;
 
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
         let characteristics = [
-            ("STR", stats.0.strength.level),
-            ("DEX", stats.0.dexterity.level),
-            ("END", stats.0.endurance.level),
-            ("PER", stats.0.perception.level),
-            ("MAG", stats.0.magic.level),
-            ("WIL", stats.0.willpower.level),
-            ("INT", stats.0.intellect.level),
-            ("CHA", stats.0.charisma.level),
+            ("STR", stats.strength.level),
+            ("DEX", stats.dexterity.level),
+            ("END", stats.endurance.level),
+            ("PER", stats.perception.level),
+            ("MAG", stats.magic.level),
+            ("WIL", stats.willpower.level),
+            ("INT", stats.intellect.level),
+            ("CHA", stats.charisma.level),
         ];
         let char_values = characteristics
             .into_iter()
@@ -334,7 +279,10 @@ fn render_center_column(
             .collect();
         ui.add_sized([width, height * 0.14], Characteristics::new(char_values));
         ui.add_space(gap);
-        ui.add_sized([width, height * 0.05], Points::new(char_pts.0, skill_pts.0));
+        ui.add_sized(
+            [width, height * 0.05],
+            Points::new(character.char_pts.0, character.skill_pts.0),
+        );
         ui.add_space(gap);
         ui.add_sized([width, height * 0.24], Skills::new());
         ui.add_space(gap);

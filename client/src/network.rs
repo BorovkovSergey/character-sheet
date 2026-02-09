@@ -18,9 +18,18 @@ pub struct WsConnection {
 pub struct ClientTraitRegistry(pub TraitRegistry);
 
 /// Buffer for server messages drained from the WebSocket.
-/// Filled by the exclusive `drain_ws` system, consumed by `process_server_messages`.
+/// Filled by `drain_ws`, consumed by `process_server_messages`.
 #[derive(Resource, Default)]
 struct PendingServerMessages(Vec<ServerMessage>);
+
+#[derive(Resource)]
+struct ReconnectTimer(Timer);
+
+impl Default for ReconnectTimer {
+    fn default() -> Self {
+        Self(Timer::from_seconds(3.0, TimerMode::Repeating))
+    }
+}
 
 pub struct NetworkPlugin;
 
@@ -30,8 +39,10 @@ impl Plugin for NetworkPlugin {
             .expect("failed to parse embedded traits.json");
         app.insert_resource(ClientTraitRegistry(registry))
             .init_resource::<PendingServerMessages>()
+            .init_resource::<ReconnectTimer>()
             .add_systems(Startup, connect_to_server)
-            .add_systems(Update, (drain_ws, process_server_messages).chain());
+            .add_systems(Update, (drain_ws, process_server_messages).chain())
+            .add_systems(Update, attempt_reconnect);
     }
 }
 
@@ -76,23 +87,16 @@ fn connect_to_server(world: &mut World) {
     }
 }
 
-/// Minimal exclusive system: drains the WebSocket and buffers decoded messages.
-fn drain_ws(world: &mut World) {
-    let events = {
-        let Some(conn) = world.get_non_send_resource::<WsConnection>() else {
-            return;
-        };
-        let mut events = Vec::new();
-        while let Some(event) = conn.receiver.try_recv() {
-            events.push(event);
-        }
-        events
-    };
+/// Drains the WebSocket and buffers decoded messages.
+fn drain_ws(
+    conn: Option<NonSend<WsConnection>>,
+    mut pending: ResMut<PendingServerMessages>,
+    mut commands: Commands,
+) {
+    let Some(conn) = conn else { return };
 
     let mut should_remove = false;
-    let mut pending = world.resource_mut::<PendingServerMessages>();
-
-    for event in events {
+    while let Some(event) = conn.receiver.try_recv() {
         match event {
             WsEvent::Opened => {
                 info!("WebSocket connection opened");
@@ -116,7 +120,9 @@ fn drain_ws(world: &mut World) {
     }
 
     if should_remove {
-        world.remove_non_send_resource::<WsConnection>();
+        commands.queue(|world: &mut World| {
+            world.remove_non_send_resource::<WsConnection>();
+        });
         info!("Cleaned up WebSocket connection resource");
     }
 }
@@ -124,16 +130,12 @@ fn drain_ws(world: &mut World) {
 /// Normal system: processes buffered server messages and updates game state.
 fn process_server_messages(
     mut pending: ResMut<PendingServerMessages>,
-    trait_registry: Res<ClientTraitRegistry>,
     mut character_list: ResMut<CharacterList>,
 ) {
     for msg in pending.0.drain(..) {
         match msg {
-            ServerMessage::CharacterList { mut characters } => {
+            ServerMessage::CharacterList { characters } => {
                 info!("Received {} character(s) from server", characters.len());
-                for c in &mut characters {
-                    c.recalculate_effects(&trait_registry.0);
-                }
                 character_list.characters = characters;
             }
             ServerMessage::CharacterCreated { .. } => {
@@ -148,6 +150,41 @@ fn process_server_messages(
             ServerMessage::Error { message } => {
                 error!("Server error: {message}");
             }
+        }
+    }
+}
+
+/// Exclusive system: reconnects if the WebSocket is gone.
+/// Must be exclusive because `WsSender`/`WsReceiver` are not `Send` on WASM
+/// (`Rc<WebSocket>`), so `commands.queue()` cannot move them across threads.
+fn attempt_reconnect(world: &mut World) {
+    if world.get_non_send_resource::<WsConnection>().is_some() {
+        world.resource_mut::<ReconnectTimer>().0.reset();
+        return;
+    }
+
+    let delta = world.resource::<Time>().delta();
+    world.resource_mut::<ReconnectTimer>().0.tick(delta);
+    if !world.resource::<ReconnectTimer>().0.just_finished() {
+        return;
+    }
+
+    let url = match server_url() {
+        Ok(url) => url,
+        Err(err) => {
+            error!("Failed to determine server URL: {err}");
+            return;
+        }
+    };
+    info!("Attempting to reconnect to {url}");
+
+    match ewebsock::connect(&url, ewebsock::Options::default()) {
+        Ok((sender, receiver)) => {
+            info!("Reconnected to server");
+            world.insert_non_send_resource(WsConnection { sender, receiver });
+        }
+        Err(err) => {
+            warn!("Reconnection failed: {err}");
         }
     }
 }
