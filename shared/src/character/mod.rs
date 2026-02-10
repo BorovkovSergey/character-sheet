@@ -6,6 +6,7 @@ mod effect;
 mod race;
 mod resource;
 mod skill;
+mod weapon;
 
 use std::collections::BTreeMap;
 
@@ -28,6 +29,7 @@ pub use effect::{Effect, GetEffects, OnLvlUp, Protection, Resist};
 pub use race::{Race, Size};
 pub use resource::Resource;
 pub use skill::{CharacterSkill, Skill, SkillRegistry};
+pub use weapon::{MeleeKind, RangeKind, Weapon, WeaponGrip, WeaponKind};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Character {
@@ -48,6 +50,8 @@ pub struct Character {
     pub traits: Vec<String>,
     #[serde(default)]
     pub abilities: Vec<String>,
+    #[serde(default)]
+    pub equipped_weapons: Vec<String>,
     /// Total currency stored as a single value.
     /// Gold = value / 1000, Silver = (value % 1000) / 10, Copper = value % 10.
     #[serde(default)]
@@ -74,6 +78,7 @@ impl Character {
             skills: Vec::new(),
             traits: Vec::new(),
             abilities: Vec::new(),
+            equipped_weapons: Vec::new(),
             wallet: 0,
             active_effects: Vec::new(),
         };

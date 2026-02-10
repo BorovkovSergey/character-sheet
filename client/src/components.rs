@@ -85,6 +85,10 @@ impl Wallet {
 }
 
 #[derive(Component)]
+#[allow(dead_code)]
+pub struct CharacterWeaponNames(pub Vec<String>);
+
+#[derive(Component)]
 pub struct ActiveEffects(pub Vec<Effect>);
 
 impl ActiveEffects {
@@ -150,6 +154,7 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
             CharacterSkillList(character.skills.clone()),
             CharacterTraitNames(character.traits.clone()),
             CharacterAbilityNames(character.abilities.clone()),
+            CharacterWeaponNames(character.equipped_weapons.clone()),
             Wallet(character.wallet),
             ActiveEffects(character.active_effects.clone()),
         ))

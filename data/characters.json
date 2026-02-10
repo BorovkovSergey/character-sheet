@@ -128,6 +128,10 @@
         "From one eye",
         "Narrator"
       ],
+      "equipped_weapons": [
+        "Sword",
+        "Pistol"
+      ],
       "wallet": 123456
     },
     {

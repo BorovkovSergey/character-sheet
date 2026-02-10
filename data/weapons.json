@@ -1,0 +1,36 @@
+[
+    {
+        "name": "Short Bow",
+        "damage": "1d6",
+        "attack": 0,
+        "kind": {
+            "Range": "Bow"
+        },
+        "grip": "TwoHanded",
+        "range": 6,
+        "effects": []
+    },
+    {
+        "name": "Pistol",
+        "damage": "2d6",
+        "attack": 0,
+        "kind": {
+            "Range": "Firearm"
+        },
+        "grip": "TwoHanded",
+        "range": 7,
+        "condition": "Needs to reload after shot",
+        "effects": []
+    },
+    {
+        "name": "Sword",
+        "damage": "1d6",
+        "attack": 0,
+        "kind": {
+            "Melee": "Slashing"
+        },
+        "grip": "OneHanded",
+        "range": 1,
+        "effects": []
+    }
+]
