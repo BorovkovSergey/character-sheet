@@ -1,5 +1,7 @@
+use std::cell::Cell;
+
 use crate::colors::SECONDARY_COLOR;
-use crate::egui::{self, TextureId, Widget};
+use crate::egui::{self, TextureId};
 use crate::molecules::{TitledBox, WeaponEntry};
 
 const SLOT_COUNT: usize = 3;
@@ -14,6 +16,7 @@ pub struct WeaponSlot {
 }
 
 /// Displays equipped weapon slots.
+/// Right-clicking a filled slot shows an "Unequip" context menu.
 pub struct Weapon {
     icon: TextureId,
     slots: Vec<WeaponSlot>,
@@ -23,22 +26,28 @@ impl Weapon {
     pub fn new(icon: TextureId, slots: Vec<WeaponSlot>) -> Self {
         Self { icon, slots }
     }
-}
 
-impl Widget for Weapon {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    /// Renders the weapon slots and returns the index of the weapon the user chose to unequip.
+    pub fn show(self, ui: &mut egui::Ui) -> Option<usize> {
+        let action = Cell::new(None);
         TitledBox::new("Weapon")
             .fill(SECONDARY_COLOR)
             .rounding(16)
             .content_rounding(14)
             .show(ui, |ui| {
-                inner_weapon_slots(ui, self.icon, &self.slots);
-            })
+                let result = inner_weapon_slots(ui, self.icon, &self.slots);
+                action.set(result);
+            });
+        action.get()
     }
 }
 
-/// Lays out weapon entry slots vertically.
-fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) {
+/// Lays out weapon entry slots vertically. Returns index of unequipped weapon if any.
+fn inner_weapon_slots(
+    ui: &mut egui::Ui,
+    icon: TextureId,
+    slots: &[WeaponSlot],
+) -> Option<usize> {
     let count = SLOT_COUNT as f32;
     let spacing = 4.0;
     let available_width = ui.available_width();
@@ -47,6 +56,8 @@ fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) 
     let inner_width = available_width - pad;
     let inner_height = available_height - pad * 2.0;
     let item_height = (inner_height - spacing * (count - 1.0)) / count;
+
+    let mut action = None;
 
     ui.vertical(|ui| {
         ui.add_space(pad);
@@ -58,7 +69,13 @@ fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) 
                 |ui| {
                     ui.add_space(pad);
                     let available = ui.available_size();
-                    let (rect, _response) = ui.allocate_exact_size(available, egui::Sense::hover());
+                    let has_weapon = slots.get(i).is_some();
+                    let sense = if has_weapon {
+                        egui::Sense::click() | egui::Sense::hover()
+                    } else {
+                        egui::Sense::hover()
+                    };
+                    let (rect, response) = ui.allocate_exact_size(available, sense);
                     let mut entry = WeaponEntry::new(icon);
                     if let Some(slot) = slots.get(i) {
                         entry = entry
@@ -69,8 +86,19 @@ fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) 
                             .range(&slot.range);
                     }
                     entry.paint(ui.painter(), rect);
+
+                    if has_weapon {
+                        response.context_menu(|ui| {
+                            if ui.button("Unequip").clicked() {
+                                action = Some(i);
+                                ui.close();
+                            }
+                        });
+                    }
                 },
             );
         }
     });
+
+    action
 }

@@ -12,7 +12,7 @@ mod weapon_entry;
 pub use ability_card::AbilityCard;
 pub use equipment_card::EquipmentCard;
 pub use inventory_cell::InventoryCell;
-pub use inventory_table::{InventoryTable, InventoryTooltip};
+pub use inventory_table::{CellAction, InventoryTable, InventoryTooltip};
 pub use item_card::ItemCard;
 pub use labeled_value::LabeledValue;
 pub use progress_bar::ProgressBar;

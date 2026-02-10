@@ -6,7 +6,7 @@ use ui_widgets::composites::{
     Portrait, SkillEntry, Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits,
     Wallet as WalletWidget, WalletResponse, Weapon, WeaponSlot,
 };
-use ui_widgets::molecules::InventoryTooltip;
+use ui_widgets::molecules::{CellAction, InventoryTooltip};
 
 use crate::components::{
     ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames, CharacterClass,
@@ -14,10 +14,10 @@ use crate::components::{
     CharacterTraitNames, CharacterWeaponNames, CharacteristicPoints, Experience, Hp,
     Inventory as InventoryComponent, Level, Mana, SkillPoints, Wallet,
 };
-use crate::events::{ResourceChanged, WalletChanged};
+use crate::events::{InventoryChanged, ResourceChanged, WalletChanged};
 use crate::state::AppScreen;
 use shared::character::OnLvlUp;
-use shared::{AbilityCheck, AbilityType, Effect};
+use shared::{AbilityCheck, AbilityType, Effect, EquipmentSlot, InventoryItem};
 
 #[derive(Resource)]
 struct UiIcons {
@@ -47,6 +47,7 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_message::<ResourceChanged>()
             .add_message::<WalletChanged>()
+            .add_message::<InventoryChanged>()
             .add_systems(
                 EguiPrimaryContextPass,
                 (
@@ -54,7 +55,14 @@ impl Plugin for UiPlugin {
                     render_ui.run_if(in_state(AppScreen::CharacterSheet)),
                 ),
             )
-            .add_systems(Update, (apply_resource_changes, apply_wallet_changes));
+            .add_systems(
+                Update,
+                (
+                    apply_resource_changes,
+                    apply_wallet_changes,
+                    apply_inventory_changes,
+                ),
+            );
     }
 }
 
@@ -152,6 +160,7 @@ fn render_ui(
     item_registry: Res<crate::network::ClientItemRegistry>,
     mut events: MessageWriter<ResourceChanged>,
     mut wallet_events: MessageWriter<WalletChanged>,
+    mut inventory_events: MessageWriter<InventoryChanged>,
 ) -> Result {
     let Some(icons) = icons else {
         return Ok(());
@@ -188,6 +197,7 @@ fn render_ui(
                     &character,
                     &weapon_registry,
                     &mut events,
+                    &mut inventory_events,
                 );
                 ui.add_space(gap);
                 render_center_column(
@@ -212,6 +222,7 @@ fn render_ui(
                     &equipment_registry,
                     &item_registry,
                     &mut wallet_events,
+                    &mut inventory_events,
                 );
             });
         });
@@ -227,6 +238,7 @@ fn render_left_column(
     character: &CharacterQueryDataItem,
     weapon_registry: &crate::network::ClientWeaponRegistry,
     events: &mut MessageWriter<ResourceChanged>,
+    inventory_events: &mut MessageWriter<InventoryChanged>,
 ) {
     let gap = height * 0.03 / 4.0;
     let initiative =
@@ -291,10 +303,19 @@ fn render_left_column(
                 })
             })
             .collect();
-        ui.add_sized(
-            [width, height * 0.20],
-            Weapon::new(icons.weapon_placeholder.id(), weapon_slots),
+
+        let weapon_size = egui::vec2(width, height * 0.20);
+        let (weapon_rect, _) = ui.allocate_exact_size(weapon_size, egui::Sense::hover());
+        let mut weapon_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(weapon_rect)
+                .layout(egui::Layout::top_down(egui::Align::Min)),
         );
+        if let Some(i) =
+            Weapon::new(icons.weapon_placeholder.id(), weapon_slots).show(&mut weapon_ui)
+        {
+            inventory_events.write(InventoryChanged::UnequipWeapon(i));
+        }
     });
 }
 
@@ -516,6 +537,7 @@ fn render_right_column(
     equipment_registry: &crate::network::ClientEquipmentRegistry,
     item_registry: &crate::network::ClientItemRegistry,
     wallet_events: &mut MessageWriter<WalletChanged>,
+    inventory_events: &mut MessageWriter<InventoryChanged>,
 ) {
     let gap = height * 0.03 / 2.0;
     let wallet = character.wallet;
@@ -526,13 +548,16 @@ fn render_right_column(
         .iter()
         .map(|inv_item| match inv_item {
             shared::InventoryItem::Weapon(name) => {
-                weapon_registry.0.get(name).map(|w| InventoryTooltip::Weapon {
-                    name: w.name.clone(),
-                    kind: w.kind.to_string(),
-                    attack: format!("{:+}", w.attack),
-                    damage: w.damage.clone(),
-                    range: w.range.to_string(),
-                })
+                weapon_registry
+                    .0
+                    .get(name)
+                    .map(|w| InventoryTooltip::Weapon {
+                        name: w.name.clone(),
+                        kind: w.kind.to_string(),
+                        attack: format!("{:+}", w.attack),
+                        damage: w.damage.clone(),
+                        range: w.range.to_string(),
+                    })
             }
             shared::InventoryItem::Equipment(name) => {
                 equipment_registry
@@ -555,32 +580,42 @@ fn render_right_column(
         })
         .collect();
 
+    let equipped_items: Vec<Option<InventoryTooltip>> = character
+        .equipment
+        .0
+        .values()
+        .flat_map(|names| names.iter())
+        .map(|name| {
+            equipment_registry
+                .0
+                .get(name)
+                .map(|e| InventoryTooltip::Equipment {
+                    name: e.name.clone(),
+                    slot: e.slot.to_string(),
+                    description: e.description.clone(),
+                    armor: e.armor,
+                    effects: e.effects.iter().map(format_effect).collect(),
+                })
+        })
+        .collect();
+
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
-        let equipped_items: Vec<Option<InventoryTooltip>> = character
-            .equipment
-            .0
-            .values()
-            .flat_map(|names| names.iter())
-            .map(|name| {
-                equipment_registry
-                    .0
-                    .get(name)
-                    .map(|e| InventoryTooltip::Equipment {
-                        name: e.name.clone(),
-                        slot: e.slot.to_string(),
-                        description: e.description.clone(),
-                        armor: e.armor,
-                        effects: e.effects.iter().map(format_effect).collect(),
-                    })
-            })
-            .collect();
-
-        ui.add_sized(
-            [width, height * 0.41],
-            EquippedGear::new(icons.inventory_placeholder.id()).items(equipped_items),
+        let equipped_size = egui::vec2(width, height * 0.41);
+        let (equipped_rect, _) = ui.allocate_exact_size(equipped_size, egui::Sense::hover());
+        let mut equipped_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(equipped_rect)
+                .layout(egui::Layout::top_down(egui::Align::Min)),
         );
+        if let Some(i) = EquippedGear::new(icons.inventory_placeholder.id())
+            .items(equipped_items)
+            .show(&mut equipped_ui)
+        {
+            inventory_events.write(InventoryChanged::UnequipGear(i));
+        }
+
         ui.add_space(gap);
 
         let wallet_size = egui::vec2(width, height * 0.08);
@@ -602,10 +637,26 @@ fn render_right_column(
         send_wallet_events(wallet_events, result);
 
         ui.add_space(gap);
-        ui.add_sized(
-            [width, height * 0.48],
-            Inventory::new(icons.inventory_placeholder.id()).items(inventory_items),
+
+        let inventory_size = egui::vec2(width, height * 0.48);
+        let (inventory_rect, _) = ui.allocate_exact_size(inventory_size, egui::Sense::hover());
+        let mut inventory_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(inventory_rect)
+                .layout(egui::Layout::top_down(egui::Align::Min)),
         );
+        match Inventory::new(icons.inventory_placeholder.id())
+            .items(inventory_items)
+            .show(&mut inventory_ui)
+        {
+            Some(CellAction::Primary(i)) => {
+                inventory_events.write(InventoryChanged::Equip(i));
+            }
+            Some(CellAction::Remove(i)) => {
+                inventory_events.write(InventoryChanged::Remove(i));
+            }
+            None => {}
+        }
     });
 }
 
@@ -628,5 +679,94 @@ fn apply_wallet_changes(
     for event in reader.read() {
         let new_val = wallet.0 as i64 + event.0;
         wallet.0 = new_val.max(0) as u64;
+    }
+}
+
+const MAX_EQUIPPED_WEAPONS: usize = 3;
+
+fn apply_inventory_changes(
+    mut query: Query<
+        (
+            &mut InventoryComponent,
+            &mut CharacterEquipment,
+            &mut CharacterWeaponNames,
+        ),
+        With<ActiveCharacter>,
+    >,
+    mut reader: MessageReader<InventoryChanged>,
+    equipment_registry: Res<crate::network::ClientEquipmentRegistry>,
+) {
+    let Ok((mut inventory, mut equipment, mut weapons)) = query.single_mut() else {
+        return;
+    };
+    for event in reader.read() {
+        match event {
+            InventoryChanged::Equip(idx) => {
+                let idx = *idx;
+                if idx >= inventory.0.len() {
+                    continue;
+                }
+                match &inventory.0[idx] {
+                    InventoryItem::Equipment(name) => {
+                        let name = name.clone();
+                        if let Some(eq) = equipment_registry.0.get(&name) {
+                            let slot = eq.slot;
+                            if slot != EquipmentSlot::Ring {
+                                if let Some(existing) = equipment.0.get(&slot) {
+                                    for old_name in existing.clone() {
+                                        inventory.0.push(InventoryItem::Equipment(old_name));
+                                    }
+                                }
+                                equipment.0.insert(slot, vec![name]);
+                            } else {
+                                equipment.0.entry(slot).or_default().push(name);
+                            }
+                            inventory.0.remove(idx);
+                        }
+                    }
+                    InventoryItem::Weapon(name) => {
+                        if weapons.0.len() >= MAX_EQUIPPED_WEAPONS {
+                            continue;
+                        }
+                        let name = name.clone();
+                        weapons.0.push(name);
+                        inventory.0.remove(idx);
+                    }
+                    InventoryItem::Item(_) => {}
+                }
+            }
+            InventoryChanged::Remove(idx) => {
+                let idx = *idx;
+                if idx < inventory.0.len() {
+                    inventory.0.remove(idx);
+                }
+            }
+            InventoryChanged::UnequipGear(idx) => {
+                let idx = *idx;
+                let mut current = 0;
+                let mut target: Option<(EquipmentSlot, usize)> = None;
+                for (slot, names) in equipment.0.iter() {
+                    if idx < current + names.len() {
+                        target = Some((*slot, idx - current));
+                        break;
+                    }
+                    current += names.len();
+                }
+                if let Some((slot, inner_idx)) = target {
+                    let name = equipment.0.get_mut(&slot).unwrap().remove(inner_idx);
+                    if equipment.0.get(&slot).is_some_and(|v| v.is_empty()) {
+                        equipment.0.remove(&slot);
+                    }
+                    inventory.0.push(InventoryItem::Equipment(name));
+                }
+            }
+            InventoryChanged::UnequipWeapon(idx) => {
+                let idx = *idx;
+                if idx < weapons.0.len() {
+                    let name = weapons.0.remove(idx);
+                    inventory.0.push(InventoryItem::Weapon(name));
+                }
+            }
+        }
     }
 }

@@ -25,6 +25,15 @@ pub enum InventoryTooltip {
     },
 }
 
+/// Action triggered from a cell context menu.
+#[derive(Clone, Copy)]
+pub enum CellAction {
+    /// The primary action button was clicked (e.g. "Equip" / "Unequip").
+    Primary(usize),
+    /// The "Remove" button was clicked.
+    Remove(usize),
+}
+
 /// A grid of [`InventoryCell`] items with configurable column and row counts.
 /// Supports optional tooltip data per cell with hover popups.
 pub struct InventoryTable {
@@ -33,6 +42,8 @@ pub struct InventoryTable {
     rows: usize,
     items: Vec<Option<InventoryTooltip>>,
     id_salt: egui::Id,
+    context_label: Option<String>,
+    show_remove: bool,
 }
 
 impl InventoryTable {
@@ -43,6 +54,8 @@ impl InventoryTable {
             rows,
             items: Vec::new(),
             id_salt: egui::Id::NULL,
+            context_label: None,
+            show_remove: false,
         }
     }
 
@@ -56,11 +69,25 @@ impl InventoryTable {
         self
     }
 
+    pub fn context_label(mut self, label: impl Into<String>) -> Self {
+        self.context_label = Some(label.into());
+        self
+    }
+
+    pub fn show_remove(mut self, show: bool) -> Self {
+        self.show_remove = show;
+        self
+    }
+
     /// Paints the grid into the given rect.
-    pub fn paint(&self, ui: &mut egui::Ui, rect: Rect) {
+    /// Returns a [`CellAction`] if a context menu action was triggered.
+    pub fn paint(&self, ui: &mut egui::Ui, rect: Rect) -> Option<CellAction> {
         let pad = UiStyle::content_padding(ui);
         let cell_width = (rect.width() - pad * (self.cols as f32 + 1.0)) / self.cols as f32;
         let cell_height = (rect.height() - pad * (self.rows as f32 + 1.0)) / self.rows as f32;
+
+        let has_context = self.context_label.is_some() || self.show_remove;
+        let mut action = None;
 
         for i in 0..(self.cols * self.rows) {
             let col = i % self.cols;
@@ -72,10 +99,16 @@ impl InventoryTable {
 
             let has_item = self.items.get(i).is_some_and(|o| o.is_some());
 
+            let sense = if has_context && has_item {
+                egui::Sense::click() | egui::Sense::hover()
+            } else {
+                egui::Sense::hover()
+            };
+
             let response = ui.interact(
                 cell_rect,
                 self.id_salt.with(("inv_cell", i)),
-                egui::Sense::hover(),
+                sense,
             );
 
             InventoryCell::new(self.image).paint(ui.painter(), cell_rect);
@@ -91,6 +124,23 @@ impl InventoryTable {
                     dot_radius,
                     crate::colors::STROKE_COLOR,
                 );
+            }
+
+            if has_context && has_item {
+                response.context_menu(|ui| {
+                    if let Some(label) = &self.context_label {
+                        if ui.button(label.as_str()).clicked() {
+                            action = Some(CellAction::Primary(i));
+                            ui.close();
+                        }
+                    }
+                    if self.show_remove {
+                        if ui.button("Remove").clicked() {
+                            action = Some(CellAction::Remove(i));
+                            ui.close();
+                        }
+                    }
+                });
             }
 
             if response.hovered() {
@@ -136,5 +186,7 @@ impl InventoryTable {
                 }
             }
         }
+
+        action
     }
 }
