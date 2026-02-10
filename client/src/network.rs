@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use ewebsock::{WsEvent, WsMessage, WsReceiver, WsSender};
 use shared::character::SkillRegistry;
-use shared::{deserialize, ServerMessage, TraitRegistry};
+use shared::{deserialize, AbilityRegistry, ServerMessage, TraitRegistry};
 
 use crate::character_select::CharacterList;
 
@@ -20,6 +20,9 @@ pub struct ClientTraitRegistry(pub TraitRegistry);
 
 #[derive(Resource)]
 pub struct ClientSkillRegistry(pub SkillRegistry);
+
+#[derive(Resource)]
+pub struct ClientAbilityRegistry(pub AbilityRegistry);
 
 /// Buffer for server messages drained from the WebSocket.
 /// Filled by `drain_ws`, consumed by `process_server_messages`.
@@ -43,8 +46,12 @@ impl Plugin for NetworkPlugin {
             .expect("failed to parse embedded traits.json");
         let skill_reg = SkillRegistry::load_from_str(include_str!("../../data/skills.json"))
             .expect("failed to parse embedded skills.json");
+        let ability_reg =
+            AbilityRegistry::load_from_str(include_str!("../../data/abilities.json"))
+                .expect("failed to parse embedded abilities.json");
         app.insert_resource(ClientTraitRegistry(trait_reg))
             .insert_resource(ClientSkillRegistry(skill_reg))
+            .insert_resource(ClientAbilityRegistry(ability_reg))
             .init_resource::<PendingServerMessages>()
             .init_resource::<ReconnectTimer>()
             .add_systems(Startup, connect_to_server)

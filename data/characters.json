@@ -51,6 +51,11 @@
       "traits": [
         "Magic Allergy"
       ],
+      "abilities": [
+        "Enchanting song",
+        "False chord",
+        "From one eye"
+      ],
       "wallet": 123456
     },
     {
@@ -117,6 +122,11 @@
         "Priest of Love",
         "Magic Allergy"
       ],
+      "abilities": [
+        "Enchanting song",
+        "False chord",
+        "From one eye"
+      ],
       "wallet": 123456
     },
     {
@@ -176,6 +186,11 @@
         "Magician",
         "Cat's Eye",
         "Educated"
+      ],
+      "abilities": [
+        "Enchanting song",
+        "False chord",
+        "From one eye"
       ],
       "wallet": 123456
     },
@@ -242,6 +257,11 @@
         "Fistfighter",
         "Cold Calculation"
       ],
+      "abilities": [
+        "Enchanting song",
+        "False chord",
+        "From one eye"
+      ],
       "wallet": 123456
     },
     {
@@ -295,6 +315,11 @@
       "traits": [
         "Artist",
         "Heightened Senses"
+      ],
+      "abilities": [
+        "Enchanting song",
+        "False chord",
+        "From one eye"
       ],
       "wallet": 123456
     },
@@ -355,6 +380,11 @@
         "Blessed",
         "Second Chance",
         "Strength of Spirit"
+      ],
+      "abilities": [
+        "Enchanting song",
+        "False chord",
+        "From one eye"
       ],
       "wallet": 123456
     },
@@ -421,6 +451,11 @@
         "Summoner",
         "Magic Conduit",
         "Keen Eye"
+      ],
+      "abilities": [
+        "Enchanting song",
+        "False chord",
+        "From one eye"
       ],
       "wallet": 123456
     }

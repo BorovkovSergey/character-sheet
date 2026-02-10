@@ -1,0 +1,258 @@
+{
+    "Bard": {
+        "Innate": {
+            "Enchanting song": {
+                "description": "The hero sings the words, using his voice to make the melody affect others. He can give +1 to a peaceful check to an ally, inspire them in battle, or weaken enemies. The radius of action is equal to twice the Charisma.",
+                "additional": null,
+                "requirements": {
+                    "mp": 2,
+                    "hp": null,
+                    "action_points": 3,
+                    "range": null
+                },
+                "check": {
+                    "Skill": "Art"
+                },
+                "enemy_check": null,
+                "self_only": true,
+                "type": "Stance"
+            },
+            "False chord": {
+                "description": "Strikes the strings, dealing 2d4 spiritual damage to the target and stunning them for 1 turn. Does not work on undead or deaf enemies.",
+                "additional": {
+                    "condition": {
+                        "CharacteristicsRequired": {
+                            "characteristic": "Charisma",
+                            "lvl": 5
+                        }
+                    },
+                    "description": "Spiritual damage increased to 2d6. Range increased to 8 cells."
+                },
+                "requirements": {
+                    "mp": 2,
+                    "hp": null,
+                    "action_points": 2,
+                    "range": 5
+                },
+                "check": {
+                    "Skill": "Art"
+                },
+                "enemy_check": {
+                    "Protection": "Intellect"
+                },
+                "self_only": false,
+                "type": "Attack"
+            },
+            "From one eye": {
+                "description": "Distracts the target, causing them to lose their vigilance, confuse and stun them. Works worse against intelligent enemies.",
+                "additional": {
+                    "condition": {
+                        "CharacteristicsRequired": {
+                            "characteristic": "Charisma",
+                            "lvl": 4
+                        }
+                    },
+                    "description": "can be used as a free action."
+                },
+                "requirements": {
+                    "mp": 1,
+                    "hp": null,
+                    "action_points": 0,
+                    "range": 7
+                },
+                "check": {
+                    "Characteristic": "Charisma"
+                },
+                "enemy_check": null,
+                "self_only": false,
+                "type": "Debuff"
+            }
+        },
+        "Acquire": {
+            "Rebound": {
+                "description": "Thanks to his reflexes, the hero increases his Melee Defense by 3 and can jump back 1 cell.\nIf the enemy misses, the hero can perform a standard melee or ranged attack after the jump.",
+                "additional": null,
+                "requirements": {
+                    "mp": 2,
+                    "hp": null,
+                    "action_points": 0,
+                    "range": 1
+                },
+                "check": null,
+                "enemy_check": null,
+                "self_only": true,
+                "type": "Peaceful",
+                "learn_screen_position": {
+                    "row": 0,
+                    "column": 0
+                },
+                "can_learn_after": []
+            },
+            "Heal word": {
+                "description": "1 target healing. 1d6 -Fear -Mind debufs",
+                "additional": {
+                    "condition": {
+                        "CharacteristicsRequired": {
+                            "characteristic": "Charisma",
+                            "lvl": 5
+                        }
+                    },
+                    "description": "AOE in area 3x3"
+                },
+                "requirements": {
+                    "mp": 3,
+                    "hp": null,
+                    "action_points": 3,
+                    "range": 5
+                },
+                "check": {
+                    "Skill": "Art"
+                },
+                "enemy_check": null,
+                "self_only": false,
+                "type": "Peaceful",
+                "learn_screen_position": {
+                    "row": 2,
+                    "column": 0
+                },
+                "can_learn_after": []
+            },
+            "Narrator": {
+                "description": "+1 check about unusual beasts, artefacts, mechanisms, folklore and rumors",
+                "self_only": false,
+                "type": "Passive",
+                "learn_screen_position": {
+                    "row": 1,
+                    "column": 0
+                },
+                "can_learn_after": [
+                    "Heal word",
+                    "Rebound"
+                ]
+            },
+            "War Song": {
+                "description": "+1 AP to all in range. Once per round u can reroll attack or damage dice",
+                "additional": {
+                    "condition": {
+                        "CharacteristicsRequired": {
+                            "characteristic": "Charisma",
+                            "lvl": 5
+                        }
+                    },
+                    "description": "No range limit"
+                },
+                "requirements": {
+                    "mp": 3,
+                    "hp": null,
+                    "action_points": 3,
+                    "range": 6
+                },
+                "check": {
+                    "Skill": "Art"
+                },
+                "enemy_check": null,
+                "self_only": false,
+                "type": "Stance",
+                "learn_screen_position": {
+                    "row": 2,
+                    "column": 1
+                },
+                "can_learn_after": [
+                    "Heal word"
+                ]
+            },
+            "Lucky": {
+                "description": "Once a day, you can reroll any check or decrease damage taken by Charisma.",
+                "enemy_check": null,
+                "self_only": false,
+                "type": "Passive",
+                "learn_screen_position": {
+                    "row": 1,
+                    "column": 1
+                },
+                "can_learn_after": [
+                    "Narrator"
+                ]
+            },
+            "Hidden Strike": {
+                "description": "When attacking an enemy from cover, the hero can re-roll a failed attack and gain a damage bonus equal to the Stealth skill.",
+                "additional": {
+                    "condition": {
+                        "CharacteristicsRequired": {
+                            "characteristic": "Dexterity",
+                            "lvl": 4
+                        }
+                    },
+                    "description": "If the target is killed, the hero does not spend mana."
+                },
+                "requirements": {
+                    "mp": 3,
+                    "hp": null,
+                    "action_points": 2,
+                    "range": null
+                },
+                "check": {
+                    "Skill": "Attack"
+                },
+                "enemy_check": null,
+                "self_only": true,
+                "type": "Attack",
+                "learn_screen_position": {
+                    "row": 0,
+                    "column": 1
+                },
+                "can_learn_after": [
+                    "Rebound"
+                ]
+            },
+            "Hypnosis": {
+                "description": "The hero dominates a sentient target, forcing it to perform simple actions. At the start of the turn, the hero makes another Art check to maintain control.",
+                "additional": null,
+                "requirements": {
+                    "mp": 2,
+                    "hp": null,
+                    "action_points": 4,
+                    "range": 3
+                },
+                "check": {
+                    "Skill": "Art"
+                },
+                "enemy_check": {
+                    "Protection": "Intellect"
+                },
+                "self_only": false,
+                "type": "Debuff",
+                "learn_screen_position": {
+                    "row": 2,
+                    "column": 2
+                },
+                "can_learn_after": [
+                    "War Song"
+                ]
+            },
+            "Sabotage": {
+                "description": "Quickly reloads a mechanical weapon, dealing 1d10 electrical damage, or deactivates a trap. Can deal 2d10 electrical damage to a construct.",
+                "additional": null,
+                "requirements": {
+                    "mp": 3,
+                    "hp": null,
+                    "action_points": 3,
+                    "range": null
+                },
+                "check": {
+                    "Skill": "Mechanics"
+                },
+                "enemy_check": null,
+                "self_only": false,
+                "type": "Touch",
+                "learn_screen_position": {
+                    "row": 0,
+                    "column": 2
+                },
+                "can_learn_after": [
+                    "Hidden Strike"
+                ]
+            }
+        }
+    }
+}

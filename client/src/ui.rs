@@ -8,9 +8,9 @@ use ui_widgets::composites::{
 };
 
 use crate::components::{
-    ActionPoints, ActiveCharacter, ActiveEffects, CharacterClass, CharacterName, CharacterRace,
-    CharacterSkillList, CharacterStats, CharacterTraitNames, CharacteristicPoints, Experience, Hp,
-    Level, Mana, SkillPoints, Wallet,
+    ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames, CharacterClass,
+    CharacterName, CharacterRace, CharacterSkillList, CharacterStats, CharacterTraitNames,
+    CharacteristicPoints, Experience, Hp, Level, Mana, SkillPoints, Wallet,
 };
 use crate::events::{ResourceChanged, WalletChanged};
 use crate::state::AppScreen;
@@ -109,6 +109,7 @@ struct CharacterQueryData {
     ap: &'static ActionPoints,
     stats: &'static CharacterStats,
     trait_names: &'static CharacterTraitNames,
+    ability_names: &'static CharacterAbilityNames,
     char_pts: &'static CharacteristicPoints,
     skill_pts: &'static SkillPoints,
     skills: &'static CharacterSkillList,
@@ -372,7 +373,10 @@ fn render_center_column(
             .collect();
         ui.add_sized([width, height * 0.14], Traits::new(trait_entries));
         ui.add_space(gap);
-        ui.add_sized([width, height * 0.40], Abilities::new());
+        ui.add_sized(
+            [width, height * 0.40],
+            Abilities::new(character.ability_names.0.clone()),
+        );
     });
 }
 
@@ -436,7 +440,10 @@ fn render_right_column(
 }
 
 fn send_wallet_events(events: &mut MessageWriter<WalletChanged>, result: WalletResponse) {
-    for delta in [result.gold, result.silver, result.copper].into_iter().flatten() {
+    for delta in [result.gold, result.silver, result.copper]
+        .into_iter()
+        .flatten()
+    {
         events.write(WalletChanged(delta));
     }
 }

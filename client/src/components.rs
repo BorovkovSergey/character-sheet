@@ -65,6 +65,9 @@ pub struct CharacterSkillList(pub Vec<CharacterSkill>);
 pub struct CharacterTraitNames(pub Vec<String>);
 
 #[derive(Component)]
+pub struct CharacterAbilityNames(pub Vec<String>);
+
+#[derive(Component)]
 pub struct Wallet(pub u64);
 
 impl Wallet {
@@ -146,6 +149,7 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
             SkillPoints(character.skill_points),
             CharacterSkillList(character.skills.clone()),
             CharacterTraitNames(character.traits.clone()),
+            CharacterAbilityNames(character.abilities.clone()),
             Wallet(character.wallet),
             ActiveEffects(character.active_effects.clone()),
         ))

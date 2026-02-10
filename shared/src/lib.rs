@@ -2,10 +2,12 @@ pub mod character;
 pub mod messages;
 
 pub use character::{
+    Ability, AbilityCheck, AbilityRegistry, AbilityRequirements, AbilityType, AbilityUpgrade,
     Character, CharacterSkill, CharacterTrait, Characteristic, CharacteristicKind,
-    CharacteristicKindMarker, CharacteristicTrait, Characteristics, Charisma, Class, Dexterity,
-    Effect, Endurance, GetEffects, Intellect, Magic, Perception, Protection, Race, Resist,
-    Resource, Size, Skill, SkillRegistry, Strength, TraitCondition, TraitRegistry, Willpower,
+    CharacteristicKindMarker, CharacteristicTrait, Characteristics, Charisma, Class,
+    ClassAbilities, Dexterity, Effect, Endurance, EnemyCheck, GetEffects, Intellect,
+    LearnScreenPosition, Magic, Perception, Protection, Race, Resist, Resource, Size, Skill,
+    SkillRegistry, Strength, TraitCondition, TraitRegistry, Willpower,
 };
 pub use messages::{ClientMessage, ServerMessage};
 

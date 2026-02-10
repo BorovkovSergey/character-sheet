@@ -1,3 +1,4 @@
+mod ability;
 mod character_trait;
 mod characteristic;
 mod class;
@@ -12,6 +13,10 @@ use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
 use uuid::Uuid;
 
+pub use ability::{
+    Ability, AbilityCheck, AbilityRegistry, AbilityRequirements, AbilityType, AbilityUpgrade,
+    ClassAbilities, EnemyCheck, LearnScreenPosition,
+};
 pub use character_trait::{CharacterTrait, TraitCondition, TraitRegistry};
 pub use characteristic::{
     Characteristic, CharacteristicKind, CharacteristicKindMarker, CharacteristicTrait,
@@ -41,6 +46,8 @@ pub struct Character {
     pub skills: Vec<CharacterSkill>,
     #[serde(default)]
     pub traits: Vec<String>,
+    #[serde(default)]
+    pub abilities: Vec<String>,
     /// Total currency stored as a single value.
     /// Gold = value / 1000, Silver = (value % 1000) / 10, Copper = value % 10.
     #[serde(default)]
@@ -66,6 +73,7 @@ impl Character {
             skill_points: 0,
             skills: Vec::new(),
             traits: Vec::new(),
+            abilities: Vec::new(),
             wallet: 0,
             active_effects: Vec::new(),
         };

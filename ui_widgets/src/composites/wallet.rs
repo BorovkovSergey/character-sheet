@@ -128,10 +128,8 @@ fn inner_currency_boxes(ui: &mut egui::Ui, entries: &[CurrencyEntry]) -> Vec<Opt
                             .rounding(8)
                             .show(ui, |ui| {
                                 let available = ui.available_size();
-                                let (rect, resp) = ui.allocate_exact_size(
-                                    available,
-                                    egui::Sense::click(),
-                                );
+                                let (rect, resp) =
+                                    ui.allocate_exact_size(available, egui::Sense::click());
 
                                 let shape = ShapeBox::new(Shape::Rectangle)
                                     .fill(Color32::TRANSPARENT)
