@@ -1,9 +1,16 @@
 use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{MAIN_COLOR, TEXT_COLOR};
-use crate::egui::{self, Align2, FontId, Stroke, Widget};
+use crate::egui::{self, Align2, FontId, Stroke};
 
 /// XP required per level (placeholder constant).
 const XP_PER_LEVEL: u32 = 1000;
+
+/// State stored in egui temp data for the "Add Experience" popup.
+#[derive(Clone)]
+struct AddExpPopupState {
+    open: bool,
+    input_text: String,
+}
 
 /// Character portrait display area.
 pub struct Portrait {
@@ -30,12 +37,12 @@ impl Portrait {
             experience,
         }
     }
-}
 
-impl Widget for Portrait {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    /// Renders the portrait and returns `Some(exp)` when the user confirms
+    /// adding experience through the context-menu popup.
+    pub fn show(self, ui: &mut egui::Ui) -> Option<u32> {
         let size = ui.available_size();
-        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::hover());
+        let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
 
         let portrait_w = size.x * 0.65;
         let inset = (size.x - portrait_w) / 2.0;
@@ -88,7 +95,73 @@ impl Widget for Portrait {
             TEXT_COLOR,
         );
 
-        response
+        // Context menu on right-click
+        let popup_id = response.id.with("add_exp");
+        response.context_menu(|ui| {
+            if ui.button("Add EXP").clicked() {
+                ui.data_mut(|d| {
+                    d.insert_temp(
+                        popup_id,
+                        AddExpPopupState {
+                            open: true,
+                            input_text: String::new(),
+                        },
+                    );
+                });
+                ui.close();
+            }
+        });
+
+        // "Add Experience" popup window
+        let mut result = None;
+        let mut state: AddExpPopupState =
+            ui.data(|d| d.get_temp(popup_id))
+                .unwrap_or(AddExpPopupState {
+                    open: false,
+                    input_text: String::new(),
+                });
+
+        if state.open {
+            let mut open = true;
+            egui::Window::new("Add Experience")
+                .collapsible(false)
+                .resizable(false)
+                .open(&mut open)
+                .show(ui.ctx(), |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("EXP:");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut state.input_text).desired_width(80.0),
+                        );
+                    });
+                    state.input_text.retain(|c| c.is_ascii_digit());
+
+                    let enter_pressed = ui.input(|i| i.key_pressed(egui::Key::Enter));
+
+                    ui.horizontal(|ui| {
+                        if ui.button("OK").clicked() || enter_pressed {
+                            if let Ok(value) = state.input_text.parse::<u32>() {
+                                if value > 0 {
+                                    result = Some(value);
+                                }
+                            }
+                            state.open = false;
+                        }
+                        if ui.button("Cancel").clicked() {
+                            state.open = false;
+                        }
+                    });
+                });
+
+            // Handle X button closing the window
+            if !open {
+                state.open = false;
+            }
+
+            ui.data_mut(|d| d.insert_temp(popup_id, state));
+        }
+
+        result
     }
 }
 

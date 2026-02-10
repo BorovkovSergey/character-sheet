@@ -1,8 +1,8 @@
 mod ability_card;
 mod equipment_card;
 mod inventory_cell;
-mod item_card;
 mod inventory_table;
+mod item_card;
 mod labeled_value;
 mod progress_bar;
 mod titled_box;

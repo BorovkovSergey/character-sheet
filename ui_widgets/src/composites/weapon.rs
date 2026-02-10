@@ -43,11 +43,7 @@ impl Weapon {
 }
 
 /// Lays out weapon entry slots vertically. Returns index of unequipped weapon if any.
-fn inner_weapon_slots(
-    ui: &mut egui::Ui,
-    icon: TextureId,
-    slots: &[WeaponSlot],
-) -> Option<usize> {
+fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) -> Option<usize> {
     let count = SLOT_COUNT as f32;
     let spacing = 4.0;
     let available_width = ui.available_width();

@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use ui_widgets::colors::MAIN_COLOR;
+use ui_widgets::styles::UiStyle;
 use ui_widgets::composites::{
     Abilities, AbilityEntry, Characteristics, EquippedGear, IdentityBar, Inventory, Points,
     Portrait, SkillEntry, Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits,
@@ -14,7 +15,7 @@ use crate::components::{
     CharacterTraitNames, CharacterWeaponNames, CharacteristicPoints, Experience, Hp,
     Inventory as InventoryComponent, Level, Mana, SkillPoints, Wallet,
 };
-use crate::events::{InventoryChanged, ResourceChanged, WalletChanged};
+use crate::events::{ExperienceChanged, InventoryChanged, ResourceChanged, WalletChanged};
 use crate::state::AppScreen;
 use shared::character::OnLvlUp;
 use shared::{AbilityCheck, AbilityType, Effect, EquipmentSlot, InventoryItem};
@@ -48,6 +49,7 @@ impl Plugin for UiPlugin {
         app.add_message::<ResourceChanged>()
             .add_message::<WalletChanged>()
             .add_message::<InventoryChanged>()
+            .add_message::<ExperienceChanged>()
             .add_systems(
                 EguiPrimaryContextPass,
                 (
@@ -61,6 +63,7 @@ impl Plugin for UiPlugin {
                     apply_resource_changes,
                     apply_wallet_changes,
                     apply_inventory_changes,
+                    apply_experience_changes,
                 ),
             );
     }
@@ -68,6 +71,7 @@ impl Plugin for UiPlugin {
 
 fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> Result {
     let ctx = contexts.ctx_mut()?;
+    UiStyle::apply_global_style(ctx);
     commands.insert_resource(UiIcons {
         heart: load_png_texture(ctx, "heart", include_bytes!("../assets/heart.png")),
         avatar_border_1: load_png_texture(
@@ -161,6 +165,7 @@ fn render_ui(
     mut events: MessageWriter<ResourceChanged>,
     mut wallet_events: MessageWriter<WalletChanged>,
     mut inventory_events: MessageWriter<InventoryChanged>,
+    mut exp_events: MessageWriter<ExperienceChanged>,
 ) -> Result {
     let Some(icons) = icons else {
         return Ok(());
@@ -198,6 +203,7 @@ fn render_ui(
                     &weapon_registry,
                     &mut events,
                     &mut inventory_events,
+                    &mut exp_events,
                 );
                 ui.add_space(gap);
                 render_center_column(
@@ -239,6 +245,7 @@ fn render_left_column(
     weapon_registry: &crate::network::ClientWeaponRegistry,
     events: &mut MessageWriter<ResourceChanged>,
     inventory_events: &mut MessageWriter<InventoryChanged>,
+    exp_events: &mut MessageWriter<ExperienceChanged>,
 ) {
     let gap = height * 0.03 / 4.0;
     let initiative =
@@ -247,16 +254,24 @@ fn render_left_column(
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
-        ui.add_sized(
-            [width, height * 0.30],
-            Portrait::new(
-                icons.avatar_border_1.id(),
-                icons.avatar_border_2.id(),
-                icons.avatar_placeholder.id(),
-                character.level.0,
-                character.exp.0,
-            ),
+        let portrait_size = egui::vec2(width, height * 0.30);
+        let (portrait_rect, _) = ui.allocate_exact_size(portrait_size, egui::Sense::hover());
+        let mut portrait_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(portrait_rect)
+                .layout(egui::Layout::top_down(egui::Align::Min)),
         );
+        if let Some(exp) = Portrait::new(
+            icons.avatar_border_1.id(),
+            icons.avatar_border_2.id(),
+            icons.avatar_placeholder.id(),
+            character.level.0,
+            character.exp.0,
+        )
+        .show(&mut portrait_ui)
+        {
+            exp_events.write(ExperienceChanged(exp));
+        }
         ui.add_space(gap);
         ui.add_sized(
             [width, height * 0.11],
@@ -374,6 +389,20 @@ fn apply_resource_changes(
             ResourceChanged::Mp(v) => mana.current = (*v).min(mana.max),
             ResourceChanged::Ap(v) => ap.current = (*v).min(ap.max),
         }
+    }
+}
+
+/// Applies experience change messages to the active character's ECS components.
+fn apply_experience_changes(
+    mut query: Query<(&mut Experience, &mut Level), With<ActiveCharacter>>,
+    mut reader: MessageReader<ExperienceChanged>,
+) {
+    let Ok((mut exp, mut level)) = query.single_mut() else {
+        return;
+    };
+    for event in reader.read() {
+        exp.0 += event.0;
+        level.0 = exp.0 / 1000 + 1;
     }
 }
 

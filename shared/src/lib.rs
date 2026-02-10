@@ -6,10 +6,10 @@ pub use character::{
     Character, CharacterSkill, CharacterTrait, Characteristic, CharacteristicKind,
     CharacteristicKindMarker, CharacteristicTrait, Characteristics, Charisma, Class,
     ClassAbilities, Dexterity, Effect, Endurance, EnemyCheck, Equipment, EquipmentRegistry,
-    EquipmentSlot, GetEffects, Intellect, InventoryItem, Item, ItemRegistry,
-    LearnScreenPosition, Magic, MeleeKind, Perception, Protection, Race, RangeKind, Resist,
-    Resource, Size, Skill, SkillRegistry, Strength,
-    TraitCondition, TraitRegistry, Weapon, WeaponGrip, WeaponKind, WeaponRegistry, Willpower,
+    EquipmentSlot, GetEffects, Intellect, InventoryItem, Item, ItemRegistry, LearnScreenPosition,
+    Magic, MeleeKind, Perception, Protection, Race, RangeKind, Resist, Resource, Size, Skill,
+    SkillRegistry, Strength, TraitCondition, TraitRegistry, Weapon, WeaponGrip, WeaponKind,
+    WeaponRegistry, Willpower,
 };
 pub use messages::{ClientMessage, ServerMessage};
 

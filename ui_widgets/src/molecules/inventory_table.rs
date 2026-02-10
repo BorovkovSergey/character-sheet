@@ -105,11 +105,7 @@ impl InventoryTable {
                 egui::Sense::hover()
             };
 
-            let response = ui.interact(
-                cell_rect,
-                self.id_salt.with(("inv_cell", i)),
-                sense,
-            );
+            let response = ui.interact(cell_rect, self.id_salt.with(("inv_cell", i)), sense);
 
             InventoryCell::new(self.image).paint(ui.painter(), cell_rect);
 
@@ -119,11 +115,8 @@ impl InventoryTable {
                     cell_rect.center().x,
                     cell_rect.max.y - cell_rect.height() * 0.12,
                 );
-                ui.painter().circle_filled(
-                    dot_center,
-                    dot_radius,
-                    crate::colors::STROKE_COLOR,
-                );
+                ui.painter()
+                    .circle_filled(dot_center, dot_radius, crate::colors::STROKE_COLOR);
             }
 
             if has_context && has_item {

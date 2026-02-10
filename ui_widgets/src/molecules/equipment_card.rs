@@ -103,9 +103,7 @@ impl EquipmentCard {
                             ui.add_space(2.0);
                             for effect in &self.effects {
                                 ui.label(
-                                    RichText::new(effect.as_str())
-                                        .size(11.0)
-                                        .color(TEXT_COLOR),
+                                    RichText::new(effect.as_str()).size(11.0).color(TEXT_COLOR),
                                 );
                             }
                         }

@@ -49,11 +49,12 @@ impl CharacterStore {
         );
 
         let items_path = PathBuf::from(data_dir).join("items.json");
-        let item_registry =
-            Arc::new(ItemRegistry::load_from_file(&items_path).unwrap_or_else(|e| {
+        let item_registry = Arc::new(ItemRegistry::load_from_file(&items_path).unwrap_or_else(
+            |e| {
                 warn!("Failed to load items from {:?}: {}", items_path, e);
                 ItemRegistry::default()
-            }));
+            },
+        ));
 
         let characters =
             Self::load_from_file(&data_path, &trait_registry, &equipment_registry).await;
