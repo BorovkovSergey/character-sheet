@@ -46,9 +46,8 @@ impl Plugin for NetworkPlugin {
             .expect("failed to parse embedded traits.json");
         let skill_reg = SkillRegistry::load_from_str(include_str!("../../data/skills.json"))
             .expect("failed to parse embedded skills.json");
-        let ability_reg =
-            AbilityRegistry::load_from_str(include_str!("../../data/abilities.json"))
-                .expect("failed to parse embedded abilities.json");
+        let ability_reg = AbilityRegistry::load_from_str(include_str!("../../data/abilities.json"))
+            .expect("failed to parse embedded abilities.json");
         app.insert_resource(ClientTraitRegistry(trait_reg))
             .insert_resource(ClientSkillRegistry(skill_reg))
             .insert_resource(ClientAbilityRegistry(ability_reg))

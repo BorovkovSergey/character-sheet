@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fmt;
 
 use serde::Deserialize;
 
@@ -24,10 +25,27 @@ pub enum AbilityCheck {
     Characteristic(CharacteristicKind),
 }
 
+impl fmt::Display for AbilityCheck {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Skill(name) => write!(f, "{name}"),
+            Self::Characteristic(kind) => write!(f, "{kind:?}"),
+        }
+    }
+}
+
 /// What defensive check the enemy can make against the ability.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub enum EnemyCheck {
     Protection(CharacteristicKind),
+}
+
+impl fmt::Display for EnemyCheck {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Protection(kind) => write!(f, "{kind:?}"),
+        }
+    }
 }
 
 /// Resource costs and range for using an ability.

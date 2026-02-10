@@ -12,7 +12,7 @@ mod status_bar;
 mod wallet;
 mod weapon;
 
-pub use abilities::Abilities;
+pub use abilities::{Abilities, AbilityEntry};
 pub use character_traits::{TraitEntry, Traits};
 pub use characteristics::Characteristics;
 pub use equipped_gear::EquippedGear;

@@ -181,10 +181,7 @@ impl TitledBox {
         let pad_left = content_rect.width() * 0.005;
         let inner_rect = Rect::from_min_max(
             egui::pos2(content_rect.min.x + pad_left, content_rect.min.y + pad),
-            egui::pos2(
-                content_rect.max.x - pad,
-                content_rect.max.y - pad,
-            ),
+            egui::pos2(content_rect.max.x - pad, content_rect.max.y - pad),
         );
 
         if let Some(content_fill) = self.content_fill {

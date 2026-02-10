@@ -2,9 +2,9 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use ui_widgets::colors::MAIN_COLOR;
 use ui_widgets::composites::{
-    Abilities, Characteristics, EquippedGear, IdentityBar, Inventory, Points, Portrait, SkillEntry,
-    Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits, Wallet as WalletWidget,
-    WalletResponse,
+    Abilities, AbilityEntry, Characteristics, EquippedGear, IdentityBar, Inventory, Points,
+    Portrait, SkillEntry, Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits,
+    Wallet as WalletWidget, WalletResponse,
 };
 
 use crate::components::{
@@ -15,7 +15,7 @@ use crate::components::{
 use crate::events::{ResourceChanged, WalletChanged};
 use crate::state::AppScreen;
 use shared::character::OnLvlUp;
-use shared::Effect;
+use shared::{AbilityCheck, AbilityType, Effect};
 
 #[derive(Resource)]
 struct UiIcons {
@@ -26,6 +26,7 @@ struct UiIcons {
     wallet_gold: egui::TextureHandle,
     wallet_silver: egui::TextureHandle,
     wallet_copper: egui::TextureHandle,
+    ability_placeholder: egui::TextureHandle,
 }
 
 fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::TextureHandle {
@@ -87,6 +88,11 @@ fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> Result {
             "wallet_copper",
             include_bytes!("../assets/wallet_copper.png"),
         ),
+        ability_placeholder: load_png_texture(
+            ctx,
+            "ability_placeholder",
+            include_bytes!("../assets/ph_ability.png"),
+        ),
     });
     Ok(())
 }
@@ -123,6 +129,7 @@ fn render_ui(
     character_query: Query<CharacterQueryData, With<ActiveCharacter>>,
     trait_registry: Res<crate::network::ClientTraitRegistry>,
     skill_registry: Res<crate::network::ClientSkillRegistry>,
+    ability_registry: Res<crate::network::ClientAbilityRegistry>,
     mut events: MessageWriter<ResourceChanged>,
     mut wallet_events: MessageWriter<WalletChanged>,
 ) -> Result {
@@ -166,9 +173,12 @@ fn render_ui(
                     ui,
                     total_w * COL2_WIDTH,
                     col_h,
+                    &icons,
                     &character,
                     &trait_registry,
                     &skill_registry,
+                    &ability_registry,
+                    &mut events,
                 );
                 ui.add_space(gap);
                 render_right_column(
@@ -308,9 +318,12 @@ fn render_center_column(
     ui: &mut egui::Ui,
     width: f32,
     height: f32,
+    icons: &UiIcons,
     character: &CharacterQueryDataItem,
     trait_registry: &crate::network::ClientTraitRegistry,
     skill_registry: &crate::network::ClientSkillRegistry,
+    ability_registry: &crate::network::ClientAbilityRegistry,
+    events: &mut MessageWriter<ResourceChanged>,
 ) {
     let gap = height * 0.03 / 4.0;
     let stats = &character.stats.0;
@@ -374,10 +387,38 @@ fn render_center_column(
             .collect();
         ui.add_sized([width, height * 0.14], Traits::new(trait_entries));
         ui.add_space(gap);
-        ui.add_sized(
-            [width, height * 0.40],
-            Abilities::new(character.ability_names.0.clone()),
-        );
+        let ability_entries: Vec<AbilityEntry> = character
+            .ability_names
+            .0
+            .iter()
+            .filter_map(|name| {
+                let ability = ability_registry
+                    .0
+                    .get_class_abilities(&character.class.0)
+                    .and_then(|ca| ca.innate.get(name).or_else(|| ca.acquire.get(name)));
+                ability.map(|a| AbilityEntry {
+                    name: name.clone(),
+                    description: a.description.clone(),
+                    image: icons.ability_placeholder.id(),
+                    mp_cost: a.requirements.as_ref().and_then(|r| r.mp),
+                    ap_cost: a.requirements.as_ref().and_then(|r| r.action_points),
+                    self_only: a.self_only,
+                    range: a.requirements.as_ref().and_then(|r| r.range),
+                    ability_type: format_ability_type(a.ability_type),
+                    check: a.check.as_ref().map(format_ability_check).unwrap_or_default(),
+                    enemy_check: a.enemy_check.as_ref().map(|e| e.to_string()).unwrap_or_default(),
+                })
+            })
+            .collect();
+        let abilities_size = egui::vec2(width, height * 0.40);
+        let (abilities_rect, _) = ui.allocate_exact_size(abilities_size, egui::Sense::hover());
+        let mut abilities_ui =
+            ui.new_child(egui::UiBuilder::new().max_rect(abilities_rect));
+        if let Some(new_mp) =
+            Abilities::new(ability_entries, character.mana.current).show(&mut abilities_ui)
+        {
+            events.write(ResourceChanged::Mp(new_mp));
+        }
     });
 }
 
@@ -398,6 +439,22 @@ fn format_effect(effect: &Effect) -> String {
             format!("{v:+} Skill Points per level")
         }
     }
+}
+
+fn format_ability_type(t: AbilityType) -> String {
+    match t {
+        AbilityType::Stance => "Stance",
+        AbilityType::Attack => "Attack",
+        AbilityType::Debuff => "Debuff",
+        AbilityType::Peaceful => "Peaceful",
+        AbilityType::Passive => "Passive",
+        AbilityType::Touch => "Touch",
+    }
+    .to_string()
+}
+
+fn format_ability_check(check: &AbilityCheck) -> String {
+    check.to_string()
 }
 
 fn render_right_column(
