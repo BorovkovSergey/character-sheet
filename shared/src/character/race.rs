@@ -47,7 +47,7 @@ impl GetEffects for Size {
             Size::Medium => 10,
             Size::Big => 11,
         };
-        vec![Effect::Protection(Protection::Body, body)]
+        vec![Effect::Protection(Protection::Range, body)]
     }
 }
 

@@ -182,6 +182,7 @@ pub fn recalculate_effects(
         (
             &CharacterRace,
             &CharacterTraitNames,
+            &CharacterWeaponNames,
             &CharacterEquipment,
             &CharacterStats,
             &mut ActiveEffects,
@@ -189,30 +190,40 @@ pub fn recalculate_effects(
         Or<(
             Changed<CharacterRace>,
             Changed<CharacterTraitNames>,
+            Changed<CharacterWeaponNames>,
             Changed<CharacterEquipment>,
             Changed<CharacterStats>,
         )>,
     >,
     trait_registry: Res<crate::network::ClientTraitRegistry>,
+    weapon_registry: Res<crate::network::ClientWeaponRegistry>,
     equipment_registry: Res<crate::network::ClientEquipmentRegistry>,
 ) {
-    for (race, traits, equipment, stats, mut effects) in &mut query {
+    for (race, traits, weapons, equipment, stats, mut effects) in &mut query {
         effects.0.clear();
 
-        // Base level-up effects
-        let intellect = stats.0.intellect.level as i32;
+        let s = &stats.0;
         let default_effects = vec![
             Effect::OnLvlUp(OnLvlUp::AddAbilityPoints(1)),
-            Effect::OnLvlUp(OnLvlUp::AddSkillPoints(3 + intellect)),
+            Effect::OnLvlUp(OnLvlUp::AddSkillPoints(3 + s.intellect.level as i32)),
             Effect::OnLvlUp(OnLvlUp::AddCharacteristicPoints(2)),
+            Effect::Protection(Protection::Melee, 10 + s.dexterity.level),
+            Effect::Protection(Protection::Magic, 10 + s.magic.level),
+            Effect::Protection(Protection::Body, 10 + s.endurance.level),
+            Effect::Protection(Protection::Mind, 10 + s.willpower.level),
+            // ProtectionRange is taking from the size
         ];
-
         effects.0.extend(default_effects);
         effects.0.extend(race.0.get_effects());
         effects.0.extend(race.0.size().get_effects());
         for trait_name in &traits.0 {
             if let Some(ct) = trait_registry.0.get(trait_name) {
                 effects.0.extend(ct.effects.iter().cloned());
+            }
+        }
+        for weapon_name in &weapons.0 {
+            if let Some(w) = weapon_registry.0.get(weapon_name) {
+                effects.0.extend(w.effects.iter().cloned());
             }
         }
         for names in equipment.0.values() {
