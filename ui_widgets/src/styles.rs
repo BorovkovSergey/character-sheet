@@ -51,5 +51,4 @@ impl UiStyle {
 
         ctx.set_visuals(v);
     }
-
 }

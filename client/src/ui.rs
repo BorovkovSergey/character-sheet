@@ -1,13 +1,13 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use ui_widgets::colors::MAIN_COLOR;
-use ui_widgets::styles::UiStyle;
 use ui_widgets::composites::{
     Abilities, AbilityEntry, Characteristics, EquippedGear, IdentityBar, Inventory, Points,
     Portrait, SkillEntry, Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits,
     Wallet as WalletWidget, WalletResponse, Weapon, WeaponSlot,
 };
 use ui_widgets::molecules::{CellAction, InventoryTooltip};
+use ui_widgets::styles::UiStyle;
 
 use crate::components::{
     ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames, CharacterClass,
