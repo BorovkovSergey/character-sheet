@@ -18,6 +18,7 @@ struct AddExpPopupState {
 pub struct PortraitResponse {
     pub add_exp: Option<u32>,
     pub toggle_edit: bool,
+    pub open_learn_ability: bool,
 }
 
 /// Character portrait display area.
@@ -28,6 +29,7 @@ pub struct Portrait {
     level: u32,
     experience: u32,
     edit_mode: bool,
+    ability_points: u32,
 }
 
 impl Portrait {
@@ -46,7 +48,13 @@ impl Portrait {
             level,
             experience,
             edit_mode,
+            ability_points: 0,
         }
+    }
+
+    pub fn ability_points(mut self, points: u32) -> Self {
+        self.ability_points = points;
+        self
     }
 
     /// Renders the portrait and returns actions from the context menu.
@@ -108,6 +116,7 @@ impl Portrait {
         // Context menu on right-click
         let popup_id = response.id.with("add_exp");
         let mut toggle_edit = false;
+        let mut open_learn_ability = false;
         response.context_menu(|ui| {
             if ui.button("Add EXP").clicked() {
                 ui.data_mut(|d| {
@@ -124,6 +133,11 @@ impl Portrait {
             let edit_label = if self.edit_mode { "Confirm changes" } else { "Edit" };
             if ui.button(edit_label).clicked() {
                 toggle_edit = true;
+                ui.close();
+            }
+            let has_points = self.ability_points > 0;
+            if ui.add_enabled(has_points, egui::Button::new("Learn ability")).clicked() {
+                open_learn_ability = true;
                 ui.close();
             }
         });
@@ -180,6 +194,7 @@ impl Portrait {
         PortraitResponse {
             add_exp,
             toggle_edit,
+            open_learn_ability,
         }
     }
 }

@@ -1,22 +1,24 @@
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
-use ui_widgets::colors::MAIN_COLOR;
+use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR};
 use ui_widgets::composites::{
     Abilities, AbilityEntry, Characteristics, EquippedGear, IdentityBar, Inventory, Points,
     Portrait, SkillEntry, Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits,
     Wallet as WalletWidget, WalletResponse, Weapon, WeaponSlot,
 };
-use ui_widgets::molecules::{CellAction, InventoryTooltip};
+use ui_widgets::molecules::{AbilityCard, CellAction, InventoryTooltip, SmallAbility};
 use ui_widgets::styles::UiStyle;
 
 use crate::components::{
-    ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames, CharacterClass,
-    CharacterEquipment, CharacterName, CharacterRace, CharacterSkillList, CharacterStats,
-    CharacterTraitNames, CharacterWeaponNames, CharacteristicPoints, Experience, Hp,
-    AbilityPoints, Inventory as InventoryComponent, Level, Mana, SkillPoints, Wallet,
+    AbilityPoints, ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames,
+    CharacterClass, CharacterEquipment, CharacterName, CharacterRace, CharacterSkillList,
+    CharacterStats, CharacterTraitNames, CharacterWeaponNames, CharacteristicPoints, Experience,
+    Hp, Inventory as InventoryComponent, Level, Mana, SkillPoints, Wallet,
 };
 use crate::events::{
-    ExperienceChanged, InventoryChanged, LevelUp, ResourceChanged, UpgradeEvent, WalletChanged,
+    ExperienceChanged, InventoryChanged, LearnAbility, LevelUp, ResourceChanged, UpgradeEvent,
+    WalletChanged,
 };
 use crate::state::AppScreen;
 use shared::character::OnLvlUp;
@@ -50,17 +52,32 @@ fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::
 #[derive(Resource, Default)]
 pub struct EditMode(pub bool);
 
+#[derive(Resource, Default)]
+pub struct LearnAbilityOpen(pub bool);
+
+#[derive(SystemParam)]
+struct UiEvents<'w> {
+    resource: MessageWriter<'w, ResourceChanged>,
+    wallet: MessageWriter<'w, WalletChanged>,
+    inventory: MessageWriter<'w, InventoryChanged>,
+    experience: MessageWriter<'w, ExperienceChanged>,
+    upgrade: MessageWriter<'w, UpgradeEvent>,
+    learn_ability: MessageWriter<'w, LearnAbility>,
+}
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EditMode>()
+            .init_resource::<LearnAbilityOpen>()
             .add_message::<ResourceChanged>()
             .add_message::<WalletChanged>()
             .add_message::<InventoryChanged>()
             .add_message::<ExperienceChanged>()
             .add_message::<LevelUp>()
             .add_message::<UpgradeEvent>()
+            .add_message::<LearnAbility>()
             .add_systems(
                 EguiPrimaryContextPass,
                 (
@@ -77,6 +94,7 @@ impl Plugin for UiPlugin {
                     apply_experience_changes,
                     apply_level_up,
                     apply_upgrades,
+                    apply_learn_ability,
                 ),
             );
     }
@@ -176,12 +194,9 @@ fn render_ui(
     weapon_registry: Res<crate::network::ClientWeaponRegistry>,
     equipment_registry: Res<crate::network::ClientEquipmentRegistry>,
     item_registry: Res<crate::network::ClientItemRegistry>,
-    mut events: MessageWriter<ResourceChanged>,
-    mut wallet_events: MessageWriter<WalletChanged>,
-    mut inventory_events: MessageWriter<InventoryChanged>,
-    mut exp_events: MessageWriter<ExperienceChanged>,
-    mut upgrade_events: MessageWriter<UpgradeEvent>,
+    mut ui_events: UiEvents,
     mut edit_mode: ResMut<EditMode>,
+    mut learn_ability_open: ResMut<LearnAbilityOpen>,
 ) -> Result {
     let Some(icons) = icons else {
         return Ok(());
@@ -217,10 +232,9 @@ fn render_ui(
                     &icons,
                     &character,
                     &weapon_registry,
-                    &mut events,
-                    &mut inventory_events,
-                    &mut exp_events,
+                    &mut ui_events,
                     &mut edit_mode,
+                    &mut learn_ability_open,
                 );
                 ui.add_space(gap);
                 render_center_column(
@@ -232,8 +246,7 @@ fn render_ui(
                     &trait_registry,
                     &skill_registry,
                     &ability_registry,
-                    &mut events,
-                    &mut upgrade_events,
+                    &mut ui_events,
                     edit_mode.0,
                 );
                 ui.add_space(gap);
@@ -246,11 +259,163 @@ fn render_ui(
                     &weapon_registry,
                     &equipment_registry,
                     &item_registry,
-                    &mut wallet_events,
-                    &mut inventory_events,
+                    &mut ui_events,
                 );
             });
         });
+
+    // "Learn Ability" overlay
+    if learn_ability_open.0 {
+        let screen = ctx.content_rect();
+
+        // Semi-transparent backdrop that blocks interaction behind the dialog
+        egui::Area::new(egui::Id::new("learn_ability_backdrop"))
+            .order(egui::Order::Middle)
+            .fixed_pos(screen.min)
+            .show(ctx, |ui| {
+                let (rect, resp) = ui.allocate_exact_size(screen.size(), egui::Sense::click());
+                ui.painter()
+                    .rect_filled(rect, 0.0, egui::Color32::from_black_alpha(120));
+                if resp.clicked() {
+                    learn_ability_open.0 = false;
+                }
+            });
+
+        // Centered dialog (half width, half height)
+        let dialog_size = screen.size() * 0.5;
+        let dialog_pos = egui::pos2(
+            screen.center().x - dialog_size.x / 2.0,
+            screen.center().y - dialog_size.y / 2.0,
+        );
+        egui::Area::new(egui::Id::new("learn_ability_dialog"))
+            .order(egui::Order::Foreground)
+            .fixed_pos(dialog_pos)
+            .show(ctx, |ui| {
+                let (rect, _) = ui.allocate_exact_size(dialog_size, egui::Sense::hover());
+                ui.painter()
+                    .rect_filled(rect, egui::CornerRadius::same(16), MAIN_COLOR);
+                ui.painter().rect_stroke(
+                    rect,
+                    egui::CornerRadius::same(16),
+                    egui::Stroke::new(1.0, egui::Color32::from_gray(200)),
+                    egui::StrokeKind::Inside,
+                );
+
+                let pad = rect.width() * 0.04;
+                let content = rect.shrink(pad);
+
+                // 3 rows in staggered pattern: 3, 2, 3
+                let rows: [usize; 3] = [3, 2, 3];
+                let gap = content.width() * 0.03;
+                let cell_w = (content.width() - gap * 2.0) / 3.0;
+                let cell_h = (content.height() - gap * 2.0) / 3.0;
+                let half_offset = (cell_w + gap) / 2.0;
+
+                // Build a grid of ability data from the registry.
+                // grid[row][col] — row maps directly to LearnScreenPosition.row,
+                // col maps to LearnScreenPosition.column.
+                // Tuple: (name, mp_cost, can_learn, already_learned)
+                let mut grid: [[Option<(&str, Option<u32>, bool, bool)>; 3]; 3] = Default::default();
+                if let Some(class_abilities) =
+                    ability_registry.0.get_class_abilities(&character.class.0)
+                {
+                    let known = &character.ability_names.0;
+                    for (name, ability) in &class_abilities.acquire {
+                        if let Some(pos) = &ability.learn_screen_position {
+                            let r = pos.row as usize;
+                            let c = pos.column as usize;
+                            if r < 3 && c < 3 {
+                                let mp = ability.requirements.as_ref().and_then(|r| r.mp);
+                                let already_learned = known.contains(name);
+                                let can_learn = ability.can_learn_after.is_empty()
+                                    || ability
+                                        .can_learn_after
+                                        .iter()
+                                        .any(|prereq| known.contains(prereq));
+                                grid[r][c] = Some((name.as_str(), mp, can_learn, already_learned));
+                            }
+                        }
+                    }
+                }
+
+                let ability_icon = icons.ability_placeholder.id();
+                let class_abilities =
+                    ability_registry.0.get_class_abilities(&character.class.0);
+                for (row_idx, &col_count) in rows.iter().enumerate() {
+                    let y = content.min.y + (cell_h + gap) * row_idx as f32;
+                    let x_offset = if col_count == 2 { half_offset } else { 0.0 };
+                    for col in 0..col_count {
+                        let x = content.min.x + x_offset + (cell_w + gap) * col as f32;
+                        let cell_rect =
+                            egui::Rect::from_min_size(egui::pos2(x, y), egui::vec2(cell_w, cell_h));
+                        if let Some((name, mp, can_learn, learned)) = grid[row_idx][col] {
+                            let fill = if can_learn { MAIN_COLOR } else { SECONDARY_COLOR };
+                            SmallAbility::new(name, ability_icon)
+                                .mp_cost(mp)
+                                .fill(fill)
+                                .learned(learned)
+                                .paint(ui.painter(), cell_rect);
+
+                            let cell_id = egui::Id::new("learn_cell")
+                                .with(row_idx)
+                                .with(col);
+                            let response =
+                                ui.interact(cell_rect, cell_id, egui::Sense::click_and_drag());
+                            if can_learn
+                                && !learned
+                                && character.ability_pts.0 > 0
+                                && response.clicked()
+                            {
+                                ui_events.learn_ability.write(LearnAbility(name.to_string()));
+                                if character.ability_pts.0 == 1 {
+                                    learn_ability_open.0 = false;
+                                }
+                            }
+                            if response.hovered() {
+                                if let Some(ability) = class_abilities
+                                    .and_then(|ca| ca.acquire.get(name))
+                                {
+                                    let card_w = cell_rect.width() * 1.8;
+                                    let card_h = cell_rect.height() * 1.5;
+                                    let card_pos = egui::pos2(
+                                        cell_rect.center().x - card_w / 2.0,
+                                        cell_rect.min.y - card_h - 8.0,
+                                    );
+                                    egui::Area::new(cell_id.with("tooltip"))
+                                        .order(egui::Order::Tooltip)
+                                        .fixed_pos(card_pos)
+                                        .show(ui.ctx(), |ui| {
+                                            let (card_rect, _) = ui.allocate_exact_size(
+                                                egui::vec2(card_w, card_h),
+                                                egui::Sense::hover(),
+                                            );
+                                            AbilityCard::new(ability_icon, &ability.description)
+                                                .name(name)
+                                                .mp_cost(ability.requirements.as_ref().and_then(|r| r.mp))
+                                                .ap_cost(ability.requirements.as_ref().and_then(|r| r.action_points))
+                                                .self_only(ability.self_only)
+                                                .range(ability.requirements.as_ref().and_then(|r| r.range))
+                                                .ability_type(format_ability_type(ability.ability_type))
+                                                .check(ability.check.as_ref().map(format_ability_check).unwrap_or_default())
+                                                .enemy_check(ability.enemy_check.as_ref().map(|e| e.to_string()).unwrap_or_default())
+                                                .paint(ui.painter(), card_rect);
+                                            ui.painter().rect_stroke(
+                                                card_rect,
+                                                egui::CornerRadius::same(12),
+                                                egui::Stroke::new(1.0, egui::Color32::from_gray(200)),
+                                                egui::StrokeKind::Inside,
+                                            );
+                                        });
+                                }
+                            }
+                        } else {
+                            SmallAbility::new("", ability_icon)
+                                .paint(ui.painter(), cell_rect);
+                        }
+                    }
+                }
+            });
+    }
 
     Ok(())
 }
@@ -262,10 +427,9 @@ fn render_left_column(
     icons: &UiIcons,
     character: &CharacterQueryDataItem,
     weapon_registry: &crate::network::ClientWeaponRegistry,
-    events: &mut MessageWriter<ResourceChanged>,
-    inventory_events: &mut MessageWriter<InventoryChanged>,
-    exp_events: &mut MessageWriter<ExperienceChanged>,
+    ui_events: &mut UiEvents,
     edit_mode: &mut EditMode,
+    learn_ability_open: &mut LearnAbilityOpen,
 ) {
     let gap = height * 0.03 / 4.0;
     let initiative =
@@ -289,12 +453,16 @@ fn render_left_column(
             character.exp.0,
             edit_mode.0,
         )
+        .ability_points(character.ability_pts.0)
         .show(&mut portrait_ui);
         if let Some(exp) = portrait_resp.add_exp {
-            exp_events.write(ExperienceChanged(exp));
+            ui_events.experience.write(ExperienceChanged(exp));
         }
         if portrait_resp.toggle_edit {
             edit_mode.0 = !edit_mode.0;
+        }
+        if portrait_resp.open_learn_ability {
+            learn_ability_open.0 = true;
         }
         ui.add_space(gap);
         ui.add_sized(
@@ -307,7 +475,7 @@ fn render_left_column(
         );
         ui.add_space(gap);
 
-        send_status_bar_events(ui, width, height * 0.16, character, initiative, events);
+        send_status_bar_events(ui, width, height * 0.16, character, initiative, &mut ui_events.resource);
         ui.add_space(gap);
 
         let resists = character
@@ -353,7 +521,7 @@ fn render_left_column(
         if let Some(i) =
             Weapon::new(icons.weapon_placeholder.id(), weapon_slots).show(&mut weapon_ui)
         {
-            inventory_events.write(InventoryChanged::UnequipWeapon(i));
+            ui_events.inventory.write(InventoryChanged::UnequipWeapon(i));
         }
     });
 }
@@ -490,8 +658,7 @@ fn apply_upgrades(
     mut reader: MessageReader<UpgradeEvent>,
     skill_registry: Res<crate::network::ClientSkillRegistry>,
 ) {
-    let Ok((class, mut stats, mut char_pts, mut skill_pts, mut skills)) = query.single_mut()
-    else {
+    let Ok((class, mut stats, mut char_pts, mut skill_pts, mut skills)) = query.single_mut() else {
         return;
     };
 
@@ -547,10 +714,32 @@ fn apply_upgrades(
                     let cost = skill.up(skill_pts.0, max_level);
                     skill_pts.0 -= cost;
                 } else if skill_pts.0 >= 1 && max_level >= 1 {
-                    skills.0.push(shared::CharacterSkill { name: name.clone(), level: 1 });
+                    skills.0.push(shared::CharacterSkill {
+                        name: name.clone(),
+                        level: 1,
+                    });
                     skill_pts.0 -= 1;
                 }
             }
+        }
+    }
+}
+
+/// Learns an ability: adds it to the character's ability list and deducts one ability point.
+fn apply_learn_ability(
+    mut query: Query<
+        (&mut CharacterAbilityNames, &mut AbilityPoints),
+        With<ActiveCharacter>,
+    >,
+    mut reader: MessageReader<LearnAbility>,
+) {
+    let Ok((mut abilities, mut pts)) = query.single_mut() else {
+        return;
+    };
+    for event in reader.read() {
+        if pts.0 > 0 && !abilities.0.contains(&event.0) {
+            abilities.0.push(event.0.clone());
+            pts.0 -= 1;
         }
     }
 }
@@ -564,8 +753,7 @@ fn render_center_column(
     trait_registry: &crate::network::ClientTraitRegistry,
     skill_registry: &crate::network::ClientSkillRegistry,
     ability_registry: &crate::network::ClientAbilityRegistry,
-    events: &mut MessageWriter<ResourceChanged>,
-    upgrade_events: &mut MessageWriter<UpgradeEvent>,
+    ui_events: &mut UiEvents,
     edit_mode: bool,
 ) {
     let gap = height * 0.03 / 4.0;
@@ -600,7 +788,7 @@ fn render_center_column(
             .edit_mode(edit_mode, character.char_pts.0)
             .show(&mut char_ui)
         {
-            upgrade_events.write(UpgradeEvent::Characteristic(idx));
+            ui_events.upgrade.write(UpgradeEvent::Characteristic(idx));
         }
         ui.add_space(gap);
         ui.add_sized(
@@ -657,7 +845,7 @@ fn render_center_column(
                 .flat_map(|skills| skills.keys())
                 .nth(idx)
             {
-                upgrade_events.write(UpgradeEvent::Skill(name.clone()));
+                ui_events.upgrade.write(UpgradeEvent::Skill(name.clone()));
             }
         }
         ui.add_space(gap);
@@ -712,7 +900,7 @@ fn render_center_column(
         if let Some(new_mp) =
             Abilities::new(ability_entries, character.mana.current).show(&mut abilities_ui)
         {
-            events.write(ResourceChanged::Mp(new_mp));
+            ui_events.resource.write(ResourceChanged::Mp(new_mp));
         }
     });
 }
@@ -767,8 +955,7 @@ fn render_right_column(
     weapon_registry: &crate::network::ClientWeaponRegistry,
     equipment_registry: &crate::network::ClientEquipmentRegistry,
     item_registry: &crate::network::ClientItemRegistry,
-    wallet_events: &mut MessageWriter<WalletChanged>,
-    inventory_events: &mut MessageWriter<InventoryChanged>,
+    ui_events: &mut UiEvents,
 ) {
     let gap = height * 0.03 / 2.0;
     let wallet = character.wallet;
@@ -844,7 +1031,7 @@ fn render_right_column(
             .items(equipped_items)
             .show(&mut equipped_ui)
         {
-            inventory_events.write(InventoryChanged::UnequipGear(i));
+            ui_events.inventory.write(InventoryChanged::UnequipGear(i));
         }
 
         ui.add_space(gap);
@@ -865,7 +1052,7 @@ fn render_right_column(
             icons.wallet_copper.id(),
         )
         .show(&mut wallet_ui);
-        send_wallet_events(wallet_events, result);
+        send_wallet_events(&mut ui_events.wallet, result);
 
         ui.add_space(gap);
 
@@ -881,10 +1068,10 @@ fn render_right_column(
             .show(&mut inventory_ui)
         {
             Some(CellAction::Primary(i)) => {
-                inventory_events.write(InventoryChanged::Equip(i));
+                ui_events.inventory.write(InventoryChanged::Equip(i));
             }
             Some(CellAction::Remove(i)) => {
-                inventory_events.write(InventoryChanged::Remove(i));
+                ui_events.inventory.write(InventoryChanged::Remove(i));
             }
             None => {}
         }
