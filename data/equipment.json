@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Iron Helmet",
+    "description": "A sturdy iron helmet that protects the head.",
+    "slot": "Head",
+    "armor": 3,
+    "effects": [
+      { "Protection": ["Melee", 1] }
+    ]
+  },
+  {
+    "name": "Leather Gloves",
+    "description": "Simple leather gloves providing light protection.",
+    "slot": "Gloves",
+    "armor": 1,
+    "effects": []
+  },
+  {
+    "name": "Chain Mail",
+    "description": "Heavy chain mail armor offering solid defense.",
+    "slot": "Armor",
+    "armor": 5,
+    "effects": [
+      { "Protection": ["Melee", 2] },
+      { "Protection": ["Range", 1] }
+    ]
+  }
+]

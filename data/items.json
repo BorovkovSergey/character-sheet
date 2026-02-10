@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Healing Potion",
+    "description": "A small vial of red liquid that restores health when consumed."
+  },
+  {
+    "name": "Torch",
+    "description": "A wooden stick wrapped in oil-soaked cloth. Provides light in dark places."
+  },
+  {
+    "name": "Rope",
+    "description": "A sturdy hemp rope, about 15 meters long. Useful for climbing and binding."
+  }
+]

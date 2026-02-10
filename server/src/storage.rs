@@ -1,4 +1,4 @@
-use shared::{Character, TraitRegistry};
+use shared::{Character, EquipmentRegistry, ItemRegistry, TraitRegistry};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -15,6 +15,9 @@ struct StorageData {
 pub struct CharacterStore {
     characters: Arc<RwLock<BTreeMap<Uuid, Character>>>,
     trait_registry: Arc<TraitRegistry>,
+    equipment_registry: Arc<EquipmentRegistry>,
+    #[allow(dead_code)]
+    item_registry: Arc<ItemRegistry>,
     data_path: PathBuf,
 }
 
@@ -37,11 +40,29 @@ impl CharacterStore {
             },
         ));
 
-        let characters = Self::load_from_file(&data_path, &trait_registry).await;
+        let equipment_path = PathBuf::from(data_dir).join("equipment.json");
+        let equipment_registry = Arc::new(
+            EquipmentRegistry::load_from_file(&equipment_path).unwrap_or_else(|e| {
+                warn!("Failed to load equipment from {:?}: {}", equipment_path, e);
+                EquipmentRegistry::default()
+            }),
+        );
+
+        let items_path = PathBuf::from(data_dir).join("items.json");
+        let item_registry =
+            Arc::new(ItemRegistry::load_from_file(&items_path).unwrap_or_else(|e| {
+                warn!("Failed to load items from {:?}: {}", items_path, e);
+                ItemRegistry::default()
+            }));
+
+        let characters =
+            Self::load_from_file(&data_path, &trait_registry, &equipment_registry).await;
 
         Self {
             characters: Arc::new(RwLock::new(characters)),
             trait_registry,
+            equipment_registry,
+            item_registry,
             data_path,
         }
     }
@@ -49,6 +70,7 @@ impl CharacterStore {
     async fn load_from_file(
         path: &PathBuf,
         trait_registry: &TraitRegistry,
+        equipment_registry: &EquipmentRegistry,
     ) -> BTreeMap<Uuid, Character> {
         match tokio::fs::read_to_string(path).await {
             Ok(content) => match serde_json::from_str::<StorageData>(&content) {
@@ -56,7 +78,7 @@ impl CharacterStore {
                     .characters
                     .into_iter()
                     .map(|mut c| {
-                        c.recalculate_effects(trait_registry);
+                        c.recalculate_effects(trait_registry, equipment_registry);
                         (c.id, c)
                     })
                     .collect(),
@@ -107,7 +129,7 @@ impl CharacterStore {
 
     pub async fn create(&self, name: String) -> Character {
         let mut character = Character::new(name);
-        character.recalculate_effects(&self.trait_registry);
+        character.recalculate_effects(&self.trait_registry, &self.equipment_registry);
         {
             let mut characters = self.characters.write().await;
             characters.insert(character.id, character.clone());
@@ -128,7 +150,7 @@ impl CharacterStore {
     }
 
     pub async fn update(&self, mut character: Character) -> Option<Character> {
-        character.recalculate_effects(&self.trait_registry);
+        character.recalculate_effects(&self.trait_registry, &self.equipment_registry);
         let updated = {
             let mut characters = self.characters.write().await;
             if characters.contains_key(&character.id) {

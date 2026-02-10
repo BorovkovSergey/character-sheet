@@ -3,6 +3,9 @@ mod character_trait;
 mod characteristic;
 mod class;
 mod effect;
+mod equipment;
+mod inventory;
+mod item;
 mod race;
 mod resource;
 mod skill;
@@ -26,6 +29,9 @@ pub use characteristic::{
 };
 pub use class::Class;
 pub use effect::{Effect, GetEffects, OnLvlUp, Protection, Resist};
+pub use equipment::{Equipment, EquipmentRegistry, EquipmentSlot};
+pub use inventory::InventoryItem;
+pub use item::{Item, ItemRegistry};
 pub use race::{Race, Size};
 pub use resource::Resource;
 pub use skill::{CharacterSkill, Skill, SkillRegistry};
@@ -52,6 +58,10 @@ pub struct Character {
     pub abilities: Vec<String>,
     #[serde(default)]
     pub equipped_weapons: Vec<String>,
+    #[serde(default)]
+    pub equipped_equipment: BTreeMap<EquipmentSlot, Vec<String>>,
+    #[serde(default)]
+    pub inventory: Vec<InventoryItem>,
     /// Total currency stored as a single value.
     /// Gold = value / 1000, Silver = (value % 1000) / 10, Copper = value % 10.
     #[serde(default)]
@@ -79,6 +89,8 @@ impl Character {
             traits: Vec::new(),
             abilities: Vec::new(),
             equipped_weapons: Vec::new(),
+            equipped_equipment: BTreeMap::new(),
+            inventory: Vec::new(),
             wallet: 0,
             active_effects: Vec::new(),
         };
@@ -86,8 +98,33 @@ impl Character {
         character
     }
 
-    /// Recalculates active effects from all sources (race, traits, etc.).
-    pub fn recalculate_effects(&mut self, trait_registry: &TraitRegistry) {
+    /// Equips an item into the appropriate slot.
+    /// Ring slot allows multiple items; all other slots replace the previous item.
+    pub fn equip(&mut self, slot: EquipmentSlot, name: String) {
+        let items = self.equipped_equipment.entry(slot).or_default();
+        if slot == EquipmentSlot::Ring {
+            items.push(name);
+        } else {
+            *items = vec![name];
+        }
+    }
+
+    /// Removes an item by name from the given slot.
+    pub fn unequip(&mut self, slot: EquipmentSlot, name: &str) {
+        if let Some(items) = self.equipped_equipment.get_mut(&slot) {
+            items.retain(|n| n != name);
+            if items.is_empty() {
+                self.equipped_equipment.remove(&slot);
+            }
+        }
+    }
+
+    /// Recalculates active effects from all sources (race, traits, equipment, etc.).
+    pub fn recalculate_effects(
+        &mut self,
+        trait_registry: &TraitRegistry,
+        equipment_registry: &EquipmentRegistry,
+    ) {
         self.active_effects.clear();
         self.active_effects.extend(self.race.get_effects());
         self.active_effects.extend(self.race.size().get_effects());
@@ -95,6 +132,14 @@ impl Character {
             if let Some(character_trait) = trait_registry.get(trait_name) {
                 self.active_effects
                     .extend(character_trait.effects.iter().cloned());
+            }
+        }
+        for names in self.equipped_equipment.values() {
+            for equipment_name in names {
+                if let Some(equipment) = equipment_registry.get(equipment_name) {
+                    self.active_effects
+                        .extend(equipment.effects.iter().cloned());
+                }
             }
         }
     }

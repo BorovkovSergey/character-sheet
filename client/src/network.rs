@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use ewebsock::{WsEvent, WsMessage, WsReceiver, WsSender};
 use shared::character::SkillRegistry;
-use shared::{deserialize, AbilityRegistry, ServerMessage, TraitRegistry, WeaponRegistry};
+use shared::{
+    deserialize, AbilityRegistry, EquipmentRegistry, ItemRegistry, ServerMessage, TraitRegistry,
+    WeaponRegistry,
+};
 
 use crate::character_select::CharacterList;
 
@@ -26,6 +29,13 @@ pub struct ClientAbilityRegistry(pub AbilityRegistry);
 
 #[derive(Resource)]
 pub struct ClientWeaponRegistry(pub WeaponRegistry);
+
+#[derive(Resource)]
+pub struct ClientEquipmentRegistry(pub EquipmentRegistry);
+
+#[derive(Resource)]
+#[allow(dead_code)]
+pub struct ClientItemRegistry(pub ItemRegistry);
 
 /// Buffer for server messages drained from the WebSocket.
 /// Filled by `drain_ws`, consumed by `process_server_messages`.
@@ -53,10 +63,17 @@ impl Plugin for NetworkPlugin {
             .expect("failed to parse embedded abilities.json");
         let weapon_reg = WeaponRegistry::load_from_str(include_str!("../../data/weapons.json"))
             .expect("failed to parse embedded weapons.json");
+        let equipment_reg =
+            EquipmentRegistry::load_from_str(include_str!("../../data/equipment.json"))
+                .expect("failed to parse embedded equipment.json");
+        let item_reg = ItemRegistry::load_from_str(include_str!("../../data/items.json"))
+            .expect("failed to parse embedded items.json");
         app.insert_resource(ClientTraitRegistry(trait_reg))
             .insert_resource(ClientSkillRegistry(skill_reg))
             .insert_resource(ClientAbilityRegistry(ability_reg))
             .insert_resource(ClientWeaponRegistry(weapon_reg))
+            .insert_resource(ClientEquipmentRegistry(equipment_reg))
+            .insert_resource(ClientItemRegistry(item_reg))
             .init_resource::<PendingServerMessages>()
             .init_resource::<ReconnectTimer>()
             .add_systems(Startup, connect_to_server)

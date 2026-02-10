@@ -132,6 +132,17 @@
         "Sword",
         "Pistol"
       ],
+      "equipped_equipment": {
+        "Head": ["Iron Helmet"]
+      },
+      "inventory": [
+        { "Weapon": "Short Bow" },
+        { "Equipment": "Chain Mail" },
+        { "Equipment": "Leather Gloves" },
+        { "Item": "Healing Potion" },
+        { "Item": "Torch" },
+        { "Item": "Rope" }
+      ],
       "wallet": 123456
     },
     {

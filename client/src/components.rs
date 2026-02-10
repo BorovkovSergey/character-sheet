@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 
 use bevy::prelude::*;
 use shared::{
-    Character, CharacterSkill, Characteristics, Class, Effect, GetEffects, Protection, Race, Resist,
+    Character, CharacterSkill, Characteristics, Class, Effect, EquipmentSlot, GetEffects,
+    InventoryItem, Protection, Race, Resist,
 };
 use strum::IntoEnumIterator;
 use uuid::Uuid;
@@ -89,6 +90,13 @@ impl Wallet {
 pub struct CharacterWeaponNames(pub Vec<String>);
 
 #[derive(Component)]
+pub struct CharacterEquipment(pub BTreeMap<EquipmentSlot, Vec<String>>);
+
+#[derive(Component)]
+#[allow(dead_code)]
+pub struct Inventory(pub Vec<InventoryItem>);
+
+#[derive(Component)]
 pub struct ActiveEffects(pub Vec<Effect>);
 
 impl ActiveEffects {
@@ -155,27 +163,46 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
             CharacterTraitNames(character.traits.clone()),
             CharacterAbilityNames(character.abilities.clone()),
             CharacterWeaponNames(character.equipped_weapons.clone()),
+            CharacterEquipment(character.equipped_equipment.clone()),
+            Inventory(character.inventory.clone()),
             Wallet(character.wallet),
             ActiveEffects(character.active_effects.clone()),
         ))
         .id()
 }
 
-/// Recalculates active effects from race and traits whenever they change.
+/// Recalculates active effects from race, traits, and equipment whenever they change.
 pub fn recalculate_effects(
     mut query: Query<
-        (&CharacterRace, &CharacterTraitNames, &mut ActiveEffects),
-        Or<(Changed<CharacterRace>, Changed<CharacterTraitNames>)>,
+        (
+            &CharacterRace,
+            &CharacterTraitNames,
+            &CharacterEquipment,
+            &mut ActiveEffects,
+        ),
+        Or<(
+            Changed<CharacterRace>,
+            Changed<CharacterTraitNames>,
+            Changed<CharacterEquipment>,
+        )>,
     >,
     trait_registry: Res<crate::network::ClientTraitRegistry>,
+    equipment_registry: Res<crate::network::ClientEquipmentRegistry>,
 ) {
-    for (race, traits, mut effects) in &mut query {
+    for (race, traits, equipment, mut effects) in &mut query {
         effects.0.clear();
         effects.0.extend(race.0.get_effects());
         effects.0.extend(race.0.size().get_effects());
         for trait_name in &traits.0 {
             if let Some(ct) = trait_registry.0.get(trait_name) {
                 effects.0.extend(ct.effects.iter().cloned());
+            }
+        }
+        for names in equipment.0.values() {
+            for equipment_name in names {
+                if let Some(eq) = equipment_registry.0.get(equipment_name) {
+                    effects.0.extend(eq.effects.iter().cloned());
+                }
             }
         }
     }
