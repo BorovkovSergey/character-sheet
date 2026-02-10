@@ -1,15 +1,21 @@
 mod ability_card;
+mod equipment_card;
 mod inventory_cell;
+mod item_card;
 mod inventory_table;
 mod labeled_value;
 mod progress_bar;
 mod titled_box;
+mod weapon_card;
 mod weapon_entry;
 
 pub use ability_card::AbilityCard;
+pub use equipment_card::EquipmentCard;
 pub use inventory_cell::InventoryCell;
-pub use inventory_table::InventoryTable;
+pub use inventory_table::{InventoryTable, InventoryTooltip};
+pub use item_card::ItemCard;
 pub use labeled_value::LabeledValue;
 pub use progress_bar::ProgressBar;
 pub use titled_box::{TitlePosition, TitledBox};
+pub use weapon_card::WeaponCard;
 pub use weapon_entry::WeaponEntry;

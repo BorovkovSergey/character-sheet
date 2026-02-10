@@ -6,11 +6,13 @@ use ui_widgets::composites::{
     Portrait, SkillEntry, Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits,
     Wallet as WalletWidget, WalletResponse, Weapon, WeaponSlot,
 };
+use ui_widgets::molecules::InventoryTooltip;
 
 use crate::components::{
     ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames, CharacterClass,
-    CharacterName, CharacterRace, CharacterSkillList, CharacterStats, CharacterTraitNames,
-    CharacterWeaponNames, CharacteristicPoints, Experience, Hp, Level, Mana, SkillPoints, Wallet,
+    CharacterEquipment, CharacterName, CharacterRace, CharacterSkillList, CharacterStats,
+    CharacterTraitNames, CharacterWeaponNames, CharacteristicPoints, Experience, Hp,
+    Inventory as InventoryComponent, Level, Mana, SkillPoints, Wallet,
 };
 use crate::events::{ResourceChanged, WalletChanged};
 use crate::state::AppScreen;
@@ -133,6 +135,8 @@ struct CharacterQueryData {
     skills: &'static CharacterSkillList,
     wallet: &'static Wallet,
     weapon_names: &'static CharacterWeaponNames,
+    equipment: &'static CharacterEquipment,
+    inventory: &'static InventoryComponent,
     effects: &'static ActiveEffects,
 }
 
@@ -144,6 +148,8 @@ fn render_ui(
     skill_registry: Res<crate::network::ClientSkillRegistry>,
     ability_registry: Res<crate::network::ClientAbilityRegistry>,
     weapon_registry: Res<crate::network::ClientWeaponRegistry>,
+    equipment_registry: Res<crate::network::ClientEquipmentRegistry>,
+    item_registry: Res<crate::network::ClientItemRegistry>,
     mut events: MessageWriter<ResourceChanged>,
     mut wallet_events: MessageWriter<WalletChanged>,
 ) -> Result {
@@ -202,6 +208,9 @@ fn render_ui(
                     col_h,
                     &icons,
                     &character,
+                    &weapon_registry,
+                    &equipment_registry,
+                    &item_registry,
                     &mut wallet_events,
                 );
             });
@@ -503,17 +512,74 @@ fn render_right_column(
     height: f32,
     icons: &UiIcons,
     character: &CharacterQueryDataItem,
+    weapon_registry: &crate::network::ClientWeaponRegistry,
+    equipment_registry: &crate::network::ClientEquipmentRegistry,
+    item_registry: &crate::network::ClientItemRegistry,
     wallet_events: &mut MessageWriter<WalletChanged>,
 ) {
     let gap = height * 0.03 / 2.0;
     let wallet = character.wallet;
 
+    let inventory_items: Vec<Option<InventoryTooltip>> = character
+        .inventory
+        .0
+        .iter()
+        .map(|inv_item| match inv_item {
+            shared::InventoryItem::Weapon(name) => {
+                weapon_registry.0.get(name).map(|w| InventoryTooltip::Weapon {
+                    name: w.name.clone(),
+                    kind: w.kind.to_string(),
+                    attack: format!("{:+}", w.attack),
+                    damage: w.damage.clone(),
+                    range: w.range.to_string(),
+                })
+            }
+            shared::InventoryItem::Equipment(name) => {
+                equipment_registry
+                    .0
+                    .get(name)
+                    .map(|e| InventoryTooltip::Equipment {
+                        name: e.name.clone(),
+                        slot: e.slot.to_string(),
+                        description: e.description.clone(),
+                        armor: e.armor,
+                        effects: e.effects.iter().map(format_effect).collect(),
+                    })
+            }
+            shared::InventoryItem::Item(name) => {
+                item_registry.0.get(name).map(|i| InventoryTooltip::Item {
+                    name: i.name.clone(),
+                    description: i.description.clone(),
+                })
+            }
+        })
+        .collect();
+
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
+        let equipped_items: Vec<Option<InventoryTooltip>> = character
+            .equipment
+            .0
+            .values()
+            .flat_map(|names| names.iter())
+            .map(|name| {
+                equipment_registry
+                    .0
+                    .get(name)
+                    .map(|e| InventoryTooltip::Equipment {
+                        name: e.name.clone(),
+                        slot: e.slot.to_string(),
+                        description: e.description.clone(),
+                        armor: e.armor,
+                        effects: e.effects.iter().map(format_effect).collect(),
+                    })
+            })
+            .collect();
+
         ui.add_sized(
             [width, height * 0.41],
-            EquippedGear::new(icons.inventory_placeholder.id()),
+            EquippedGear::new(icons.inventory_placeholder.id()).items(equipped_items),
         );
         ui.add_space(gap);
 
@@ -538,7 +604,7 @@ fn render_right_column(
         ui.add_space(gap);
         ui.add_sized(
             [width, height * 0.48],
-            Inventory::new(icons.inventory_placeholder.id()),
+            Inventory::new(icons.inventory_placeholder.id()).items(inventory_items),
         );
     });
 }
