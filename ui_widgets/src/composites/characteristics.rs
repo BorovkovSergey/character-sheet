@@ -1,6 +1,8 @@
+use std::cell::Cell;
+
 use crate::atoms::{Shape, ShapeBox, Text};
-use crate::colors::{MAIN_COLOR, SECONDARY_COLOR, TEXT_COLOR};
-use crate::egui::{self, Align2, CornerRadius, Rect, Stroke, Widget};
+use crate::colors::{MAIN_COLOR, SECONDARY_COLOR, TEXT_COLOR, UPGRADE_COLOR};
+use crate::egui::{self, Align2, CornerRadius, Rect, Stroke};
 use crate::traits::{Roundable, WithText};
 
 /// Displays the character's primary characteristics as 8 boxes
@@ -14,16 +16,28 @@ use crate::traits::{Roundable, WithText};
 /// alphabetical sorting.
 pub struct Characteristics {
     values: Vec<(String, u32)>,
+    edit_mode: bool,
+    available_points: u32,
 }
 
 impl Characteristics {
     pub fn new(values: Vec<(String, u32)>) -> Self {
-        Self { values }
+        Self {
+            values,
+            edit_mode: false,
+            available_points: 0,
+        }
     }
-}
 
-impl Widget for Characteristics {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    pub fn edit_mode(mut self, enabled: bool, available_points: u32) -> Self {
+        self.edit_mode = enabled;
+        self.available_points = available_points;
+        self
+    }
+
+    /// Renders the characteristics grid. Returns `Some(index)` if a
+    /// characteristic was clicked in edit mode.
+    pub fn show(self, ui: &mut egui::Ui) -> Option<usize> {
         let available_width = ui.available_width();
         let available_height = ui.available_height();
 
@@ -35,6 +49,7 @@ impl Widget for Characteristics {
         let item_height = (available_height - spacing_y * (rows - 1.0)) / rows;
 
         let total = self.values.len();
+        let clicked: Cell<Option<usize>> = Cell::new(None);
 
         ui.vertical(|ui| {
             ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -44,14 +59,24 @@ impl Widget for Characteristics {
                 ui.horizontal(|ui| {
                     ui.spacing_mut().item_spacing = egui::vec2(spacing_x, 0.0);
                     for (label, value) in row {
-                        let (rect, _) = ui.allocate_exact_size(
-                            egui::vec2(item_width, item_height),
-                            egui::Sense::hover(),
-                        );
+                        let sense = if self.edit_mode {
+                            egui::Sense::click()
+                        } else {
+                            egui::Sense::hover()
+                        };
+                        let (rect, response) =
+                            ui.allocate_exact_size(egui::vec2(item_width, item_height), sense);
+
+                        let cost = value + 1;
+                        let can_upgrade = self.edit_mode && self.available_points >= cost;
+
+                        if can_upgrade && response.clicked() {
+                            clicked.set(Some(idx));
+                        }
 
                         let painter = ui.painter();
 
-                        // Base rounding 8, with 12 on the four outer corners
+                        // Base rounding 8, with 20 on the four outer corners
                         let mut rounding = CornerRadius::same(8);
                         if idx == 0 {
                             rounding.nw = 20;
@@ -66,9 +91,14 @@ impl Widget for Characteristics {
                             rounding.se = 20;
                         }
 
-                        // Background
+                        // Background — green if upgradeable
+                        let bg = if can_upgrade {
+                            UPGRADE_COLOR
+                        } else {
+                            SECONDARY_COLOR
+                        };
                         let clipped = painter.with_clip_rect(rect);
-                        clipped.rect_filled(rect, rounding, SECONDARY_COLOR);
+                        clipped.rect_filled(rect, rounding, bg);
 
                         // Label text on the left, 7% padding from left edge
                         let text_x = rect.min.x + rect.width() * 0.07;
@@ -101,7 +131,8 @@ impl Widget for Characteristics {
                 });
                 ui.add_space(spacing_y);
             }
-        })
-        .response
+        });
+
+        clicked.get()
     }
 }

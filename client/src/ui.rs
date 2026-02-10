@@ -15,10 +15,15 @@ use crate::components::{
     CharacterTraitNames, CharacterWeaponNames, CharacteristicPoints, Experience, Hp,
     AbilityPoints, Inventory as InventoryComponent, Level, Mana, SkillPoints, Wallet,
 };
-use crate::events::{ExperienceChanged, InventoryChanged, LevelUp, ResourceChanged, WalletChanged};
+use crate::events::{
+    ExperienceChanged, InventoryChanged, LevelUp, ResourceChanged, UpgradeEvent, WalletChanged,
+};
 use crate::state::AppScreen;
 use shared::character::OnLvlUp;
-use shared::{AbilityCheck, AbilityType, Effect, EquipmentSlot, InventoryItem};
+use shared::{
+    AbilityCheck, AbilityType, CharacteristicKind, CharacteristicTrait, Effect, EquipmentSlot,
+    InventoryItem,
+};
 
 #[derive(Resource)]
 struct UiIcons {
@@ -42,15 +47,20 @@ fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::
     ctx.load_texture(name, color_image, egui::TextureOptions::LINEAR)
 }
 
+#[derive(Resource, Default)]
+pub struct EditMode(pub bool);
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
-        app.add_message::<ResourceChanged>()
+        app.init_resource::<EditMode>()
+            .add_message::<ResourceChanged>()
             .add_message::<WalletChanged>()
             .add_message::<InventoryChanged>()
             .add_message::<ExperienceChanged>()
             .add_message::<LevelUp>()
+            .add_message::<UpgradeEvent>()
             .add_systems(
                 EguiPrimaryContextPass,
                 (
@@ -66,6 +76,7 @@ impl Plugin for UiPlugin {
                     apply_inventory_changes,
                     apply_experience_changes,
                     apply_level_up,
+                    apply_upgrades,
                 ),
             );
     }
@@ -169,6 +180,8 @@ fn render_ui(
     mut wallet_events: MessageWriter<WalletChanged>,
     mut inventory_events: MessageWriter<InventoryChanged>,
     mut exp_events: MessageWriter<ExperienceChanged>,
+    mut upgrade_events: MessageWriter<UpgradeEvent>,
+    mut edit_mode: ResMut<EditMode>,
 ) -> Result {
     let Some(icons) = icons else {
         return Ok(());
@@ -207,6 +220,7 @@ fn render_ui(
                     &mut events,
                     &mut inventory_events,
                     &mut exp_events,
+                    &mut edit_mode,
                 );
                 ui.add_space(gap);
                 render_center_column(
@@ -219,6 +233,8 @@ fn render_ui(
                     &skill_registry,
                     &ability_registry,
                     &mut events,
+                    &mut upgrade_events,
+                    edit_mode.0,
                 );
                 ui.add_space(gap);
                 render_right_column(
@@ -249,6 +265,7 @@ fn render_left_column(
     events: &mut MessageWriter<ResourceChanged>,
     inventory_events: &mut MessageWriter<InventoryChanged>,
     exp_events: &mut MessageWriter<ExperienceChanged>,
+    edit_mode: &mut EditMode,
 ) {
     let gap = height * 0.03 / 4.0;
     let initiative =
@@ -264,16 +281,20 @@ fn render_left_column(
                 .max_rect(portrait_rect)
                 .layout(egui::Layout::top_down(egui::Align::Min)),
         );
-        if let Some(exp) = Portrait::new(
+        let portrait_resp = Portrait::new(
             icons.avatar_border_1.id(),
             icons.avatar_border_2.id(),
             icons.avatar_placeholder.id(),
             character.level.0,
             character.exp.0,
+            edit_mode.0,
         )
-        .show(&mut portrait_ui)
-        {
+        .show(&mut portrait_ui);
+        if let Some(exp) = portrait_resp.add_exp {
             exp_events.write(ExperienceChanged(exp));
+        }
+        if portrait_resp.toggle_edit {
+            edit_mode.0 = !edit_mode.0;
         }
         ui.add_space(gap);
         ui.add_sized(
@@ -454,6 +475,86 @@ fn apply_level_up(
     }
 }
 
+/// Applies characteristic and skill upgrades from edit mode.
+fn apply_upgrades(
+    mut query: Query<
+        (
+            &CharacterClass,
+            &mut CharacterStats,
+            &mut CharacteristicPoints,
+            &mut SkillPoints,
+            &mut CharacterSkillList,
+        ),
+        With<ActiveCharacter>,
+    >,
+    mut reader: MessageReader<UpgradeEvent>,
+    skill_registry: Res<crate::network::ClientSkillRegistry>,
+) {
+    let Ok((class, mut stats, mut char_pts, mut skill_pts, mut skills)) = query.single_mut()
+    else {
+        return;
+    };
+
+    let char_kinds = [
+        CharacteristicKind::Strength,
+        CharacteristicKind::Dexterity,
+        CharacteristicKind::Endurance,
+        CharacteristicKind::Perception,
+        CharacteristicKind::Magic,
+        CharacteristicKind::Willpower,
+        CharacteristicKind::Intellect,
+        CharacteristicKind::Charisma,
+    ];
+
+    for event in reader.read() {
+        match event {
+            UpgradeEvent::Characteristic(idx) => {
+                let s = &mut stats.0;
+                let cost = match char_kinds.get(*idx) {
+                    Some(CharacteristicKind::Strength) => s.strength.up(char_pts.0),
+                    Some(CharacteristicKind::Dexterity) => s.dexterity.up(char_pts.0),
+                    Some(CharacteristicKind::Endurance) => s.endurance.up(char_pts.0),
+                    Some(CharacteristicKind::Perception) => s.perception.up(char_pts.0),
+                    Some(CharacteristicKind::Magic) => s.magic.up(char_pts.0),
+                    Some(CharacteristicKind::Willpower) => s.willpower.up(char_pts.0),
+                    Some(CharacteristicKind::Intellect) => s.intellect.up(char_pts.0),
+                    Some(CharacteristicKind::Charisma) => s.charisma.up(char_pts.0),
+                    None => 0,
+                };
+                char_pts.0 -= cost;
+            }
+            UpgradeEvent::Skill(name) => {
+                let max_level = skill_registry
+                    .0
+                    .get_skill(&class.0, name)
+                    .map(|skill| {
+                        let s = &stats.0;
+                        match skill.dependency {
+                            CharacteristicKind::Strength => s.strength.level,
+                            CharacteristicKind::Dexterity => s.dexterity.level,
+                            CharacteristicKind::Endurance => s.endurance.level,
+                            CharacteristicKind::Perception => s.perception.level,
+                            CharacteristicKind::Magic => s.magic.level,
+                            CharacteristicKind::Willpower => s.willpower.level,
+                            CharacteristicKind::Intellect => s.intellect.level,
+                            CharacteristicKind::Charisma => s.charisma.level,
+                        }
+                    })
+                    .unwrap_or(0);
+
+                let char_skill = skills.0.iter_mut().find(|s| s.name == *name);
+                if let Some(skill) = char_skill {
+                    let cost = skill.up(skill_pts.0, max_level);
+                    skill_pts.0 -= cost;
+                } else if skill_pts.0 >= 1 && max_level >= 1 {
+                    skills.0.push(shared::CharacterSkill { name: name.clone(), level: 1 });
+                    skill_pts.0 -= 1;
+                }
+            }
+        }
+    }
+}
+
 fn render_center_column(
     ui: &mut egui::Ui,
     width: f32,
@@ -464,6 +565,8 @@ fn render_center_column(
     skill_registry: &crate::network::ClientSkillRegistry,
     ability_registry: &crate::network::ClientAbilityRegistry,
     events: &mut MessageWriter<ResourceChanged>,
+    upgrade_events: &mut MessageWriter<UpgradeEvent>,
+    edit_mode: bool,
 ) {
     let gap = height * 0.03 / 4.0;
     let stats = &character.stats.0;
@@ -485,7 +588,20 @@ fn render_center_column(
             .into_iter()
             .map(|(k, v)| (k.to_string(), v))
             .collect();
-        ui.add_sized([width, height * 0.14], Characteristics::new(char_values));
+
+        let char_size = egui::vec2(width, height * 0.14);
+        let (char_rect, _) = ui.allocate_exact_size(char_size, egui::Sense::hover());
+        let mut char_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(char_rect)
+                .layout(egui::Layout::top_down(egui::Align::Min)),
+        );
+        if let Some(idx) = Characteristics::new(char_values)
+            .edit_mode(edit_mode, character.char_pts.0)
+            .show(&mut char_ui)
+        {
+            upgrade_events.write(UpgradeEvent::Characteristic(idx));
+        }
         ui.add_space(gap);
         ui.add_sized(
             [width, height * 0.05],
@@ -504,14 +620,46 @@ fn render_center_column(
                     .iter()
                     .find(|s| s.name == *name)
                     .map_or(0, |s| s.level);
+                let max_level = match skill.dependency {
+                    CharacteristicKind::Strength => stats.strength.level,
+                    CharacteristicKind::Dexterity => stats.dexterity.level,
+                    CharacteristicKind::Endurance => stats.endurance.level,
+                    CharacteristicKind::Perception => stats.perception.level,
+                    CharacteristicKind::Magic => stats.magic.level,
+                    CharacteristicKind::Willpower => stats.willpower.level,
+                    CharacteristicKind::Intellect => stats.intellect.level,
+                    CharacteristicKind::Charisma => stats.charisma.level,
+                };
                 SkillEntry {
                     name: name.clone(),
                     dependency: skill.dependency.abbrev().to_string(),
                     level: level as i32,
+                    max_level,
                 }
             })
             .collect();
-        ui.add_sized([width, height * 0.24], Skills::new(skill_entries));
+
+        let skill_size = egui::vec2(width, height * 0.24);
+        let (skill_rect, _) = ui.allocate_exact_size(skill_size, egui::Sense::hover());
+        let mut skill_ui = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(skill_rect)
+                .layout(egui::Layout::top_down(egui::Align::Min)),
+        );
+        if let Some(idx) = Skills::new(skill_entries)
+            .edit_mode(edit_mode, character.skill_pts.0)
+            .show(&mut skill_ui)
+        {
+            if let Some(name) = skill_registry
+                .0
+                .get_class_skills(&character.class.0)
+                .into_iter()
+                .flat_map(|skills| skills.keys())
+                .nth(idx)
+            {
+                upgrade_events.write(UpgradeEvent::Skill(name.clone()));
+            }
+        }
         ui.add_space(gap);
         let trait_entries: Vec<TraitEntry> = character
             .trait_names

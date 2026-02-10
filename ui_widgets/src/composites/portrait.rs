@@ -14,6 +14,12 @@ struct AddExpPopupState {
     input_text: String,
 }
 
+/// Response from portrait rendering.
+pub struct PortraitResponse {
+    pub add_exp: Option<u32>,
+    pub toggle_edit: bool,
+}
+
 /// Character portrait display area.
 pub struct Portrait {
     border_1: egui::TextureId,
@@ -21,6 +27,7 @@ pub struct Portrait {
     avatar: egui::TextureId,
     level: u32,
     experience: u32,
+    edit_mode: bool,
 }
 
 impl Portrait {
@@ -30,6 +37,7 @@ impl Portrait {
         avatar: egui::TextureId,
         level: u32,
         experience: u32,
+        edit_mode: bool,
     ) -> Self {
         Self {
             border_1,
@@ -37,12 +45,12 @@ impl Portrait {
             avatar,
             level,
             experience,
+            edit_mode,
         }
     }
 
-    /// Renders the portrait and returns `Some(exp)` when the user confirms
-    /// adding experience through the context-menu popup.
-    pub fn show(self, ui: &mut egui::Ui) -> Option<u32> {
+    /// Renders the portrait and returns actions from the context menu.
+    pub fn show(self, ui: &mut egui::Ui) -> PortraitResponse {
         let size = ui.available_size();
         let (rect, response) = ui.allocate_exact_size(size, egui::Sense::click());
 
@@ -99,6 +107,7 @@ impl Portrait {
 
         // Context menu on right-click
         let popup_id = response.id.with("add_exp");
+        let mut toggle_edit = false;
         response.context_menu(|ui| {
             if ui.button("Add EXP").clicked() {
                 ui.data_mut(|d| {
@@ -112,10 +121,15 @@ impl Portrait {
                 });
                 ui.close();
             }
+            let edit_label = if self.edit_mode { "Confirm changes" } else { "Edit" };
+            if ui.button(edit_label).clicked() {
+                toggle_edit = true;
+                ui.close();
+            }
         });
 
         // "Add Experience" popup window
-        let mut result = None;
+        let mut add_exp = None;
         let mut state: AddExpPopupState =
             ui.data(|d| d.get_temp(popup_id))
                 .unwrap_or(AddExpPopupState {
@@ -144,7 +158,7 @@ impl Portrait {
                         if ui.button("OK").clicked() || enter_pressed {
                             if let Ok(value) = state.input_text.parse::<u32>() {
                                 if value > 0 {
-                                    result = Some(value);
+                                    add_exp = Some(value);
                                 }
                             }
                             state.open = false;
@@ -163,7 +177,10 @@ impl Portrait {
             ui.data_mut(|d| d.insert_temp(popup_id, state));
         }
 
-        result
+        PortraitResponse {
+            add_exp,
+            toggle_edit,
+        }
     }
 }
 

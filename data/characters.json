@@ -21,28 +21,28 @@
       },
       "stats": {
         "strength": {
-          "level": 10
+          "level": 1
         },
         "dexterity": {
-          "level": 10
+          "level": 1
         },
         "endurance": {
-          "level": 10
+          "level": 1
         },
         "perception": {
-          "level": 10
+          "level": 1
         },
         "magic": {
-          "level": 10
+          "level": 1
         },
         "willpower": {
-          "level": 10
+          "level": 1
         },
         "intellect": {
-          "level": 10
+          "level": 1
         },
         "charisma": {
-          "level": 10
+          "level": 1
         }
       },
       "characteristic_points": 0,
@@ -133,15 +133,29 @@
         "Pistol"
       ],
       "equipped_equipment": {
-        "Head": ["Iron Helmet"]
+        "Head": [
+          "Iron Helmet"
+        ]
       },
       "inventory": [
-        { "Weapon": "Short Bow" },
-        { "Equipment": "Chain Mail" },
-        { "Equipment": "Leather Gloves" },
-        { "Item": "Healing Potion" },
-        { "Item": "Torch" },
-        { "Item": "Rope" }
+        {
+          "Weapon": "Short Bow"
+        },
+        {
+          "Equipment": "Chain Mail"
+        },
+        {
+          "Equipment": "Leather Gloves"
+        },
+        {
+          "Item": "Healing Potion"
+        },
+        {
+          "Item": "Torch"
+        },
+        {
+          "Item": "Rope"
+        }
       ],
       "wallet": 123456
     },

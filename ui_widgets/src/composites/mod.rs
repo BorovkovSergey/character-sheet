@@ -19,7 +19,7 @@ pub use equipped_gear::EquippedGear;
 pub use identity_bar::IdentityBar;
 pub use inventory::Inventory;
 pub use points::Points;
-pub use portrait::Portrait;
+pub use portrait::{Portrait, PortraitResponse};
 pub use skills::{SkillEntry, Skills};
 pub use stats::Stats;
 pub use status_bar::{StatusBar, StatusBarResponse};
