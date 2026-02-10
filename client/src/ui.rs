@@ -145,7 +145,8 @@ fn render_ui(
             let margin = total_w * MARGIN;
             let gap = total_w * COL_GAP;
             let top_margin = margin / 2.0;
-            let col_h = total_h - top_margin;
+            let bottom_margin = top_margin;
+            let col_h = total_h - top_margin - bottom_margin;
 
             ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
             ui.add_space(top_margin);

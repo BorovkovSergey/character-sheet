@@ -3,6 +3,7 @@ use std::f32::consts::FRAC_PI_2;
 use crate::atoms::{Shape, ShapeBox, Text};
 use crate::colors::{SECONDARY_COLOR, TEXT_COLOR};
 use crate::egui::{self, Align2, Color32, CornerRadius, Rect, Stroke, Widget};
+use crate::styles::UiStyle;
 use crate::traits::Roundable;
 
 /// Controls where the title strip is placed within a [`TitledBox`].
@@ -176,15 +177,13 @@ impl TitledBox {
 
         let content_rect = self.paint_chrome(ui.painter(), rect);
 
-        let pad_top = content_rect.height() * 0.02;
-        let pad_bottom = pad_top;
-        let pad_right = pad_top;
+        let pad = UiStyle::content_padding(ui);
         let pad_left = content_rect.width() * 0.005;
         let inner_rect = Rect::from_min_max(
-            egui::pos2(content_rect.min.x + pad_left, content_rect.min.y + pad_top),
+            egui::pos2(content_rect.min.x + pad_left, content_rect.min.y + pad),
             egui::pos2(
-                content_rect.max.x - pad_right,
-                content_rect.max.y - pad_bottom,
+                content_rect.max.x - pad,
+                content_rect.max.y - pad,
             ),
         );
 

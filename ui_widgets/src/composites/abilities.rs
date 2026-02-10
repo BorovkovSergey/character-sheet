@@ -1,6 +1,7 @@
 use crate::atoms::{Shape, ShapeBox};
 use crate::egui::{self, Color32, CornerRadius, Stroke, Widget};
 use crate::molecules::TitledBox;
+use crate::styles::UiStyle;
 use crate::traits::Roundable;
 
 /// Displays the character's learned abilities as a 2-column grid of cards.
@@ -25,7 +26,7 @@ impl Widget for Abilities {
                 }
 
                 let available = ui.available_size();
-                let pad = available.y * 0.02;
+                let pad = UiStyle::content_padding(ui);
                 let cols = 2usize;
                 let rows = (self.entries.len() + cols - 1) / cols;
                 let card_width = (available.x - pad * (cols as f32 + 1.0)) / cols as f32;
