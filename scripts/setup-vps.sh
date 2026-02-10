@@ -13,6 +13,12 @@ echo "=== Setting up Character Sheet on VPS ==="
 sudo mkdir -p "$APP_DIR/static"
 sudo mkdir -p "$APP_DIR/data"
 
+# Stop running service before overwriting binary
+if sudo systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
+    echo "Stopping running service..."
+    sudo systemctl stop "$SERVICE_NAME"
+fi
+
 # Copy binary and static files
 echo "Copying server binary..."
 sudo cp "$PROJECT_ROOT/target/release/server" "$APP_DIR/server"
@@ -24,7 +30,7 @@ echo "Copying data files..."
 BACKUP_DIR="$PROJECT_ROOT/backup/$(date +%Y-%m-%d_%H-%M-%S)"
 mkdir -p "$BACKUP_DIR"
 sudo cp "$APP_DIR/data/"* "$BACKUP_DIR/"
-sudo cp "$PROJECT_ROOT/data/*" "$APP_DIR/data/"
+sudo cp "$PROJECT_ROOT/data/"* "$APP_DIR/data/"
 
 # Set ownership
 sudo chown -R www-data:www-data "$APP_DIR"
