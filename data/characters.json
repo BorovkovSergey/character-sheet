@@ -5,7 +5,7 @@
       "name": "Test",
       "race": "DarkHalfElf",
       "class": "Bard",
-      "level": 1,
+      "level": 0,
       "experience": 0,
       "hp": {
         "current": 11,
@@ -64,7 +64,7 @@
       "race": "DarkHalfElf",
       "class": "Bard",
       "level": 5,
-      "experience": 700,
+      "experience": 30,
       "hp": {
         "current": 35,
         "max": 35
@@ -216,7 +216,7 @@
       "race": "DarkHalfElf",
       "class": "Bard",
       "level": 8,
-      "experience": 900,
+      "experience": 50,
       "hp": {
         "current": 52,
         "max": 52
@@ -285,7 +285,7 @@
       "name": "Seraphina Duskwalker",
       "race": "DarkHalfElf",
       "class": "Bard",
-      "level": 1,
+      "level": 0,
       "experience": 0,
       "hp": {
         "current": 20,
@@ -345,7 +345,7 @@
       "race": "DarkHalfElf",
       "class": "Bard",
       "level": 6,
-      "experience": 14000,
+      "experience": 30,
       "hp": {
         "current": 42,
         "max": 42
@@ -410,7 +410,7 @@
       "race": "DarkHalfElf",
       "class": "Bard",
       "level": 10,
-      "experience": 64000,
+      "experience": 50,
       "hp": {
         "current": 60,
         "max": 60

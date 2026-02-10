@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use bevy::prelude::*;
+use shared::character::OnLvlUp;
 use shared::{
     Character, CharacterSkill, Characteristics, Class, Effect, EquipmentSlot, GetEffects,
     InventoryItem, Protection, Race, Resist,
@@ -57,6 +58,9 @@ pub struct CharacteristicPoints(pub u32);
 
 #[derive(Component)]
 pub struct SkillPoints(pub u32);
+
+#[derive(Component)]
+pub struct AbilityPoints(pub u32);
 
 #[derive(Component)]
 #[allow(dead_code)]
@@ -159,6 +163,7 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
             CharacterStats(character.stats),
             CharacteristicPoints(character.characteristic_points),
             SkillPoints(character.skill_points),
+            AbilityPoints(character.ability_points),
             CharacterSkillList(character.skills.clone()),
             CharacterTraitNames(character.traits.clone()),
             CharacterAbilityNames(character.abilities.clone()),
@@ -171,26 +176,38 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
         .id()
 }
 
-/// Recalculates active effects from race, traits, and equipment whenever they change.
+/// Recalculates active effects from race, traits, equipment, and base level-up bonuses.
 pub fn recalculate_effects(
     mut query: Query<
         (
             &CharacterRace,
             &CharacterTraitNames,
             &CharacterEquipment,
+            &CharacterStats,
             &mut ActiveEffects,
         ),
         Or<(
             Changed<CharacterRace>,
             Changed<CharacterTraitNames>,
             Changed<CharacterEquipment>,
+            Changed<CharacterStats>,
         )>,
     >,
     trait_registry: Res<crate::network::ClientTraitRegistry>,
     equipment_registry: Res<crate::network::ClientEquipmentRegistry>,
 ) {
-    for (race, traits, equipment, mut effects) in &mut query {
+    for (race, traits, equipment, stats, mut effects) in &mut query {
         effects.0.clear();
+
+        // Base level-up effects
+        let intellect = stats.0.intellect.level as i32;
+        let default_effects = vec![
+            Effect::OnLvlUp(OnLvlUp::AddAbilityPoints(1)),
+            Effect::OnLvlUp(OnLvlUp::AddSkillPoints(3 + intellect)),
+            Effect::OnLvlUp(OnLvlUp::AddCharacteristicPoints(2)),
+        ];
+
+        effects.0.extend(default_effects);
         effects.0.extend(race.0.get_effects());
         effects.0.extend(race.0.size().get_effects());
         for trait_name in &traits.0 {

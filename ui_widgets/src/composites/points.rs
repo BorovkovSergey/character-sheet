@@ -30,12 +30,7 @@ impl Widget for Points {
             (
                 "Characteristic points",
                 self.characteristic_points,
-                CornerRadius {
-                    nw: 12,
-                    ne: 12,
-                    sw: 12,
-                    se: 12,
-                },
+                CornerRadius::same(12),
             ),
             ("Skill points", self.skill_points, CornerRadius::same(12)),
         ];

@@ -2,8 +2,10 @@ use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{MAIN_COLOR, TEXT_COLOR};
 use crate::egui::{self, Align2, FontId, Stroke};
 
-/// XP required per level (placeholder constant).
-const XP_PER_LEVEL: u32 = 1000;
+/// XP required to advance from `level` to `level + 1`.
+fn xp_to_next_level(level: u32) -> u32 {
+    (level + 1) * 10
+}
 
 /// State stored in egui temp data for the "Add Experience" popup.
 #[derive(Clone)]
@@ -81,7 +83,7 @@ impl Portrait {
             .paint(&painter, arc_rect);
 
         // XP arc drawn on top
-        let xp_fraction = (self.experience % XP_PER_LEVEL) as f32 / XP_PER_LEVEL as f32;
+        let xp_fraction = self.experience as f32 / xp_to_next_level(self.level) as f32;
         paint_xp_arc(&painter, arc_rect, arc_thickness, xp_fraction);
 
         // Level text

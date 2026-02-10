@@ -51,6 +51,8 @@ pub struct Character {
     pub stats: Characteristics,
     pub characteristic_points: u32,
     pub skill_points: u32,
+    #[serde(default)]
+    pub ability_points: u32,
     pub skills: Vec<CharacterSkill>,
     #[serde(default)]
     pub traits: Vec<String>,
@@ -77,7 +79,7 @@ impl Character {
             name,
             race: Race::default(),
             class: Class::default(),
-            level: 1,
+            level: 0,
             experience: 0,
             hp: Resource::new(20),
             mana: Resource::new(10),
@@ -85,6 +87,7 @@ impl Character {
             stats: Characteristics::default(),
             characteristic_points: 0,
             skill_points: 0,
+            ability_points: 0,
             skills: Vec::new(),
             traits: Vec::new(),
             abilities: Vec::new(),

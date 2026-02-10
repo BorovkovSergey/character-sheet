@@ -54,6 +54,8 @@ pub enum Protection {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum OnLvlUp {
     AddSkillPoints(i32),
+    AddAbilityPoints(i32),
+    AddCharacteristicPoints(i32),
 }
 
 /// Effect with magnitude

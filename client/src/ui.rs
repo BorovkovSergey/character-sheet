@@ -13,9 +13,9 @@ use crate::components::{
     ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames, CharacterClass,
     CharacterEquipment, CharacterName, CharacterRace, CharacterSkillList, CharacterStats,
     CharacterTraitNames, CharacterWeaponNames, CharacteristicPoints, Experience, Hp,
-    Inventory as InventoryComponent, Level, Mana, SkillPoints, Wallet,
+    AbilityPoints, Inventory as InventoryComponent, Level, Mana, SkillPoints, Wallet,
 };
-use crate::events::{ExperienceChanged, InventoryChanged, ResourceChanged, WalletChanged};
+use crate::events::{ExperienceChanged, InventoryChanged, LevelUp, ResourceChanged, WalletChanged};
 use crate::state::AppScreen;
 use shared::character::OnLvlUp;
 use shared::{AbilityCheck, AbilityType, Effect, EquipmentSlot, InventoryItem};
@@ -50,6 +50,7 @@ impl Plugin for UiPlugin {
             .add_message::<WalletChanged>()
             .add_message::<InventoryChanged>()
             .add_message::<ExperienceChanged>()
+            .add_message::<LevelUp>()
             .add_systems(
                 EguiPrimaryContextPass,
                 (
@@ -64,6 +65,7 @@ impl Plugin for UiPlugin {
                     apply_wallet_changes,
                     apply_inventory_changes,
                     apply_experience_changes,
+                    apply_level_up,
                 ),
             );
     }
@@ -144,6 +146,7 @@ struct CharacterQueryData {
     ability_names: &'static CharacterAbilityNames,
     char_pts: &'static CharacteristicPoints,
     skill_pts: &'static SkillPoints,
+    ability_pts: &'static AbilityPoints,
     skills: &'static CharacterSkillList,
     wallet: &'static Wallet,
     weapon_names: &'static CharacterWeaponNames,
@@ -396,13 +399,58 @@ fn apply_resource_changes(
 fn apply_experience_changes(
     mut query: Query<(&mut Experience, &mut Level), With<ActiveCharacter>>,
     mut reader: MessageReader<ExperienceChanged>,
+    mut level_up: MessageWriter<LevelUp>,
 ) {
     let Ok((mut exp, mut level)) = query.single_mut() else {
         return;
     };
     for event in reader.read() {
         exp.0 += event.0;
-        level.0 = exp.0 / 1000 + 1;
+        // Level up: subtract (next_level * 10) XP each time the threshold is met.
+        loop {
+            let needed = (level.0 + 1) * 10;
+            if exp.0 < needed {
+                break;
+            }
+            exp.0 -= needed;
+            level.0 += 1;
+            level_up.write(LevelUp);
+        }
+    }
+}
+
+/// Applies all OnLvlUp effects from active effects on level up.
+fn apply_level_up(
+    mut query: Query<
+        (
+            &ActiveEffects,
+            &mut AbilityPoints,
+            &mut SkillPoints,
+            &mut CharacteristicPoints,
+        ),
+        With<ActiveCharacter>,
+    >,
+    mut reader: MessageReader<LevelUp>,
+) {
+    let Ok((effects, mut ability_pts, mut skill_pts, mut char_pts)) = query.single_mut() else {
+        return;
+    };
+    for _ in reader.read() {
+        for effect in &effects.0 {
+            if let Effect::OnLvlUp(on_lvl_up) = effect {
+                match on_lvl_up {
+                    OnLvlUp::AddAbilityPoints(v) => {
+                        ability_pts.0 = (ability_pts.0 as i32 + v).max(0) as u32;
+                    }
+                    OnLvlUp::AddSkillPoints(v) => {
+                        skill_pts.0 = (skill_pts.0 as i32 + v).max(0) as u32;
+                    }
+                    OnLvlUp::AddCharacteristicPoints(v) => {
+                        char_pts.0 = (char_pts.0 as i32 + v).max(0) as u32;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -536,6 +584,12 @@ fn format_effect(effect: &Effect) -> String {
         } => format!("Mana {increase_per_point:+}/point of {dependent:?}"),
         Effect::OnLvlUp(OnLvlUp::AddSkillPoints(v)) => {
             format!("{v:+} Skill Points per level")
+        }
+        Effect::OnLvlUp(OnLvlUp::AddAbilityPoints(v)) => {
+            format!("{v:+} Ability Points per level")
+        }
+        Effect::OnLvlUp(OnLvlUp::AddCharacteristicPoints(v)) => {
+            format!("{v:+} Characteristic Points per level")
         }
     }
 }
