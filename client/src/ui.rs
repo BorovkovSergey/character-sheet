@@ -28,6 +28,7 @@ struct UiIcons {
     wallet_copper: egui::TextureHandle,
     ability_placeholder: egui::TextureHandle,
     weapon_placeholder: egui::TextureHandle,
+    inventory_placeholder: egui::TextureHandle,
 }
 
 fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::TextureHandle {
@@ -98,6 +99,11 @@ fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> Result {
             ctx,
             "weapon_placeholder",
             include_bytes!("../assets/ph_weapon.png"),
+        ),
+        inventory_placeholder: load_png_texture(
+            ctx,
+            "inventory_placeholder",
+            include_bytes!("../assets/ph_inventory.png"),
         ),
     });
     Ok(())
@@ -505,7 +511,10 @@ fn render_right_column(
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
 
-        ui.add_sized([width, height * 0.41], EquippedGear::new());
+        ui.add_sized(
+            [width, height * 0.41],
+            EquippedGear::new(icons.inventory_placeholder.id()),
+        );
         ui.add_space(gap);
 
         let wallet_size = egui::vec2(width, height * 0.08);
@@ -527,7 +536,10 @@ fn render_right_column(
         send_wallet_events(wallet_events, result);
 
         ui.add_space(gap);
-        ui.add_sized([width, height * 0.48], Inventory::new());
+        ui.add_sized(
+            [width, height * 0.48],
+            Inventory::new(icons.inventory_placeholder.id()),
+        );
     });
 }
 

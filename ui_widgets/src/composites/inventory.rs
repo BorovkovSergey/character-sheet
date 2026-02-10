@@ -1,25 +1,28 @@
-use crate::atoms::{Shape, ShapeBox};
-use crate::colors::{SECONDARY_COLOR, STROKE_COLOR};
-use crate::egui::{self, Align2, Stroke, Widget};
-use crate::traits::WithText;
+use crate::colors::SECONDARY_COLOR;
+use crate::egui::{self, CornerRadius, TextureId, Widget};
+use crate::molecules::{InventoryTable, TitledBox};
 
-/// Displays the character's inventory of carried items.
-pub struct Inventory;
+/// Displays the character's inventory as a 5x8 grid of [`InventoryCell`] items
+/// inside a [`TitledBox`].
+pub struct Inventory {
+    image: TextureId,
+}
 
 impl Inventory {
-    pub fn new() -> Self {
-        Self
+    pub fn new(image: TextureId) -> Self {
+        Self { image }
     }
 }
 
 impl Widget for Inventory {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        ShapeBox::new(Shape::Rectangle)
+        TitledBox::new("Inventory")
             .fill(SECONDARY_COLOR)
-            .stroke(Stroke::new(1.0, STROKE_COLOR))
-            .set_text("Inventory")
-            .set_text_align(Align2::CENTER_CENTER)
-            .set_text_angle(-std::f32::consts::FRAC_PI_2)
-            .ui(ui)
+            .rounding(CornerRadius::same(16))
+            .header_ratio(0.035)
+            .show(ui, |ui| {
+                let rect = ui.max_rect();
+                InventoryTable::new(self.image, 5, 8).paint(ui, rect);
+            })
     }
 }

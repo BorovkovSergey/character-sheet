@@ -1,25 +1,27 @@
-use crate::atoms::{Shape, ShapeBox};
-use crate::colors::{SECONDARY_COLOR, STROKE_COLOR};
-use crate::egui::{self, Align2, Stroke, Widget};
-use crate::traits::WithText;
+use crate::colors::SECONDARY_COLOR;
+use crate::egui::{self, CornerRadius, TextureId, Widget};
+use crate::molecules::{InventoryTable, TitledBox};
 
-/// Displays the character's currently equipped gear slots.
-pub struct EquippedGear;
+/// Displays the character's currently equipped gear slots as a 3x4 grid.
+pub struct EquippedGear {
+    image: TextureId,
+}
 
 impl EquippedGear {
-    pub fn new() -> Self {
-        Self
+    pub fn new(image: TextureId) -> Self {
+        Self { image }
     }
 }
 
 impl Widget for EquippedGear {
     fn ui(self, ui: &mut egui::Ui) -> egui::Response {
-        ShapeBox::new(Shape::Rectangle)
+        TitledBox::new("Equipped")
             .fill(SECONDARY_COLOR)
-            .stroke(Stroke::new(1.0, STROKE_COLOR))
-            .set_text("EquippedGear")
-            .set_text_align(Align2::LEFT_CENTER)
-            .set_text_angle(std::f32::consts::FRAC_PI_2)
-            .ui(ui)
+            .rounding(CornerRadius::same(16))
+            .header_ratio(0.035)
+            .show(ui, |ui| {
+                let rect = ui.max_rect();
+                InventoryTable::new(self.image, 3, 4).paint(ui, rect);
+            })
     }
 }
