@@ -29,7 +29,7 @@ pub use effect::{Effect, GetEffects, OnLvlUp, Protection, Resist};
 pub use race::{Race, Size};
 pub use resource::Resource;
 pub use skill::{CharacterSkill, Skill, SkillRegistry};
-pub use weapon::{MeleeKind, RangeKind, Weapon, WeaponGrip, WeaponKind};
+pub use weapon::{MeleeKind, RangeKind, Weapon, WeaponGrip, WeaponKind, WeaponRegistry};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Character {

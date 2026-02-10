@@ -4,13 +4,13 @@ use ui_widgets::colors::MAIN_COLOR;
 use ui_widgets::composites::{
     Abilities, AbilityEntry, Characteristics, EquippedGear, IdentityBar, Inventory, Points,
     Portrait, SkillEntry, Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits,
-    Wallet as WalletWidget, WalletResponse,
+    Wallet as WalletWidget, WalletResponse, Weapon, WeaponSlot,
 };
 
 use crate::components::{
     ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames, CharacterClass,
     CharacterName, CharacterRace, CharacterSkillList, CharacterStats, CharacterTraitNames,
-    CharacteristicPoints, Experience, Hp, Level, Mana, SkillPoints, Wallet,
+    CharacterWeaponNames, CharacteristicPoints, Experience, Hp, Level, Mana, SkillPoints, Wallet,
 };
 use crate::events::{ResourceChanged, WalletChanged};
 use crate::state::AppScreen;
@@ -27,6 +27,7 @@ struct UiIcons {
     wallet_silver: egui::TextureHandle,
     wallet_copper: egui::TextureHandle,
     ability_placeholder: egui::TextureHandle,
+    weapon_placeholder: egui::TextureHandle,
 }
 
 fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::TextureHandle {
@@ -93,6 +94,11 @@ fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> Result {
             "ability_placeholder",
             include_bytes!("../assets/ph_ability.png"),
         ),
+        weapon_placeholder: load_png_texture(
+            ctx,
+            "weapon_placeholder",
+            include_bytes!("../assets/ph_weapon.png"),
+        ),
     });
     Ok(())
 }
@@ -120,6 +126,7 @@ struct CharacterQueryData {
     skill_pts: &'static SkillPoints,
     skills: &'static CharacterSkillList,
     wallet: &'static Wallet,
+    weapon_names: &'static CharacterWeaponNames,
     effects: &'static ActiveEffects,
 }
 
@@ -130,6 +137,7 @@ fn render_ui(
     trait_registry: Res<crate::network::ClientTraitRegistry>,
     skill_registry: Res<crate::network::ClientSkillRegistry>,
     ability_registry: Res<crate::network::ClientAbilityRegistry>,
+    weapon_registry: Res<crate::network::ClientWeaponRegistry>,
     mut events: MessageWriter<ResourceChanged>,
     mut wallet_events: MessageWriter<WalletChanged>,
 ) -> Result {
@@ -166,6 +174,7 @@ fn render_ui(
                     col_h,
                     &icons,
                     &character,
+                    &weapon_registry,
                     &mut events,
                 );
                 ui.add_space(gap);
@@ -201,6 +210,7 @@ fn render_left_column(
     height: f32,
     icons: &UiIcons,
     character: &CharacterQueryDataItem,
+    weapon_registry: &crate::network::ClientWeaponRegistry,
     events: &mut MessageWriter<ResourceChanged>,
 ) {
     let gap = height * 0.03 / 4.0;
@@ -252,7 +262,24 @@ fn render_left_column(
         );
         ui.add_space(gap);
 
-        send_status_bar_events(ui, width, height * 0.20, character, initiative, events);
+        let weapon_slots: Vec<WeaponSlot> = character
+            .weapon_names
+            .0
+            .iter()
+            .filter_map(|name| {
+                weapon_registry.0.get(name).map(|w| WeaponSlot {
+                    name: w.name.clone(),
+                    kind: w.kind.to_string(),
+                    attack: format!("{:+}", w.attack),
+                    damage: w.damage.clone(),
+                    range: w.range.to_string(),
+                })
+            })
+            .collect();
+        ui.add_sized(
+            [width, height * 0.20],
+            Weapon::new(icons.weapon_placeholder.id(), weapon_slots),
+        );
     });
 }
 
@@ -405,15 +432,22 @@ fn render_center_column(
                     self_only: a.self_only,
                     range: a.requirements.as_ref().and_then(|r| r.range),
                     ability_type: format_ability_type(a.ability_type),
-                    check: a.check.as_ref().map(format_ability_check).unwrap_or_default(),
-                    enemy_check: a.enemy_check.as_ref().map(|e| e.to_string()).unwrap_or_default(),
+                    check: a
+                        .check
+                        .as_ref()
+                        .map(format_ability_check)
+                        .unwrap_or_default(),
+                    enemy_check: a
+                        .enemy_check
+                        .as_ref()
+                        .map(|e| e.to_string())
+                        .unwrap_or_default(),
                 })
             })
             .collect();
         let abilities_size = egui::vec2(width, height * 0.40);
         let (abilities_rect, _) = ui.allocate_exact_size(abilities_size, egui::Sense::hover());
-        let mut abilities_ui =
-            ui.new_child(egui::UiBuilder::new().max_rect(abilities_rect));
+        let mut abilities_ui = ui.new_child(egui::UiBuilder::new().max_rect(abilities_rect));
         if let Some(new_mp) =
             Abilities::new(ability_entries, character.mana.current).show(&mut abilities_ui)
         {

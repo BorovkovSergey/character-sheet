@@ -24,4 +24,4 @@ pub use skills::{SkillEntry, Skills};
 pub use stats::Stats;
 pub use status_bar::{StatusBar, StatusBarResponse};
 pub use wallet::{Wallet, WalletResponse};
-pub use weapon::Weapon;
+pub use weapon::{Weapon, WeaponSlot};

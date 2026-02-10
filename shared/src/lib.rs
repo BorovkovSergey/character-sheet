@@ -8,7 +8,7 @@ pub use character::{
     ClassAbilities, Dexterity, Effect, Endurance, EnemyCheck, GetEffects, Intellect,
     LearnScreenPosition, Magic, MeleeKind, Perception, Protection, Race, RangeKind, Resist,
     Resource, Size, Skill, SkillRegistry, Strength, TraitCondition, TraitRegistry, Weapon,
-    WeaponGrip, WeaponKind, Willpower,
+    WeaponGrip, WeaponKind, WeaponRegistry, Willpower,
 };
 pub use messages::{ClientMessage, ServerMessage};
 
