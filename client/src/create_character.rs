@@ -246,8 +246,7 @@ pub fn render_create_character_overlay(
             // Intellect change adjusts skill points
             let new_intellect = state.stats.intellect.level;
             if new_intellect != prev_intellect {
-                state.skill_points +=
-                    new_intellect as i32 - prev_intellect as i32;
+                state.skill_points += new_intellect as i32 - prev_intellect as i32;
             }
 
             ui.add_space(8.0);

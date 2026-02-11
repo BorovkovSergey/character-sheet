@@ -303,17 +303,36 @@ fn render_left_column(
             .effects
             .get_resists()
             .into_iter()
-            .map(|(r, v)| (r.to_string(), v))
+            .map(|(r, v)| {
+                let icon = match r {
+                    shared::Resist::Fire => icons.resist_fire.id(),
+                    shared::Resist::Ice => icons.resist_ice.id(),
+                    shared::Resist::Lightning => icons.resist_lightning.id(),
+                    shared::Resist::Poison => icons.resist_poison.id(),
+                    shared::Resist::Spirit => icons.resist_spirit.id(),
+                    shared::Resist::Dark => icons.resist_dark.id(),
+                };
+                (r.to_string(), (icon, v))
+            })
             .collect();
         let protections = character
             .effects
             .get_protections()
             .into_iter()
-            .map(|(p, v)| (p.to_string(), v))
+            .map(|(p, v)| {
+                let icon = match p {
+                    shared::Protection::Melee => icons.protection_melee.id(),
+                    shared::Protection::Range => icons.protection_range.id(),
+                    shared::Protection::Magic => icons.protection_magic.id(),
+                    shared::Protection::Body => icons.protection_body.id(),
+                    shared::Protection::Mind => icons.protection_mind.id(),
+                };
+                (p.to_string(), (icon, v))
+            })
             .collect();
         ui.add_sized(
             [width, height * 0.20],
-            Stats::new(icons.heart.id(), resists, protections),
+            Stats::new(resists, protections),
         );
         ui.add_space(gap);
 

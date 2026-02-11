@@ -4,7 +4,6 @@ use ui_widgets::styles::UiStyle;
 
 #[derive(Resource)]
 pub(super) struct UiIcons {
-    pub heart: egui::TextureHandle,
     pub avatar_border_1: egui::TextureHandle,
     pub avatar_border_2: egui::TextureHandle,
     pub avatar_placeholder: egui::TextureHandle,
@@ -15,6 +14,17 @@ pub(super) struct UiIcons {
     pub weapon_placeholder: egui::TextureHandle,
     pub inventory_placeholder: egui::TextureHandle,
     pub shield: egui::TextureHandle,
+    pub resist_fire: egui::TextureHandle,
+    pub resist_ice: egui::TextureHandle,
+    pub resist_lightning: egui::TextureHandle,
+    pub resist_poison: egui::TextureHandle,
+    pub resist_spirit: egui::TextureHandle,
+    pub resist_dark: egui::TextureHandle,
+    pub protection_melee: egui::TextureHandle,
+    pub protection_range: egui::TextureHandle,
+    pub protection_magic: egui::TextureHandle,
+    pub protection_body: egui::TextureHandle,
+    pub protection_mind: egui::TextureHandle,
 }
 
 fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::TextureHandle {
@@ -29,7 +39,6 @@ pub(super) fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> 
     let ctx = contexts.ctx_mut()?;
     UiStyle::apply_global_style(ctx);
     commands.insert_resource(UiIcons {
-        heart: load_png_texture(ctx, "heart", include_bytes!("../../assets/heart.png")),
         avatar_border_1: load_png_texture(
             ctx,
             "avatar_border_1",
@@ -76,6 +85,61 @@ pub(super) fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> 
             include_bytes!("../../assets/ph_inventory.png"),
         ),
         shield: load_png_texture(ctx, "shield", include_bytes!("../../assets/shield.png")),
+        resist_fire: load_png_texture(
+            ctx,
+            "resist_fire",
+            include_bytes!("../../assets/resist_fire.png"),
+        ),
+        resist_ice: load_png_texture(
+            ctx,
+            "resist_ice",
+            include_bytes!("../../assets/resist_ice.png"),
+        ),
+        resist_lightning: load_png_texture(
+            ctx,
+            "resist_lightning",
+            include_bytes!("../../assets/resist_lightning.png"),
+        ),
+        resist_poison: load_png_texture(
+            ctx,
+            "resist_poison",
+            include_bytes!("../../assets/resist_poison.png"),
+        ),
+        resist_spirit: load_png_texture(
+            ctx,
+            "resist_spirit",
+            include_bytes!("../../assets/resist_spirit.png"),
+        ),
+        resist_dark: load_png_texture(
+            ctx,
+            "resist_dark",
+            include_bytes!("../../assets/resist_dark.png"),
+        ),
+        protection_melee: load_png_texture(
+            ctx,
+            "protection_melee",
+            include_bytes!("../../assets/protection_melee.png"),
+        ),
+        protection_range: load_png_texture(
+            ctx,
+            "protection_range",
+            include_bytes!("../../assets/protection_range.png"),
+        ),
+        protection_magic: load_png_texture(
+            ctx,
+            "protection_magic",
+            include_bytes!("../../assets/protection_magic.png"),
+        ),
+        protection_body: load_png_texture(
+            ctx,
+            "protection_body",
+            include_bytes!("../../assets/protection_body.png"),
+        ),
+        protection_mind: load_png_texture(
+            ctx,
+            "protection_mind",
+            include_bytes!("../../assets/protection_mind.png"),
+        ),
     });
     Ok(())
 }

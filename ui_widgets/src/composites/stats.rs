@@ -8,19 +8,16 @@ use crate::traits::{Roundable, WithText};
 
 /// Displays the character's defense and resistance stats.
 pub struct Stats {
-    icon: TextureId,
-    resists: BTreeMap<String, u32>,
-    protections: BTreeMap<String, u32>,
+    resists: BTreeMap<String, (TextureId, u32)>,
+    protections: BTreeMap<String, (TextureId, u32)>,
 }
 
 impl Stats {
     pub fn new(
-        icon: TextureId,
-        resists: BTreeMap<String, u32>,
-        protections: BTreeMap<String, u32>,
+        resists: BTreeMap<String, (TextureId, u32)>,
+        protections: BTreeMap<String, (TextureId, u32)>,
     ) -> Self {
         Self {
-            icon,
             resists,
             protections,
         }
@@ -50,7 +47,7 @@ impl Widget for Stats {
                         .content_fill(MAIN_COLOR)
                         .content_rounding(14)
                         .show(ui, |ui| {
-                            inner_titled_boxes(ui, &self.protections, 16, self.icon);
+                            inner_titled_boxes_with_icons(ui, &self.protections, 16);
                         });
                 },
             );
@@ -68,7 +65,7 @@ impl Widget for Stats {
                         .content_fill(MAIN_COLOR)
                         .content_rounding(14)
                         .show(ui, |ui| {
-                            inner_titled_boxes(ui, &self.resists, 12, self.icon);
+                            inner_titled_boxes_with_icons(ui, &self.resists, 12);
                         });
                 },
             );
@@ -77,12 +74,11 @@ impl Widget for Stats {
     }
 }
 
-/// Lays out a row of equally-spaced inner [`TitledBox`] widgets.
-fn inner_titled_boxes(
+/// Lays out a row of equally-spaced inner [`TitledBox`] widgets with per-item icons.
+fn inner_titled_boxes_with_icons(
     ui: &mut egui::Ui,
-    values: &BTreeMap<String, u32>,
+    values: &BTreeMap<String, (TextureId, u32)>,
     rounding: u8,
-    icon: TextureId,
 ) {
     let count = values.len() as f32;
     let spacing = 4.0;
@@ -99,7 +95,7 @@ fn inner_titled_boxes(
         ui.horizontal(|ui| {
             ui.add_space(pad_x);
             ui.spacing_mut().item_spacing = egui::vec2(spacing, 0.0);
-            for (label, value) in values {
+            for (label, (icon, value)) in values {
                 let text = format_signed(*value as i32);
 
                 ui.allocate_ui_with_layout(
@@ -114,7 +110,7 @@ fn inner_titled_boxes(
                                 let shape = ShapeBox::new(Shape::Rectangle)
                                     .fill(Color32::TRANSPARENT)
                                     .stroke(Stroke::new(1.0, STROKE_COLOR))
-                                    .icon(icon)
+                                    .icon(*icon)
                                     .set_text(text.clone())
                                     .set_text_color(TEXT_COLOR)
                                     .set_rounding(CornerRadius::same(rounding));
