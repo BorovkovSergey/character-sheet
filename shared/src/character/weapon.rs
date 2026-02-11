@@ -56,6 +56,8 @@ pub enum WeaponKind {
     Range(RangeKind),
     #[strum(to_string = "{0}")]
     Melee(MeleeKind),
+    Shield,
+    BardInstrument,
 }
 
 /// How the weapon is held.
