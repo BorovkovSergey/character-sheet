@@ -3,11 +3,11 @@
   "versions": [
     {
       "version": 1,
-      "saved_at": 1770830823,
+      "saved_at": 1770889797,
       "character": {
         "id": "d4e5f6a7-4444-4ddd-eeee-444444444444",
         "name": "Seraphina Duskwalker",
-        "race": "DarkHalfElf",
+        "race": "HalfElf",
         "class": "Bard",
         "level": 0,
         "experience": 0,

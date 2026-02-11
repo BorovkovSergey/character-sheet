@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
-use strum::Display;
+use strum::{Display, EnumIter};
 
 use super::effect::{Effect, GetEffects, Protection, Resist};
 
 /// Character race
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Display, EnumIter, Serialize, Deserialize)]
 pub enum Race {
     #[default]
-    #[strum(serialize = "Dark Half-Elf")]
-    DarkHalfElf,
+    #[strum(serialize = "Half-Elf")]
+    HalfElf,
 }
 
 /// Character size, determined by race.
@@ -22,13 +22,13 @@ pub enum Size {
 impl Race {
     pub fn size(&self) -> Size {
         match self {
-            Race::DarkHalfElf => Size::Medium,
+            Race::HalfElf => Size::Medium,
         }
     }
 
     pub fn base_action_points(&self) -> u32 {
         match self {
-            Race::DarkHalfElf => 5,
+            Race::HalfElf => 5,
         }
     }
 }
@@ -47,7 +47,7 @@ impl GetEffects for Size {
 impl GetEffects for Race {
     fn get_effects(&self) -> Vec<Effect> {
         match self {
-            Race::DarkHalfElf => vec![
+            Race::HalfElf => vec![
                 Effect::Resist(Resist::Lightning, 1),
                 Effect::Resist(Resist::Spirit, 1),
             ],
@@ -60,8 +60,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_dark_half_elf_effects() {
-        let race = Race::DarkHalfElf;
+    fn test_half_elf_effects() {
+        let race = Race::HalfElf;
         let effects = race.get_effects();
         assert_eq!(effects.len(), 2);
         assert!(effects.contains(&Effect::Resist(Resist::Lightning, 1)));

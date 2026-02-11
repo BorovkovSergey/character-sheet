@@ -3,14 +3,12 @@ use bevy_egui::egui;
 use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR};
 use ui_widgets::molecules::{AbilityCard, SmallAbility};
 
-use shared::CharacterTrait;
-
-use crate::events::{LearnAbility, LearnTrait};
+use crate::events::LearnAbility;
 
 use super::helpers::{check_trait_requirement, format_effect};
 use super::icons::UiIcons;
 use super::layout::CharacterQueryDataItem;
-use super::params::{LearnAbilityOpen, LearnTraitOpen, Registries, UiEvents};
+use super::params::{LearnAbilityOpen, Registries, UiEvents};
 
 pub(super) fn render_learn_ability_overlay(
     ctx: &egui::Context,
@@ -193,33 +191,47 @@ pub(super) fn render_learn_ability_overlay(
         });
 }
 
-/// State stored in egui temp data for the "Learn Trait" dialog.
-#[derive(Clone, Default)]
-struct LearnTraitDialogState {
-    selected: Option<String>,
+/// Mode for the trait selection overlay.
+pub enum TraitSelectMode<'a> {
+    /// Single-select with radio buttons. `known_traits` are disabled/shown as learned.
+    Single {
+        known_traits: &'a [String],
+        has_points: bool,
+    },
+    /// Multi-select with checkboxes, up to `max_count`.
+    Multi { max_count: usize },
 }
 
-pub(super) fn render_learn_trait_overlay(
+/// Result from the trait selection overlay.
+pub enum TraitSelectResult {
+    /// Single-select mode: user confirmed their selection.
+    Confirmed(String),
+    /// No action this frame.
+    None,
+}
+
+pub fn render_trait_select_overlay(
     ctx: &egui::Context,
-    character: &CharacterQueryDataItem,
+    stats: &shared::Characteristics,
     trait_registry: &crate::network::ClientTraitRegistry,
-    learn_trait_events: &mut MessageWriter<LearnTrait>,
-    learn_trait_open: &mut LearnTraitOpen,
-) {
+    selected: &mut Vec<String>,
+    open: &mut bool,
+    mode: TraitSelectMode,
+    id_salt: &str,
+) -> TraitSelectResult {
     let screen = ctx.content_rect();
-    let state_id = egui::Id::new("learn_trait_state");
+    let mut result = TraitSelectResult::None;
 
     // Semi-transparent backdrop
-    egui::Area::new(egui::Id::new("learn_trait_backdrop"))
-        .order(egui::Order::Middle)
+    egui::Area::new(egui::Id::new(id_salt).with("backdrop"))
+        .order(egui::Order::Foreground)
         .fixed_pos(screen.min)
         .show(ctx, |ui| {
             let (rect, resp) = ui.allocate_exact_size(screen.size(), egui::Sense::click());
             ui.painter()
                 .rect_filled(rect, 0.0, egui::Color32::from_black_alpha(120));
             if resp.clicked() {
-                learn_trait_open.0 = false;
-                ctx.data_mut(|d| d.remove::<LearnTraitDialogState>(state_id));
+                *open = false;
             }
         });
 
@@ -230,8 +242,8 @@ pub(super) fn render_learn_trait_overlay(
         screen.center().y - dialog_size.y / 2.0,
     );
 
-    egui::Area::new(egui::Id::new("learn_trait_dialog"))
-        .order(egui::Order::Foreground)
+    egui::Area::new(egui::Id::new(id_salt).with("dialog"))
+        .order(egui::Order::Tooltip)
         .fixed_pos(dialog_pos)
         .show(ctx, |ui| {
             let (rect, _) = ui.allocate_exact_size(dialog_size, egui::Sense::hover());
@@ -251,10 +263,16 @@ pub(super) fn render_learn_trait_overlay(
             let title_height = 30.0;
             let title_rect =
                 egui::Rect::from_min_size(content.min, egui::vec2(content.width(), title_height));
+            let title_text = match &mode {
+                TraitSelectMode::Single { .. } => "Learn Trait".to_string(),
+                TraitSelectMode::Multi { max_count } => {
+                    format!("Select Traits ({}/{})", selected.len(), max_count)
+                }
+            };
             ui.painter().text(
                 title_rect.center(),
                 egui::Align2::CENTER_CENTER,
-                "Learn Trait",
+                &title_text,
                 egui::FontId::proportional(20.0),
                 ui_widgets::colors::TEXT_COLOR,
             );
@@ -270,90 +288,78 @@ pub(super) fn render_learn_trait_overlay(
                 egui::pos2(content.max.x, button_area_top - 8.0),
             );
 
-            let mut state: LearnTraitDialogState =
-                ctx.data(|d| d.get_temp(state_id)).unwrap_or_default();
-
-            let known_traits: &[String] = character.trait_names;
-
             // Build sorted list of all traits
-            let mut all_traits: Vec<(&String, &CharacterTrait)> =
+            let mut all_traits: Vec<(&String, &shared::CharacterTrait)> =
                 trait_registry.traits.iter().collect();
-            all_traits.sort_by_key(|(name, _)| (*name).clone());
+            all_traits.sort_by_key(|(name, _)| *name);
 
-            // Scrollable list with radio buttons
+            // Scrollable list
             let mut list_ui = ui.new_child(
                 egui::UiBuilder::new()
                     .max_rect(list_rect)
                     .layout(egui::Layout::top_down(egui::Align::Min)),
             );
             egui::ScrollArea::vertical()
-                .id_salt("learn_trait_scroll")
+                .id_salt(egui::Id::new(id_salt).with("scroll"))
                 .auto_shrink(false)
                 .show(&mut list_ui, |ui| {
                     for (name, ct) in &all_traits {
-                        let already_learned = known_traits.contains(name);
                         let meets_requirement =
-                            check_trait_requirement(character.stats, ct.condition.as_ref());
-                        let available = !already_learned && meets_requirement;
-                        let is_selected = state.selected.as_deref() == Some(name.as_str());
+                            check_trait_requirement(stats, ct.condition.as_ref());
 
-                        ui.horizontal(|ui| {
-                            if !available {
-                                ui.disable();
-                            }
+                        match &mode {
+                            TraitSelectMode::Single { known_traits, .. } => {
+                                let already_learned = known_traits.contains(name);
+                                let available = !already_learned && meets_requirement;
+                                let is_selected =
+                                    selected.first().map(|s| s.as_str()) == Some(name.as_str());
 
-                            if ui.radio(is_selected, "").clicked() && available {
-                                state.selected = Some((*name).clone());
-                            }
+                                ui.horizontal(|ui| {
+                                    if !available {
+                                        ui.disable();
+                                    }
 
-                            ui.vertical(|ui| {
-                                let label = if already_learned {
-                                    format!("{} (learned)", name)
-                                } else {
-                                    (*name).clone()
-                                };
-                                ui.label(
-                                    egui::RichText::new(label)
-                                        .strong()
-                                        .size(14.0)
-                                        .color(ui_widgets::colors::TEXT_COLOR),
-                                );
-                                ui.label(
-                                    egui::RichText::new(&ct.description)
-                                        .size(12.0)
-                                        .color(egui::Color32::GRAY),
-                                );
-                                if !ct.effects.is_empty() {
-                                    let effects_text: Vec<String> =
-                                        ct.effects.iter().map(format_effect).collect();
-                                    ui.label(
-                                        egui::RichText::new(effects_text.join(", "))
-                                            .size(11.0)
-                                            .color(egui::Color32::from_rgb(0x00, 0x99, 0x66)),
+                                    if ui.radio(is_selected, "").clicked() && available {
+                                        selected.clear();
+                                        selected.push((*name).clone());
+                                    }
+
+                                    render_trait_info(
+                                        ui,
+                                        name,
+                                        ct,
+                                        already_learned,
+                                        meets_requirement,
                                     );
-                                }
-                                if let Some(shared::TraitCondition::CharacteristicsRequired {
-                                    characteristic,
-                                    lvl,
-                                }) = &ct.condition
-                                {
-                                    let color = if meets_requirement {
-                                        egui::Color32::from_rgb(0x99, 0x66, 0x00)
-                                    } else {
-                                        egui::Color32::from_rgb(0xCC, 0x33, 0x33)
-                                    };
-                                    ui.label(
-                                        egui::RichText::new(format!(
-                                            "Requires: {} {}",
-                                            characteristic, lvl
-                                        ))
-                                        .size(11.0)
-                                        .italics()
-                                        .color(color),
-                                    );
-                                }
-                            });
-                        });
+                                });
+                            }
+                            TraitSelectMode::Multi { max_count } => {
+                                let is_selected = selected.contains(name);
+                                let at_limit = selected.len() >= *max_count;
+                                let available = meets_requirement && (is_selected || !at_limit);
+
+                                ui.horizontal(|ui| {
+                                    if !available {
+                                        ui.disable();
+                                    }
+
+                                    let mut checked = is_selected;
+                                    if ui.checkbox(&mut checked, "").changed() {
+                                        if checked
+                                            && !is_selected
+                                            && selected.len() < *max_count
+                                            && meets_requirement
+                                        {
+                                            selected.push((*name).clone());
+                                        } else if !checked && is_selected {
+                                            selected.retain(|t| t != *name);
+                                        }
+                                    }
+
+                                    render_trait_info(ui, name, ct, false, meets_requirement);
+                                });
+                            }
+                        }
                         ui.add_space(4.0);
                     }
                 });
@@ -369,27 +375,89 @@ pub(super) fn render_learn_trait_overlay(
                     .layout(egui::Layout::right_to_left(egui::Align::Center)),
             );
 
-            let can_confirm = state
-                .selected
-                .as_ref()
-                .is_some_and(|name| character.trait_pts.0 > 0 && !known_traits.contains(name));
-            if button_ui
-                .add_enabled(can_confirm, egui::Button::new("Confirm"))
-                .clicked()
-            {
-                if let Some(name) = &state.selected {
-                    if !known_traits.contains(name) {
-                        learn_trait_events.write(LearnTrait(name.clone()));
+            match &mode {
+                TraitSelectMode::Single {
+                    known_traits,
+                    has_points,
+                } => {
+                    let can_confirm = selected
+                        .first()
+                        .is_some_and(|name| *has_points && !known_traits.contains(name));
+                    if button_ui
+                        .add_enabled(can_confirm, egui::Button::new("Confirm"))
+                        .clicked()
+                    {
+                        if let Some(name) = selected.first() {
+                            result = TraitSelectResult::Confirmed(name.clone());
+                        }
+                        *open = false;
+                        selected.clear();
+                    }
+                    if button_ui.button("Cancel").clicked() {
+                        *open = false;
+                        selected.clear();
                     }
                 }
-                learn_trait_open.0 = false;
-                ctx.data_mut(|d| d.remove::<LearnTraitDialogState>(state_id));
+                TraitSelectMode::Multi { .. } => {
+                    if button_ui.button("Close").clicked() {
+                        *open = false;
+                    }
+                }
             }
-            if button_ui.button("Cancel").clicked() {
-                learn_trait_open.0 = false;
-                ctx.data_mut(|d| d.remove::<LearnTraitDialogState>(state_id));
-            }
-
-            ctx.data_mut(|d| d.insert_temp(state_id, state));
         });
+
+    result
+}
+
+/// Renders trait name, description, effects, and requirements.
+fn render_trait_info(
+    ui: &mut egui::Ui,
+    name: &str,
+    ct: &shared::CharacterTrait,
+    already_learned: bool,
+    meets_requirement: bool,
+) {
+    ui.vertical(|ui| {
+        let label = if already_learned {
+            format!("{} (learned)", name)
+        } else {
+            name.to_string()
+        };
+        ui.label(
+            egui::RichText::new(label)
+                .strong()
+                .size(14.0)
+                .color(ui_widgets::colors::TEXT_COLOR),
+        );
+        ui.label(
+            egui::RichText::new(&ct.description)
+                .size(12.0)
+                .color(egui::Color32::GRAY),
+        );
+        if !ct.effects.is_empty() {
+            let effects_text: Vec<String> = ct.effects.iter().map(format_effect).collect();
+            ui.label(
+                egui::RichText::new(effects_text.join(", "))
+                    .size(11.0)
+                    .color(egui::Color32::from_rgb(0x00, 0x99, 0x66)),
+            );
+        }
+        if let Some(shared::TraitCondition::CharacteristicsRequired {
+            characteristic,
+            lvl,
+        }) = &ct.condition
+        {
+            let color = if meets_requirement {
+                egui::Color32::from_rgb(0x99, 0x66, 0x00)
+            } else {
+                egui::Color32::from_rgb(0xCC, 0x33, 0x33)
+            };
+            ui.label(
+                egui::RichText::new(format!("Requires: {} {}", characteristic, lvl))
+                    .size(11.0)
+                    .italics()
+                    .color(color),
+            );
+        }
+    });
 }

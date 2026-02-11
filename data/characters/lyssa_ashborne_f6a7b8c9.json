@@ -3,11 +3,11 @@
   "versions": [
     {
       "version": 1,
-      "saved_at": 1770830823,
+      "saved_at": 1770889797,
       "character": {
         "id": "f6a7b8c9-6666-4fff-aaaa-666666666666",
         "name": "Lyssa Ashborne",
-        "race": "DarkHalfElf",
+        "race": "HalfElf",
         "class": "Bard",
         "level": 10,
         "experience": 50,

@@ -325,17 +325,15 @@ pub fn render_create_item_popup(
                             2 => {
                                 let kind = match state.weapon_kind_idx {
                                     1 => {
-                                        let sub =
-                                            nth_variant::<MeleeKind>(state.melee_subtype_idx)
-                                                .unwrap_or(MeleeKind::Slashing);
+                                        let sub = nth_variant::<MeleeKind>(state.melee_subtype_idx)
+                                            .unwrap_or(MeleeKind::Slashing);
                                         WeaponKind::Melee(sub)
                                     }
                                     2 => WeaponKind::Shield,
                                     3 => WeaponKind::BardInstrument,
                                     _ => {
-                                        let sub =
-                                            nth_variant::<RangeKind>(state.range_subtype_idx)
-                                                .unwrap_or(RangeKind::Bow);
+                                        let sub = nth_variant::<RangeKind>(state.range_subtype_idx)
+                                            .unwrap_or(RangeKind::Bow);
                                         WeaponKind::Range(sub)
                                     }
                                 };

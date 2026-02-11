@@ -3,7 +3,7 @@ use bevy_egui::{egui, EguiContexts};
 use ui_widgets::colors::MAIN_COLOR;
 use ui_widgets::composites::{
     Abilities, AbilityEntry, AddItemMenu, AddItemSelection, Characteristics, EquippedGear,
-    IdentityBar, Inventory, Points, Portrait, SkillEntry, Skills, Stats, StatusBar,
+    GridAction, IdentityBar, Inventory, Points, Portrait, SkillEntry, Skills, Stats, StatusBar,
     StatusBarResponse, TraitEntry, Traits, Wallet as WalletWidget, WalletResponse, Weapon,
     WeaponSlot,
 };
@@ -157,13 +157,28 @@ pub(super) fn render_ui(
 
     // "Learn Trait" overlay
     if modals.learn_trait.0 {
-        super::overlays::render_learn_trait_overlay(
+        let trait_state_id = egui::Id::new("learn_trait_selected");
+        let mut trait_selected: Vec<String> =
+            ctx.data(|d| d.get_temp(trait_state_id)).unwrap_or_default();
+
+        let trait_result = super::overlays::render_trait_select_overlay(
             ctx,
-            &character,
+            character.stats,
             &registries.traits,
-            &mut ui_events.learn_trait,
-            &mut modals.learn_trait,
+            &mut trait_selected,
+            &mut modals.learn_trait.0,
+            super::overlays::TraitSelectMode::Single {
+                known_traits: character.trait_names,
+                has_points: character.trait_pts.0 > 0,
+            },
+            "learn_trait",
         );
+
+        if let super::overlays::TraitSelectResult::Confirmed(name) = trait_result {
+            ui_events.learn_trait.write(crate::events::LearnTrait(name));
+        }
+
+        ctx.data_mut(|d| d.insert_temp(trait_state_id, trait_selected));
     }
 
     // "Create Item" overlay
@@ -499,7 +514,7 @@ fn render_center_column(
                 .max_rect(char_rect)
                 .layout(egui::Layout::top_down(egui::Align::Min)),
         );
-        if let Some(idx) = Characteristics::new(char_values)
+        if let Some(GridAction::Upgrade(idx)) = Characteristics::new(char_values)
             .edit_mode(edit_mode, character.char_pts.0)
             .show(&mut char_ui)
         {
@@ -540,7 +555,7 @@ fn render_center_column(
                 .max_rect(skill_rect)
                 .layout(egui::Layout::top_down(egui::Align::Min)),
         );
-        if let Some(idx) = Skills::new(skill_entries)
+        if let Some(GridAction::Upgrade(idx)) = Skills::new(skill_entries)
             .edit_mode(edit_mode, character.skill_pts.0)
             .show(&mut skill_ui)
         {

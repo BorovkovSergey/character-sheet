@@ -1,6 +1,7 @@
 use std::cell::Cell;
 
-use crate::colors::{MAIN_COLOR, STROKE_COLOR, UPGRADE_COLOR};
+use crate::colors::{ERROR_COLOR, MAIN_COLOR, STROKE_COLOR, UPGRADE_COLOR};
+use crate::composites::GridAction;
 use crate::egui::{self, CornerRadius, Rect, Stroke};
 use crate::molecules::{LabeledValue, TitledBox};
 
@@ -38,9 +39,9 @@ impl Skills {
         self
     }
 
-    /// Renders the skills grid. Returns `Some(index)` if a skill was clicked in edit mode.
-    pub fn show(self, ui: &mut egui::Ui) -> Option<usize> {
-        let clicked: Cell<Option<usize>> = Cell::new(None);
+    /// Renders the skills grid. Returns `Some(GridAction)` if a skill was clicked in edit mode.
+    pub fn show(self, ui: &mut egui::Ui) -> Option<GridAction> {
+        let clicked: Cell<Option<GridAction>> = Cell::new(None);
         let edit_mode = self.edit_mode;
         let available_points = self.available_points;
 
@@ -67,12 +68,16 @@ impl Skills {
                         Rect::from_min_size(egui::pos2(x, y), egui::vec2(cell_width, cell_height));
 
                     let cost = entry.level as u32 + 1;
+                    let over_limit = entry.level > 0 && entry.level as u32 > entry.max_level;
                     let can_upgrade = edit_mode
                         && available_points >= cost
                         && (entry.level as u32) < entry.max_level;
 
-                    // Draw highlight background for upgradeable skills
-                    if can_upgrade {
+                    // Draw highlight background
+                    if over_limit {
+                        let painter = ui.painter();
+                        painter.rect_filled(cell_rect, CornerRadius::same(12), ERROR_COLOR);
+                    } else if can_upgrade {
                         let painter = ui.painter();
                         painter.rect_filled(cell_rect, CornerRadius::same(12), UPGRADE_COLOR);
                     }
@@ -88,7 +93,10 @@ impl Skills {
                     if edit_mode {
                         let response = ui.allocate_rect(cell_rect, egui::Sense::click());
                         if can_upgrade && response.clicked() {
-                            clicked.set(Some(i));
+                            clicked.set(Some(GridAction::Upgrade(i)));
+                        }
+                        if response.secondary_clicked() {
+                            clicked.set(Some(GridAction::Downgrade(i)));
                         }
                     }
                 }

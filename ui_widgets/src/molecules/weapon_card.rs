@@ -128,11 +128,7 @@ impl WeaponCard {
                             ui.separator();
                             ui.add_space(2.0);
                             for effect in &self.effects {
-                                ui.label(
-                                    RichText::new(effect)
-                                        .size(11.0)
-                                        .color(TEXT_COLOR),
-                                );
+                                ui.label(RichText::new(effect).size(11.0).color(TEXT_COLOR));
                             }
                         }
                     });

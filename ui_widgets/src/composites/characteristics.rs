@@ -5,6 +5,13 @@ use crate::colors::{MAIN_COLOR, SECONDARY_COLOR, TEXT_COLOR, UPGRADE_COLOR};
 use crate::egui::{self, Align2, CornerRadius, Rect, Stroke};
 use crate::traits::{Roundable, WithText};
 
+/// Action returned by grid widgets (Characteristics, Skills) in edit mode.
+#[derive(Clone, Copy)]
+pub enum GridAction {
+    Upgrade(usize),
+    Downgrade(usize),
+}
+
 /// Displays the character's primary characteristics as 8 boxes
 /// arranged in 2 rows of 4.
 ///
@@ -35,9 +42,9 @@ impl Characteristics {
         self
     }
 
-    /// Renders the characteristics grid. Returns `Some(index)` if a
+    /// Renders the characteristics grid. Returns `Some(GridAction)` if a
     /// characteristic was clicked in edit mode.
-    pub fn show(self, ui: &mut egui::Ui) -> Option<usize> {
+    pub fn show(self, ui: &mut egui::Ui) -> Option<GridAction> {
         let available_width = ui.available_width();
         let available_height = ui.available_height();
 
@@ -49,7 +56,7 @@ impl Characteristics {
         let item_height = (available_height - spacing_y * (rows - 1.0)) / rows;
 
         let total = self.values.len();
-        let clicked: Cell<Option<usize>> = Cell::new(None);
+        let clicked: Cell<Option<GridAction>> = Cell::new(None);
 
         ui.vertical(|ui| {
             ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -71,7 +78,10 @@ impl Characteristics {
                         let can_upgrade = self.edit_mode && self.available_points >= cost;
 
                         if can_upgrade && response.clicked() {
-                            clicked.set(Some(idx));
+                            clicked.set(Some(GridAction::Upgrade(idx)));
+                        }
+                        if self.edit_mode && response.secondary_clicked() {
+                            clicked.set(Some(GridAction::Downgrade(idx)));
                         }
 
                         let painter = ui.painter();

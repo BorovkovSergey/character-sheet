@@ -14,11 +14,11 @@ mod weapon;
 
 pub use abilities::{Abilities, AbilityEntry};
 pub use character_traits::{TraitEntry, Traits};
-pub use characteristics::Characteristics;
+pub use characteristics::{Characteristics, GridAction};
 pub use equipped_gear::EquippedGear;
 pub use identity_bar::IdentityBar;
 pub use inventory::Inventory;
-pub use points::Points;
+pub use points::{Points, PointsResponse};
 pub use portrait::{AddItemMenu, AddItemSelection, Portrait, PortraitResponse};
 pub use skills::{SkillEntry, Skills};
 pub use stats::Stats;

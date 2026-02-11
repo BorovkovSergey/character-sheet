@@ -11,3 +11,4 @@ pub const AP_SPENT_COLOR: Color32 = Color32::from_rgb(0xC8, 0xFA, 0xEB);
 pub const STROKE_COLOR: Color32 = Color32::from_rgb(0xDD, 0xDD, 0xEB);
 pub const TEXT_COLOR: Color32 = Color32::from_rgb(0x1D, 0x1D, 0x1F);
 pub const UPGRADE_COLOR: Color32 = Color32::from_rgb(0xD4, 0xFA, 0xD4);
+pub const ERROR_COLOR: Color32 = Color32::from_rgb(0xFA, 0xD4, 0xD4);

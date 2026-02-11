@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use shared::character::OnLvlUp;
 use shared::Effect;
 
-pub(super) fn format_effect(effect: &Effect) -> String {
+pub fn format_effect(effect: &Effect) -> String {
     match effect {
         Effect::Resist(r, v) => format!("{r} Resist +{v}"),
         Effect::Skill(name, v) => format!("{name} {v:+}"),

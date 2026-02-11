@@ -5,6 +5,8 @@ mod layout;
 mod overlays;
 mod params;
 
+pub use helpers::format_effect;
+pub use overlays::{render_trait_select_overlay, TraitSelectMode};
 pub use params::EditMode;
 
 use bevy::prelude::*;

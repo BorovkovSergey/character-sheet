@@ -3,11 +3,11 @@
   "versions": [
     {
       "version": 1,
-      "saved_at": 1770830823,
+      "saved_at": 1770889797,
       "character": {
         "id": "b2c3d4e5-2222-4bbb-cccc-222222222222",
         "name": "Thalia Nightwhisper",
-        "race": "DarkHalfElf",
+        "race": "HalfElf",
         "class": "Bard",
         "level": 3,
         "experience": 10,

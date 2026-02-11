@@ -3,7 +3,8 @@ use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use shared::CharacterSummary;
 use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 
-use crate::network::PendingClientMessages;
+use crate::create_character::CreateCharacterOpen;
+use crate::network::{ClientSkillRegistry, ClientTraitRegistry, PendingClientMessages};
 use crate::state::AppScreen;
 
 /// Holds the list of character summaries received from the server.
@@ -16,10 +17,12 @@ pub struct CharacterSelectPlugin;
 
 impl Plugin for CharacterSelectPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<CharacterList>().add_systems(
-            EguiPrimaryContextPass,
-            render_character_select.run_if(in_state(AppScreen::CharacterSelect)),
-        );
+        app.init_resource::<CharacterList>()
+            .init_resource::<CreateCharacterOpen>()
+            .add_systems(
+                EguiPrimaryContextPass,
+                render_character_select.run_if(in_state(AppScreen::CharacterSelect)),
+            );
     }
 }
 
@@ -28,6 +31,9 @@ fn render_character_select(
     character_list: Res<CharacterList>,
     mut pending_messages: ResMut<PendingClientMessages>,
     mut next_state: ResMut<NextState<AppScreen>>,
+    mut create_open: ResMut<CreateCharacterOpen>,
+    skill_registry: Res<ClientSkillRegistry>,
+    trait_registry: Res<ClientTraitRegistry>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
 
@@ -80,6 +86,24 @@ fn render_character_select(
                         ui.add_space(6.0);
                     }
                 });
+
+            ui.add_space(8.0);
+            ui.separator();
+            ui.add_space(8.0);
+
+            ui.vertical_centered(|ui| {
+                let button =
+                    egui::Button::new(egui::RichText::new("Create").size(16.0).color(TEXT_COLOR))
+                        .corner_radius(6.0)
+                        .stroke(egui::Stroke::new(1.0, STROKE_COLOR))
+                        .fill(MAIN_COLOR)
+                        .min_size(egui::vec2(panel_width * 0.5, 36.0));
+
+                if ui.add(button).clicked() {
+                    create_open.0 = true;
+                }
+            });
+            ui.add_space(4.0);
         });
 
     if let Some(summary) = selected {
@@ -87,6 +111,15 @@ fn render_character_select(
             .0
             .push(shared::ClientMessage::RequestVersionList { id: summary.id });
         next_state.set(AppScreen::VersionSelect);
+    }
+
+    if create_open.0 {
+        crate::create_character::render_create_character_overlay(
+            ctx,
+            &mut create_open,
+            &skill_registry,
+            &trait_registry,
+        );
     }
 
     Ok(())

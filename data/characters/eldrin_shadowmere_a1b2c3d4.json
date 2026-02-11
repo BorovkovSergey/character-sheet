@@ -3,11 +3,11 @@
   "versions": [
     {
       "version": 1,
-      "saved_at": 1770830823,
+      "saved_at": 1770889797,
       "character": {
         "id": "a1b2c3d4-1111-4aaa-bbbb-111111111111",
         "name": "Eldrin Shadowmere",
-        "race": "DarkHalfElf",
+        "race": "HalfElf",
         "class": "Bard",
         "level": 5,
         "experience": 30,

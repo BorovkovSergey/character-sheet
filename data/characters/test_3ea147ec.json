@@ -3,11 +3,11 @@
   "versions": [
     {
       "version": 1,
-      "saved_at": 1770830823,
+      "saved_at": 1770889797,
       "character": {
         "id": "3ea147ec-54d9-4b78-8490-96e0423bc19c",
         "name": "Test",
-        "race": "DarkHalfElf",
+        "race": "HalfElf",
         "class": "Bard",
         "level": 0,
         "experience": 0,

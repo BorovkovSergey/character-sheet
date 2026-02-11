@@ -1,5 +1,6 @@
 mod character_select;
 mod components;
+mod create_character;
 mod create_item;
 mod events;
 mod network;
