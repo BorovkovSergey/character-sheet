@@ -45,6 +45,8 @@ pub struct Portrait {
     avatar: egui::TextureId,
     shield: Option<egui::TextureId>,
     level: u32,
+    xp_current: u32,
+    xp_next: u32,
     xp_fraction: f32,
     edit_mode: bool,
     ability_points: u32,
@@ -59,6 +61,8 @@ impl Portrait {
         border_2: egui::TextureId,
         avatar: egui::TextureId,
         level: u32,
+        xp_current: u32,
+        xp_next: u32,
         xp_fraction: f32,
         edit_mode: bool,
     ) -> Self {
@@ -67,6 +71,8 @@ impl Portrait {
             border_2,
             avatar,
             level,
+            xp_current,
+            xp_next,
             xp_fraction,
             edit_mode,
             shield: None,
@@ -152,6 +158,31 @@ impl Portrait {
             FontId::proportional(font_size),
             TEXT_COLOR,
         );
+
+        // Hover tooltip for XP on level circle
+        if let Some(pos) = ui.ctx().pointer_hover_pos() {
+            if circle_rect.contains(pos) {
+                egui::Area::new(egui::Id::new("level_xp_tooltip"))
+                    .order(egui::Order::Tooltip)
+                    .fixed_pos(pos + egui::vec2(12.0, 12.0))
+                    .show(ui.ctx(), |ui| {
+                        egui::Frame::new()
+                            .fill(MAIN_COLOR)
+                            .corner_radius(4.0)
+                            .inner_margin(egui::Margin::symmetric(8, 4))
+                            .show(ui, |ui| {
+                                ui.label(
+                                    egui::RichText::new(format!(
+                                        "EXP: {} / {}",
+                                        self.xp_current, self.xp_next
+                                    ))
+                                    .color(TEXT_COLOR)
+                                    .size(13.0),
+                                );
+                            });
+                    });
+            }
+        }
 
         // Armor shield in the bottom-right corner of the portrait
         if let Some(shield_tex) = self.shield {

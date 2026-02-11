@@ -234,13 +234,15 @@ fn render_left_column(
             &registries.equipment,
             &registries.items,
         );
-        let xp_fraction =
-            character.exp.0 as f32 / shared::xp_to_next_level(character.level.0) as f32;
+        let xp_next = shared::xp_to_next_level(character.level.0);
+        let xp_fraction = character.exp.0 as f32 / xp_next as f32;
         let portrait_resp = Portrait::new(
             icons.avatar_border_1.id(),
             icons.avatar_border_2.id(),
             icons.avatar_placeholder.id(),
             character.level.0,
+            character.exp.0,
+            xp_next,
             xp_fraction,
             modals.edit_mode.0,
         )

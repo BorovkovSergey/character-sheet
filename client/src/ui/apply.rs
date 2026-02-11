@@ -57,7 +57,7 @@ pub(super) fn apply_experience_changes(
 }
 
 /// Applies all OnLvlUp effects from active effects on level up.
-/// Also grants 1 trait point every 3 levels.
+/// Also grants 1 trait point every 3 levels and 2 characteristic points every 5 levels.
 pub(super) fn apply_level_up(
     mut query: Query<
         (
@@ -101,6 +101,8 @@ pub(super) fn apply_level_up(
     // Grant 1 trait point for each level divisible by 3 that was crossed.
     let prev_level = level.0 - level_ups;
     trait_pts.0 += level.0 / 3 - prev_level / 3;
+    // Grant 2 characteristic points for each level divisible by 5 that was crossed.
+    char_pts.0 += (level.0 / 5 - prev_level / 5) * 2;
 }
 
 /// Applies characteristic and skill upgrades from edit mode.
@@ -142,6 +144,7 @@ pub(super) fn apply_upgrades(
         match event {
             UpgradeEvent::Characteristic(idx) => {
                 let s = &mut **stats;
+                let is_intellect = char_kinds.get(*idx) == Some(&CharacteristicKind::Intellect);
                 let cost = match char_kinds.get(*idx) {
                     Some(CharacteristicKind::Strength) => s.strength.up(char_pts.0),
                     Some(CharacteristicKind::Dexterity) => s.dexterity.up(char_pts.0),
@@ -154,6 +157,9 @@ pub(super) fn apply_upgrades(
                     None => 0,
                 };
                 char_pts.0 -= cost;
+                if is_intellect && cost > 0 {
+                    skill_pts.0 += 1;
+                }
             }
             UpgradeEvent::Skill(name) => {
                 let max_level = skill_registry
@@ -198,15 +204,25 @@ pub(super) fn apply_learn_ability(
 }
 
 /// Learns a trait: validates conditions, adds it to the character's trait list and deducts one trait point.
+/// OnLvlUp effects from the trait are applied immediately.
 pub(super) fn apply_learn_trait(
     mut query: Query<
-        (&mut CharacterTraitNames, &mut TraitPoints, &CharacterStats),
+        (
+            &mut CharacterTraitNames,
+            &mut TraitPoints,
+            &CharacterStats,
+            &mut AbilityPoints,
+            &mut SkillPoints,
+            &mut CharacteristicPoints,
+        ),
         With<ActiveCharacter>,
     >,
     mut reader: MessageReader<LearnTrait>,
     trait_registry: Res<crate::network::ClientTraitRegistry>,
 ) {
-    let Ok((mut traits, mut pts, stats)) = query.single_mut() else {
+    let Ok((mut traits, mut pts, stats, mut ability_pts, mut skill_pts, mut char_pts)) =
+        query.single_mut()
+    else {
         return;
     };
     for event in reader.read() {
@@ -218,6 +234,22 @@ pub(super) fn apply_learn_trait(
         };
         if !check_trait_requirement(stats, ct.condition.as_ref()) {
             continue;
+        }
+        // Apply OnLvlUp effects immediately
+        for effect in &ct.effects {
+            if let Effect::OnLvlUp(on_lvl_up) = effect {
+                match on_lvl_up {
+                    OnLvlUp::AddAbilityPoints(v) => {
+                        ability_pts.0 = (ability_pts.0 as i32 + v).max(0) as u32;
+                    }
+                    OnLvlUp::AddSkillPoints(v) => {
+                        skill_pts.0 = (skill_pts.0 as i32 + v).max(0) as u32;
+                    }
+                    OnLvlUp::AddCharacteristicPoints(v) => {
+                        char_pts.0 = (char_pts.0 as i32 + v).max(0) as u32;
+                    }
+                }
+            }
         }
         traits.push(event.0.clone());
         pts.0 -= 1;
