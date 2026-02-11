@@ -1,4 +1,4 @@
-use shared::{Character, EquipmentRegistry, ItemRegistry, TraitRegistry};
+use shared::{Character, Equipment, EquipmentRegistry, Item, ItemRegistry, TraitRegistry, Weapon};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -19,6 +19,7 @@ pub struct CharacterStore {
     #[allow(dead_code)]
     item_registry: Arc<ItemRegistry>,
     data_path: PathBuf,
+    data_dir: PathBuf,
 }
 
 impl CharacterStore {
@@ -65,6 +66,7 @@ impl CharacterStore {
             equipment_registry,
             item_registry,
             data_path,
+            data_dir: PathBuf::from(data_dir),
         }
     }
 
@@ -165,5 +167,47 @@ impl CharacterStore {
             self.save_to_file().await;
         }
         updated
+    }
+
+    pub async fn save_weapon(&self, weapon: Weapon) -> Result<(), String> {
+        let path = self.data_dir.join("weapons.json");
+        let mut items: Vec<Weapon> = match tokio::fs::read_to_string(&path).await {
+            Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+            Err(_) => Vec::new(),
+        };
+        items.retain(|w| w.name != weapon.name);
+        items.push(weapon);
+        let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
+        tokio::fs::write(&path, json)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    pub async fn save_equipment(&self, equipment: Equipment) -> Result<(), String> {
+        let path = self.data_dir.join("equipment.json");
+        let mut items: Vec<Equipment> = match tokio::fs::read_to_string(&path).await {
+            Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+            Err(_) => Vec::new(),
+        };
+        items.retain(|e| e.name != equipment.name);
+        items.push(equipment);
+        let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
+        tokio::fs::write(&path, json)
+            .await
+            .map_err(|e| e.to_string())
+    }
+
+    pub async fn save_item(&self, item: Item) -> Result<(), String> {
+        let path = self.data_dir.join("items.json");
+        let mut items: Vec<Item> = match tokio::fs::read_to_string(&path).await {
+            Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+            Err(_) => Vec::new(),
+        };
+        items.retain(|i| i.name != item.name);
+        items.push(item);
+        let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
+        tokio::fs::write(&path, json)
+            .await
+            .map_err(|e| e.to_string())
     }
 }

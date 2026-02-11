@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use ewebsock::{WsEvent, WsMessage, WsReceiver, WsSender};
 use shared::character::SkillRegistry;
 use shared::{
-    deserialize, AbilityRegistry, EquipmentRegistry, ItemRegistry, ServerMessage, TraitRegistry,
-    WeaponRegistry,
+    deserialize, AbilityRegistry, ClientMessage, EquipmentRegistry, ItemRegistry, ServerMessage,
+    TraitRegistry, WeaponRegistry,
 };
 
 use crate::character_select::CharacterList;
@@ -13,7 +13,6 @@ use crate::character_select::CharacterList;
 /// Stored as non-send because [`WsReceiver`] uses `std::sync::mpsc::Receiver`
 /// internally, which is not `Sync`.
 pub struct WsConnection {
-    #[allow(dead_code)]
     pub sender: WsSender,
     pub receiver: WsReceiver,
 }
@@ -41,6 +40,11 @@ pub struct ClientItemRegistry(pub ItemRegistry);
 /// Filled by `drain_ws`, consumed by `process_server_messages`.
 #[derive(Resource, Default)]
 struct PendingServerMessages(Vec<ServerMessage>);
+
+/// Buffer for client messages to send via WebSocket.
+/// Filled by game systems, drained by `send_client_messages`.
+#[derive(Resource, Default)]
+pub struct PendingClientMessages(pub Vec<ClientMessage>);
 
 #[derive(Resource)]
 struct ReconnectTimer(Timer);
@@ -75,9 +79,13 @@ impl Plugin for NetworkPlugin {
             .insert_resource(ClientEquipmentRegistry(equipment_reg))
             .insert_resource(ClientItemRegistry(item_reg))
             .init_resource::<PendingServerMessages>()
+            .init_resource::<PendingClientMessages>()
             .init_resource::<ReconnectTimer>()
             .add_systems(Startup, connect_to_server)
-            .add_systems(Update, (drain_ws, process_server_messages).chain())
+            .add_systems(
+                Update,
+                (drain_ws, process_server_messages, send_client_messages).chain(),
+            )
             .add_systems(Update, attempt_reconnect);
     }
 }
@@ -186,6 +194,19 @@ fn process_server_messages(
             ServerMessage::Error { message } => {
                 error!("Server error: {message}");
             }
+        }
+    }
+}
+
+/// Sends buffered client messages over the WebSocket.
+fn send_client_messages(
+    mut conn: Option<NonSendMut<WsConnection>>,
+    mut pending: ResMut<PendingClientMessages>,
+) {
+    let Some(conn) = conn.as_mut() else { return };
+    for msg in pending.0.drain(..) {
+        if let Ok(bytes) = shared::serialize(&msg) {
+            conn.sender.send(WsMessage::Binary(bytes));
         }
     }
 }

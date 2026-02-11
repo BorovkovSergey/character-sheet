@@ -5,7 +5,12 @@
     "slot": "Head",
     "armor": 3,
     "effects": [
-      { "Protection": ["Melee", 1] }
+      {
+        "Protection": [
+          "Melee",
+          1
+        ]
+      }
     ]
   },
   {
@@ -21,8 +26,18 @@
     "slot": "Armor",
     "armor": 5,
     "effects": [
-      { "Protection": ["Melee", 2] },
-      { "Protection": ["Range", 1] }
+      {
+        "Protection": [
+          "Melee",
+          2
+        ]
+      },
+      {
+        "Protection": [
+          "Range",
+          1
+        ]
+      }
     ]
   }
 ]

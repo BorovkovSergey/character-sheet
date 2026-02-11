@@ -51,10 +51,13 @@ pub enum Protection {
 }
 
 /// Effect triggered on level up
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display, EnumIter, Serialize, Deserialize)]
 pub enum OnLvlUp {
+    #[strum(serialize = "Skill Points")]
     AddSkillPoints(i32),
+    #[strum(serialize = "Ability Points")]
     AddAbilityPoints(i32),
+    #[strum(serialize = "Characteristic Points")]
     AddCharacteristicPoints(i32),
 }
 

@@ -19,6 +19,7 @@ pub struct PortraitResponse {
     pub add_exp: Option<u32>,
     pub toggle_edit: bool,
     pub open_learn_ability: bool,
+    pub open_create_item: bool,
 }
 
 /// Character portrait display area.
@@ -117,6 +118,7 @@ impl Portrait {
         let popup_id = response.id.with("add_exp");
         let mut toggle_edit = false;
         let mut open_learn_ability = false;
+        let mut open_create_item = false;
         response.context_menu(|ui| {
             if ui.button("Add EXP").clicked() {
                 ui.data_mut(|d| {
@@ -130,14 +132,25 @@ impl Portrait {
                 });
                 ui.close();
             }
-            let edit_label = if self.edit_mode { "Confirm changes" } else { "Edit" };
+            let edit_label = if self.edit_mode {
+                "Confirm changes"
+            } else {
+                "Edit"
+            };
             if ui.button(edit_label).clicked() {
                 toggle_edit = true;
                 ui.close();
             }
             let has_points = self.ability_points > 0;
-            if ui.add_enabled(has_points, egui::Button::new("Learn ability")).clicked() {
+            if ui
+                .add_enabled(has_points, egui::Button::new("Learn ability"))
+                .clicked()
+            {
                 open_learn_ability = true;
+                ui.close();
+            }
+            if ui.button("Create item").clicked() {
+                open_create_item = true;
                 ui.close();
             }
         });
@@ -195,6 +208,7 @@ impl Portrait {
             add_exp,
             toggle_edit,
             open_learn_ability,
+            open_create_item,
         }
     }
 }

@@ -34,10 +34,11 @@ async fn handle_socket(socket: WebSocket, store: CharacterStore) {
         match result {
             Ok(Message::Binary(data)) => {
                 if let Ok(client_msg) = deserialize::<ClientMessage>(&data) {
-                    let response = handle_message(client_msg, &store).await;
-                    if let Ok(bytes) = serialize(&response) {
-                        if sender.send(Message::Binary(bytes)).await.is_err() {
-                            break;
+                    if let Some(response) = handle_message(client_msg, &store).await {
+                        if let Ok(bytes) = serialize(&response) {
+                            if sender.send(Message::Binary(bytes)).await.is_err() {
+                                break;
+                            }
                         }
                     }
                 } else {
@@ -59,43 +60,61 @@ async fn handle_socket(socket: WebSocket, store: CharacterStore) {
     info!("WebSocket connection closed");
 }
 
-async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> ServerMessage {
+async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Option<ServerMessage> {
     match msg {
         ClientMessage::RequestCharacterList => {
             let characters = store.get_all().await;
-            ServerMessage::CharacterList { characters }
+            Some(ServerMessage::CharacterList { characters })
         }
         ClientMessage::CreateCharacter { name } => {
             if name.trim().is_empty() {
-                return ServerMessage::Error {
+                return Some(ServerMessage::Error {
                     message: "Character name cannot be empty".to_string(),
-                };
+                });
             }
             if name.len() > 100 {
-                return ServerMessage::Error {
+                return Some(ServerMessage::Error {
                     message: "Character name cannot exceed 100 characters".to_string(),
-                };
+                });
             }
             let character = store.create(name).await;
-            ServerMessage::CharacterCreated { character }
+            Some(ServerMessage::CharacterCreated { character })
         }
         ClientMessage::DeleteCharacter { id } => {
             if store.delete(id).await {
-                ServerMessage::CharacterDeleted { id }
+                Some(ServerMessage::CharacterDeleted { id })
             } else {
-                ServerMessage::Error {
+                Some(ServerMessage::Error {
                     message: format!("Character with id {} not found", id),
-                }
+                })
             }
         }
         ClientMessage::UpdateCharacter { character } => {
             if let Some(updated) = store.update(character).await {
-                ServerMessage::CharacterUpdated { character: updated }
+                Some(ServerMessage::CharacterUpdated { character: updated })
             } else {
-                ServerMessage::Error {
+                Some(ServerMessage::Error {
                     message: "Character not found".to_string(),
-                }
+                })
             }
+        }
+        ClientMessage::CreateWeapon { weapon } => {
+            if let Err(e) = store.save_weapon(weapon).await {
+                error!("Failed to save weapon: {e}");
+            }
+            None
+        }
+        ClientMessage::CreateEquipment { equipment } => {
+            if let Err(e) = store.save_equipment(equipment).await {
+                error!("Failed to save equipment: {e}");
+            }
+            None
+        }
+        ClientMessage::CreateItem { item } => {
+            if let Err(e) = store.save_item(item).await {
+                error!("Failed to save item: {e}");
+            }
+            None
         }
     }
 }

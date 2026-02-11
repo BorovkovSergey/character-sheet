@@ -1,17 +1,28 @@
 use std::marker::PhantomData;
 
 use serde::{Deserialize, Serialize};
+use strum::{Display, EnumIter};
 
 /// Enum representing all characteristic types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Display, EnumIter, Serialize, Deserialize,
+)]
 pub enum CharacteristicKind {
+    #[strum(serialize = "STR")]
     Strength,
+    #[strum(serialize = "DEX")]
     Dexterity,
+    #[strum(serialize = "END")]
     Endurance,
+    #[strum(serialize = "PER")]
     Perception,
+    #[strum(serialize = "MAG")]
     Magic,
+    #[strum(serialize = "WIL")]
     Willpower,
+    #[strum(serialize = "INT")]
     Intellect,
+    #[strum(serialize = "CHA")]
     Charisma,
 }
 

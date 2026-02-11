@@ -1,3 +1,4 @@
+mod create_item;
 mod experience;
 mod inventory;
 mod learn_ability;
@@ -6,6 +7,7 @@ mod resource;
 mod upgrade;
 mod wallet;
 
+pub use create_item::CreateItem;
 pub use experience::ExperienceChanged;
 pub use inventory::InventoryChanged;
 pub use learn_ability::LearnAbility;

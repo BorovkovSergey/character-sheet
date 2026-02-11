@@ -102,10 +102,7 @@ impl<'a> SmallAbility<'a> {
 
         // Name text below icon
         let text_top = icon_rect.bottom() + pad * 0.5;
-        let text_rect = Rect::from_min_max(
-            egui::pos2(inner.min.x, text_top),
-            inner.max,
-        );
+        let text_rect = Rect::from_min_max(egui::pos2(inner.min.x, text_top), inner.max);
         let font_size = (text_rect.height() * 0.4).min(14.0);
         Text::new(self.name)
             .color(TEXT_COLOR)

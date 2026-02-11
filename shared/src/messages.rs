@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::Character;
+use crate::{Character, Equipment, Item, Weapon};
 
 /// Messages sent from client to server
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,6 +17,15 @@ pub enum ClientMessage {
 
     /// Update a character
     UpdateCharacter { character: Character },
+
+    /// Register a new weapon definition
+    CreateWeapon { weapon: Weapon },
+
+    /// Register a new equipment definition
+    CreateEquipment { equipment: Equipment },
+
+    /// Register a new item definition
+    CreateItem { item: Item },
 }
 
 /// Messages sent from server to client

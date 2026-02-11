@@ -47,8 +47,7 @@ impl Abilities {
                 let pad = UiStyle::content_padding(ui);
                 let cols = 2usize;
                 let visible_rows = 2usize;
-                let card_width =
-                    (available.x - pad * (cols as f32 + 1.0)) / cols as f32;
+                let card_width = (available.x - pad * (cols as f32 + 1.0)) / cols as f32;
                 let card_height =
                     (available.y - pad * (visible_rows as f32 + 1.0)) / visible_rows as f32;
 
@@ -90,8 +89,7 @@ impl Abilities {
                                 .paint(painter, rect);
 
                             let card_id = ui.id().with("ability_card").with(i);
-                            let response =
-                                ui.interact(rect, card_id, egui::Sense::click());
+                            let response = ui.interact(rect, card_id, egui::Sense::click());
                             if response.clicked() && self.current_mp >= mp_cost {
                                 result = Some(self.current_mp - mp_cost);
                             }
