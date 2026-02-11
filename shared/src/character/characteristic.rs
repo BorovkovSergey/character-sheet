@@ -209,6 +209,21 @@ impl Characteristics {
     }
 }
 
+impl Characteristics {
+    pub fn get_level(&self, kind: CharacteristicKind) -> u32 {
+        match kind {
+            CharacteristicKind::Strength => self.strength.level,
+            CharacteristicKind::Dexterity => self.dexterity.level,
+            CharacteristicKind::Endurance => self.endurance.level,
+            CharacteristicKind::Perception => self.perception.level,
+            CharacteristicKind::Magic => self.magic.level,
+            CharacteristicKind::Willpower => self.willpower.level,
+            CharacteristicKind::Intellect => self.intellect.level,
+            CharacteristicKind::Charisma => self.charisma.level,
+        }
+    }
+}
+
 impl Default for Characteristics {
     fn default() -> Self {
         Self::new()

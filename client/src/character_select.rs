@@ -4,7 +4,7 @@ use shared::Character;
 use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 
 use crate::components::spawn_character;
-use crate::network::{ClientEquipmentRegistry, ClientTraitRegistry};
+use crate::network::{ClientEquipmentRegistry, ClientTraitRegistry, ClientWeaponRegistry};
 use crate::state::AppScreen;
 
 /// Holds the list of available characters received from the server.
@@ -29,6 +29,7 @@ fn render_character_select(
     mut commands: Commands,
     character_list: Res<CharacterList>,
     trait_registry: Res<ClientTraitRegistry>,
+    weapon_registry: Res<ClientWeaponRegistry>,
     equipment_registry: Res<ClientEquipmentRegistry>,
     mut next_state: ResMut<NextState<AppScreen>>,
 ) -> Result {
@@ -86,7 +87,7 @@ fn render_character_select(
         });
 
     if let Some(mut character) = selected {
-        character.recalculate_effects(&trait_registry.0, &equipment_registry.0);
+        character.recalculate_effects(&trait_registry.0, &weapon_registry.0, &equipment_registry.0);
         spawn_character(&mut commands, &character);
         next_state.set(AppScreen::CharacterSheet);
     }

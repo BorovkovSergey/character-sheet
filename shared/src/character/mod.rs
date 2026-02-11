@@ -129,10 +129,11 @@ impl Character {
         }
     }
 
-    /// Recalculates active effects from all sources (race, traits, equipment, etc.).
+    /// Recalculates active effects from all sources (race, traits, weapons, equipment).
     pub fn recalculate_effects(
         &mut self,
         trait_registry: &TraitRegistry,
+        weapon_registry: &WeaponRegistry,
         equipment_registry: &EquipmentRegistry,
     ) {
         self.active_effects.clear();
@@ -142,6 +143,12 @@ impl Character {
             if let Some(character_trait) = trait_registry.get(trait_name) {
                 self.active_effects
                     .extend(character_trait.effects.iter().cloned());
+            }
+        }
+        for weapon_name in &self.equipped_weapons {
+            if let Some(weapon) = weapon_registry.get(weapon_name) {
+                self.active_effects
+                    .extend(weapon.effects.iter().cloned());
             }
         }
         for names in self.equipped_equipment.values() {

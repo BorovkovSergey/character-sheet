@@ -119,6 +119,13 @@ impl WeaponRegistry {
         Ok(Self { weapons })
     }
 
+    /// Load weapons from a JSON file.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn load_from_file(path: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
+        let content = std::fs::read_to_string(path)?;
+        Ok(Self::load_from_str(&content)?)
+    }
+
     /// Get a weapon by name.
     pub fn get(&self, name: &str) -> Option<&Weapon> {
         self.weapons.get(name)

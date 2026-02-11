@@ -835,13 +835,16 @@ fn apply_upgrades(
             &mut CharacteristicPoints,
             &mut SkillPoints,
             &mut CharacterSkillList,
+            &ActiveEffects,
         ),
         With<ActiveCharacter>,
     >,
     mut reader: MessageReader<UpgradeEvent>,
     skill_registry: Res<crate::network::ClientSkillRegistry>,
 ) {
-    let Ok((class, mut stats, mut char_pts, mut skill_pts, mut skills)) = query.single_mut() else {
+    let Ok((class, mut stats, mut char_pts, mut skill_pts, mut skills, effects)) =
+        query.single_mut()
+    else {
         return;
     };
 
@@ -855,6 +858,8 @@ fn apply_upgrades(
         CharacteristicKind::Intellect,
         CharacteristicKind::Charisma,
     ];
+
+    let char_bonuses = effects.characteristic_bonuses();
 
     for event in reader.read() {
         match event {
@@ -878,17 +883,9 @@ fn apply_upgrades(
                     .0
                     .get_skill(&class.0, name)
                     .map(|skill| {
-                        let s = &stats.0;
-                        match skill.dependency {
-                            CharacteristicKind::Strength => s.strength.level,
-                            CharacteristicKind::Dexterity => s.dexterity.level,
-                            CharacteristicKind::Endurance => s.endurance.level,
-                            CharacteristicKind::Perception => s.perception.level,
-                            CharacteristicKind::Magic => s.magic.level,
-                            CharacteristicKind::Willpower => s.willpower.level,
-                            CharacteristicKind::Intellect => s.intellect.level,
-                            CharacteristicKind::Charisma => s.charisma.level,
-                        }
+                        let base = stats.0.get_level(skill.dependency);
+                        let bonus = char_bonuses.get(&skill.dependency).copied().unwrap_or(0);
+                        (base as i32 + bonus).max(0) as u32
                     })
                     .unwrap_or(0);
 
@@ -1028,32 +1025,31 @@ fn render_center_column(
             Points::new(character.char_pts.0, character.skill_pts.0),
         );
         ui.add_space(gap);
+        let char_bonuses = character.effects.characteristic_bonuses();
+        let effective_level = |kind: CharacteristicKind| -> u32 {
+            let base = stats.get_level(kind);
+            let bonus = char_bonuses.get(&kind).copied().unwrap_or(0);
+            (base as i32 + bonus).max(0) as u32
+        };
+
         let skill_entries: Vec<SkillEntry> = skill_registry
             .0
             .get_class_skills(&character.class.0)
             .into_iter()
             .flat_map(|skills| skills.iter())
             .map(|(name, skill)| {
-                let level = character
+                let base_level = character
                     .skills
                     .0
                     .iter()
                     .find(|s| s.name == *name)
                     .map_or(0, |s| s.level);
-                let max_level = match skill.dependency {
-                    CharacteristicKind::Strength => stats.strength.level,
-                    CharacteristicKind::Dexterity => stats.dexterity.level,
-                    CharacteristicKind::Endurance => stats.endurance.level,
-                    CharacteristicKind::Perception => stats.perception.level,
-                    CharacteristicKind::Magic => stats.magic.level,
-                    CharacteristicKind::Willpower => stats.willpower.level,
-                    CharacteristicKind::Intellect => stats.intellect.level,
-                    CharacteristicKind::Charisma => stats.charisma.level,
-                };
+                let skill_bonus = character.effects.skill_bonus(name);
+                let max_level = effective_level(skill.dependency);
                 SkillEntry {
                     name: name.clone(),
                     dependency: skill.dependency.to_string(),
-                    level: level as i32,
+                    level: base_level as i32 + skill_bonus,
                     max_level,
                 }
             })

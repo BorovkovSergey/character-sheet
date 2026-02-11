@@ -1,4 +1,7 @@
-use shared::{Character, Equipment, EquipmentRegistry, Item, ItemRegistry, TraitRegistry, Weapon};
+use shared::{
+    Character, Equipment, EquipmentRegistry, Item, ItemRegistry, TraitRegistry, Weapon,
+    WeaponRegistry,
+};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -15,6 +18,7 @@ struct StorageData {
 pub struct CharacterStore {
     characters: Arc<RwLock<BTreeMap<Uuid, Character>>>,
     trait_registry: Arc<TraitRegistry>,
+    weapon_registry: Arc<WeaponRegistry>,
     equipment_registry: Arc<EquipmentRegistry>,
     #[allow(dead_code)]
     item_registry: Arc<ItemRegistry>,
@@ -41,6 +45,15 @@ impl CharacterStore {
             },
         ));
 
+        let weapons_path = PathBuf::from(data_dir).join("weapons.json");
+        let weapon_registry =
+            Arc::new(
+                WeaponRegistry::load_from_file(&weapons_path).unwrap_or_else(|e| {
+                    warn!("Failed to load weapons from {:?}: {}", weapons_path, e);
+                    WeaponRegistry::default()
+                }),
+            );
+
         let equipment_path = PathBuf::from(data_dir).join("equipment.json");
         let equipment_registry = Arc::new(
             EquipmentRegistry::load_from_file(&equipment_path).unwrap_or_else(|e| {
@@ -58,11 +71,13 @@ impl CharacterStore {
         ));
 
         let characters =
-            Self::load_from_file(&data_path, &trait_registry, &equipment_registry).await;
+            Self::load_from_file(&data_path, &trait_registry, &weapon_registry, &equipment_registry)
+                .await;
 
         Self {
             characters: Arc::new(RwLock::new(characters)),
             trait_registry,
+            weapon_registry,
             equipment_registry,
             item_registry,
             data_path,
@@ -73,6 +88,7 @@ impl CharacterStore {
     async fn load_from_file(
         path: &PathBuf,
         trait_registry: &TraitRegistry,
+        weapon_registry: &WeaponRegistry,
         equipment_registry: &EquipmentRegistry,
     ) -> BTreeMap<Uuid, Character> {
         match tokio::fs::read_to_string(path).await {
@@ -81,7 +97,11 @@ impl CharacterStore {
                     .characters
                     .into_iter()
                     .map(|mut c| {
-                        c.recalculate_effects(trait_registry, equipment_registry);
+                        c.recalculate_effects(
+                            trait_registry,
+                            weapon_registry,
+                            equipment_registry,
+                        );
                         (c.id, c)
                     })
                     .collect(),
@@ -132,7 +152,11 @@ impl CharacterStore {
 
     pub async fn create(&self, name: String) -> Character {
         let mut character = Character::new(name);
-        character.recalculate_effects(&self.trait_registry, &self.equipment_registry);
+        character.recalculate_effects(
+            &self.trait_registry,
+            &self.weapon_registry,
+            &self.equipment_registry,
+        );
         {
             let mut characters = self.characters.write().await;
             characters.insert(character.id, character.clone());
@@ -153,7 +177,11 @@ impl CharacterStore {
     }
 
     pub async fn update(&self, mut character: Character) -> Option<Character> {
-        character.recalculate_effects(&self.trait_registry, &self.equipment_registry);
+        character.recalculate_effects(
+            &self.trait_registry,
+            &self.weapon_registry,
+            &self.equipment_registry,
+        );
         let updated = {
             let mut characters = self.characters.write().await;
             if characters.contains_key(&character.id) {
