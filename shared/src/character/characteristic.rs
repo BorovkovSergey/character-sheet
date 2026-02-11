@@ -26,28 +26,12 @@ pub enum CharacteristicKind {
     Charisma,
 }
 
-// Marker types for characteristics
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Strength;
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Dexterity;
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Endurance;
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Perception;
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Magic;
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Willpower;
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Intellect;
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Charisma;
-
 /// Generic characteristic with a marker type
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(bound = "")]
 pub struct Characteristic<T> {
     pub level: u32,
+    #[serde(skip)]
     _marker: PhantomData<T>,
 }
 
@@ -57,33 +41,6 @@ impl<T> Characteristic<T> {
             level,
             _marker: PhantomData,
         }
-    }
-}
-
-impl<T> Serialize for Characteristic<T> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut state = serializer.serialize_struct("Characteristic", 1)?;
-        state.serialize_field("level", &self.level)?;
-        state.end()
-    }
-}
-
-impl<'de, T> Deserialize<'de> for Characteristic<T> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct CharacteristicData {
-            level: u32,
-        }
-
-        let data = CharacteristicData::deserialize(deserializer)?;
-        Ok(Self::new(data.level))
     }
 }
 
@@ -102,53 +59,31 @@ pub trait CharacteristicKindMarker {
     fn kind() -> CharacteristicKind;
 }
 
-impl CharacteristicKindMarker for Strength {
-    fn kind() -> CharacteristicKind {
-        CharacteristicKind::Strength
-    }
+macro_rules! define_characteristic_markers {
+    ($($marker:ident => $kind:ident),* $(,)?) => {
+        $(
+            #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+            pub struct $marker;
+
+            impl CharacteristicKindMarker for $marker {
+                fn kind() -> CharacteristicKind {
+                    CharacteristicKind::$kind
+                }
+            }
+        )*
+    };
 }
 
-impl CharacteristicKindMarker for Dexterity {
-    fn kind() -> CharacteristicKind {
-        CharacteristicKind::Dexterity
-    }
-}
-
-impl CharacteristicKindMarker for Endurance {
-    fn kind() -> CharacteristicKind {
-        CharacteristicKind::Endurance
-    }
-}
-
-impl CharacteristicKindMarker for Perception {
-    fn kind() -> CharacteristicKind {
-        CharacteristicKind::Perception
-    }
-}
-
-impl CharacteristicKindMarker for Magic {
-    fn kind() -> CharacteristicKind {
-        CharacteristicKind::Magic
-    }
-}
-
-impl CharacteristicKindMarker for Willpower {
-    fn kind() -> CharacteristicKind {
-        CharacteristicKind::Willpower
-    }
-}
-
-impl CharacteristicKindMarker for Intellect {
-    fn kind() -> CharacteristicKind {
-        CharacteristicKind::Intellect
-    }
-}
-
-impl CharacteristicKindMarker for Charisma {
-    fn kind() -> CharacteristicKind {
-        CharacteristicKind::Charisma
-    }
-}
+define_characteristic_markers!(
+    Strength => Strength,
+    Dexterity => Dexterity,
+    Endurance => Endurance,
+    Perception => Perception,
+    Magic => Magic,
+    Willpower => Willpower,
+    Intellect => Intellect,
+    Charisma => Charisma,
+);
 
 impl<T: CharacteristicKindMarker> CharacteristicTrait for Characteristic<T> {
     fn kind() -> CharacteristicKind {

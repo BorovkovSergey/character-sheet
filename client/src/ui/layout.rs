@@ -20,7 +20,7 @@ use crate::events::{
     ExperienceChanged, InventoryChanged, ResourceChanged, UpgradeEvent, WalletChanged,
 };
 
-use super::helpers::{format_ability_check, format_effect};
+use super::helpers::format_effect;
 use super::icons::UiIcons;
 use super::params::{Registries, UiEvents, UiModals};
 
@@ -170,7 +170,6 @@ pub(super) fn render_ui(
     if modals.create_item.0 {
         let skill_names: Vec<String> = registries
             .skills
-            .0
             .classes
             .values()
             .flat_map(|skills| skills.keys().cloned())
@@ -204,7 +203,7 @@ fn render_left_column(
 ) -> LeftColumnResponse {
     let gap = height * 0.03 / 4.0;
     let initiative =
-        character.stats.0.perception.level as i32 + character.effects.initiative_bonus();
+        character.stats.perception.level as i32 + character.effects.initiative_bonus();
 
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -217,9 +216,9 @@ fn render_left_column(
                 .layout(egui::Layout::top_down(egui::Align::Min)),
         );
         let add_item_menu = build_add_item_menu(
-            &registries.weapons.0,
-            &registries.equipment.0,
-            &registries.items.0,
+            &registries.weapons,
+            &registries.equipment,
+            &registries.items,
         );
         let xp_fraction =
             character.exp.0 as f32 / shared::xp_to_next_level(character.level.0) as f32;
@@ -268,8 +267,8 @@ fn render_left_column(
             [width, height * 0.11],
             IdentityBar::new(
                 &character.name.0,
-                &character.race.0.to_string(),
-                &character.class.0.to_string(),
+                character.race.to_string(),
+                character.class.to_string(),
             ),
         );
         ui.add_space(gap);
@@ -304,10 +303,9 @@ fn render_left_column(
 
         let weapon_slots: Vec<WeaponSlot> = character
             .weapon_names
-            .0
             .iter()
             .filter_map(|name| {
-                registries.weapons.0.get(name).map(|w| WeaponSlot {
+                registries.weapons.get(name).map(|w| WeaponSlot {
                     name: w.name.clone(),
                     kind: w.kind.to_string(),
                     attack: format!("{:+}", w.attack),
@@ -447,18 +445,18 @@ fn build_character_from_components(c: &CharacterQueryDataItem) -> shared::Charac
             current: c.ap.current,
             max: c.ap.max,
         },
-        stats: c.stats.0,
+        stats: **c.stats,
         characteristic_points: c.char_pts.0,
         skill_points: c.skill_pts.0,
         ability_points: c.ability_pts.0,
         trait_points: c.trait_pts.0,
-        skills: c.skills.0.clone(),
-        traits: c.trait_names.0.clone(),
-        abilities: c.ability_names.0.clone(),
-        equipped_weapons: c.weapon_names.0.clone(),
+        skills: c.skills.to_vec(),
+        traits: c.trait_names.to_vec(),
+        abilities: c.ability_names.to_vec(),
+        equipped_weapons: c.weapon_names.to_vec(),
         equipped_equipment: c.equipment.0.clone(),
-        inventory: c.inventory.0.clone(),
-        wallet: c.wallet.0,
+        inventory: c.inventory.to_vec(),
+        wallet: **c.wallet,
         active_effects: Vec::new(),
     }
 }
@@ -474,7 +472,7 @@ fn render_center_column(
     edit_mode: bool,
 ) {
     let gap = height * 0.03 / 4.0;
-    let stats = &character.stats.0;
+    let stats = character.stats;
 
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -515,14 +513,12 @@ fn render_center_column(
         ui.add_space(gap);
         let skill_entries: Vec<SkillEntry> = registries
             .skills
-            .0
-            .get_class_skills(&character.class.0)
+            .get_class_skills(character.class)
             .into_iter()
             .flat_map(|skills| skills.iter())
             .map(|(name, skill)| {
                 let base_level = character
                     .skills
-                    .0
                     .iter()
                     .find(|s| s.name == *name)
                     .map_or(0, |s| s.level);
@@ -550,8 +546,7 @@ fn render_center_column(
         {
             if let Some(name) = registries
                 .skills
-                .0
-                .get_class_skills(&character.class.0)
+                .get_class_skills(character.class)
                 .into_iter()
                 .flat_map(|skills| skills.keys())
                 .nth(idx)
@@ -562,10 +557,9 @@ fn render_center_column(
         ui.add_space(gap);
         let trait_entries: Vec<TraitEntry> = character
             .trait_names
-            .0
             .iter()
             .filter_map(|name| {
-                registries.traits.0.get(name).map(|ct| TraitEntry {
+                registries.traits.get(name).map(|ct| TraitEntry {
                     name: name.clone(),
                     description: ct.description.clone(),
                     effects: ct.effects.iter().map(format_effect).collect(),
@@ -576,13 +570,11 @@ fn render_center_column(
         ui.add_space(gap);
         let ability_entries: Vec<AbilityEntry> = character
             .ability_names
-            .0
             .iter()
             .filter_map(|name| {
                 let ability = registries
                     .abilities
-                    .0
-                    .get_class_abilities(&character.class.0)
+                    .get_class_abilities(character.class)
                     .and_then(|ca| ca.innate.get(name).or_else(|| ca.acquire.get(name)));
                 ability.map(|a| AbilityEntry {
                     name: name.clone(),
@@ -596,7 +588,7 @@ fn render_center_column(
                     check: a
                         .check
                         .as_ref()
-                        .map(format_ability_check)
+                        .map(|c| c.to_string())
                         .unwrap_or_default(),
                     enemy_check: a
                         .enemy_check
@@ -631,13 +623,11 @@ fn render_right_column(
 
     let inventory_items: Vec<Option<InventoryTooltip>> = character
         .inventory
-        .0
         .iter()
         .map(|inv_item| match inv_item {
             shared::InventoryItem::Weapon(name) => {
                 registries
                     .weapons
-                    .0
                     .get(name)
                     .map(|w| InventoryTooltip::Weapon {
                         name: w.name.clone(),
@@ -651,7 +641,6 @@ fn render_right_column(
             shared::InventoryItem::Equipment(name) => {
                 registries
                     .equipment
-                    .0
                     .get(name)
                     .map(|e| InventoryTooltip::Equipment {
                         name: e.name.clone(),
@@ -663,7 +652,6 @@ fn render_right_column(
             shared::InventoryItem::Item(name) => {
                 registries
                     .items
-                    .0
                     .get(name)
                     .map(|i| InventoryTooltip::Item {
                         name: i.name.clone(),
@@ -675,13 +663,11 @@ fn render_right_column(
 
     let equipped_items: Vec<Option<InventoryTooltip>> = character
         .equipment
-        .0
         .values()
         .flat_map(|names| names.iter())
         .map(|name| {
             registries
                 .equipment
-                .0
                 .get(name)
                 .map(|e| InventoryTooltip::Equipment {
                     name: e.name.clone(),

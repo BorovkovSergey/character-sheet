@@ -20,36 +20,36 @@ pub struct WsConnection {
     pub receiver: WsReceiver,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct ClientTraitRegistry(pub TraitRegistry);
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct ClientSkillRegistry(pub SkillRegistry);
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct ClientAbilityRegistry(pub AbilityRegistry);
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct ClientWeaponRegistry(pub WeaponRegistry);
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 pub struct ClientEquipmentRegistry(pub EquipmentRegistry);
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 #[allow(dead_code)]
 pub struct ClientItemRegistry(pub ItemRegistry);
 
 /// Buffer for server messages drained from the WebSocket.
 /// Filled by `drain_ws`, consumed by `process_server_messages`.
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref, DerefMut)]
 struct PendingServerMessages(Vec<ServerMessage>);
 
 /// Buffer for client messages to send via WebSocket.
 /// Filled by game systems, drained by `send_client_messages`.
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Deref, DerefMut)]
 pub struct PendingClientMessages(pub Vec<ClientMessage>);
 
-#[derive(Resource)]
+#[derive(Resource, Deref, DerefMut)]
 struct ReconnectTimer(Timer);
 
 impl Default for ReconnectTimer {
@@ -150,7 +150,7 @@ fn drain_ws(
             }
             WsEvent::Message(WsMessage::Binary(bytes)) => {
                 match deserialize::<ServerMessage>(&bytes) {
-                    Ok(msg) => pending.0.push(msg),
+                    Ok(msg) => pending.push(msg),
                     Err(e) => warn!("Failed to deserialize server message: {e}"),
                 }
             }
@@ -185,7 +185,7 @@ fn process_server_messages(
     equipment_registry: Res<ClientEquipmentRegistry>,
     mut next_state: ResMut<NextState<AppScreen>>,
 ) {
-    for msg in pending.0.drain(..) {
+    for msg in pending.drain(..) {
         match msg {
             ServerMessage::CharacterList { characters } => {
                 info!(
@@ -219,9 +219,9 @@ fn process_server_messages(
                 info!("Received character {} version {}", id, version);
                 let mut character = *character;
                 character.recalculate_effects(
-                    &trait_registry.0,
-                    &weapon_registry.0,
-                    &equipment_registry.0,
+                    &trait_registry,
+                    &weapon_registry,
+                    &equipment_registry,
                 );
                 spawn_character(&mut commands, &character);
                 next_state.set(AppScreen::CharacterSheet);
@@ -263,7 +263,7 @@ fn send_client_messages(
     mut pending: ResMut<PendingClientMessages>,
 ) {
     let Some(conn) = conn.as_mut() else { return };
-    for msg in pending.0.drain(..) {
+    for msg in pending.drain(..) {
         if let Ok(bytes) = shared::serialize(&msg) {
             conn.sender.send(WsMessage::Binary(bytes));
         }
@@ -275,13 +275,13 @@ fn send_client_messages(
 /// (`Rc<WebSocket>`), so `commands.queue()` cannot move them across threads.
 fn attempt_reconnect(world: &mut World) {
     if world.get_non_send_resource::<WsConnection>().is_some() {
-        world.resource_mut::<ReconnectTimer>().0.reset();
+        world.resource_mut::<ReconnectTimer>().reset();
         return;
     }
 
     let delta = world.resource::<Time>().delta();
-    world.resource_mut::<ReconnectTimer>().0.tick(delta);
-    if !world.resource::<ReconnectTimer>().0.just_finished() {
+    world.resource_mut::<ReconnectTimer>().tick(delta);
+    if !world.resource::<ReconnectTimer>().just_finished() {
         return;
     }
 

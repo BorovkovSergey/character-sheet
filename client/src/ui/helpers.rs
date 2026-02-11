@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use shared::character::OnLvlUp;
-use shared::{AbilityCheck, Effect};
+use shared::Effect;
 
 pub(super) fn format_effect(effect: &Effect) -> String {
     match effect {
@@ -25,10 +25,6 @@ pub(super) fn format_effect(effect: &Effect) -> String {
             format!("{v:+} Characteristic Points per level")
         }
     }
-}
-
-pub(super) fn format_ability_check(check: &AbilityCheck) -> String {
-    check.to_string()
 }
 
 pub(super) fn check_trait_requirement(

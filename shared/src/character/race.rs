@@ -4,16 +4,11 @@ use strum::Display;
 use super::effect::{Effect, GetEffects, Protection, Resist};
 
 /// Character race
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Display, Serialize, Deserialize)]
 pub enum Race {
+    #[default]
     #[strum(serialize = "Dark Half-Elf")]
     DarkHalfElf,
-}
-
-impl Default for Race {
-    fn default() -> Self {
-        Self::DarkHalfElf
-    }
 }
 
 /// Character size, determined by race.

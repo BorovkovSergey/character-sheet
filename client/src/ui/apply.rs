@@ -82,7 +82,7 @@ pub(super) fn apply_level_up(
         return;
     }
     for _ in 0..level_ups {
-        for effect in &effects.0 {
+        for effect in effects.iter() {
             if let Effect::OnLvlUp(on_lvl_up) = effect {
                 match on_lvl_up {
                     OnLvlUp::AddAbilityPoints(v) => {
@@ -141,7 +141,7 @@ pub(super) fn apply_upgrades(
     for event in reader.read() {
         match event {
             UpgradeEvent::Characteristic(idx) => {
-                let s = &mut stats.0;
+                let s = &mut **stats;
                 let cost = match char_kinds.get(*idx) {
                     Some(CharacteristicKind::Strength) => s.strength.up(char_pts.0),
                     Some(CharacteristicKind::Dexterity) => s.dexterity.up(char_pts.0),
@@ -157,21 +157,20 @@ pub(super) fn apply_upgrades(
             }
             UpgradeEvent::Skill(name) => {
                 let max_level = skill_registry
-                    .0
-                    .get_skill(&class.0, name)
+                    .get_skill(class, name)
                     .map(|skill| {
-                        let base = stats.0.get_level(skill.dependency);
+                        let base = stats.get_level(skill.dependency);
                         let bonus = char_bonuses.get(&skill.dependency).copied().unwrap_or(0);
                         (base as i32 + bonus).max(0) as u32
                     })
                     .unwrap_or(0);
 
-                let char_skill = skills.0.iter_mut().find(|s| s.name == *name);
+                let char_skill = skills.iter_mut().find(|s| s.name == *name);
                 if let Some(skill) = char_skill {
                     let cost = skill.up(skill_pts.0, max_level);
                     skill_pts.0 -= cost;
                 } else if skill_pts.0 >= 1 && max_level >= 1 {
-                    skills.0.push(shared::CharacterSkill {
+                    skills.push(shared::CharacterSkill {
                         name: name.clone(),
                         level: 1,
                     });
@@ -191,8 +190,8 @@ pub(super) fn apply_learn_ability(
         return;
     };
     for event in reader.read() {
-        if pts.0 > 0 && !abilities.0.contains(&event.0) {
-            abilities.0.push(event.0.clone());
+        if pts.0 > 0 && !abilities.contains(&event.0) {
+            abilities.push(event.0.clone());
             pts.0 -= 1;
         }
     }
@@ -211,16 +210,16 @@ pub(super) fn apply_learn_trait(
         return;
     };
     for event in reader.read() {
-        if pts.0 == 0 || traits.0.contains(&event.0) {
+        if pts.0 == 0 || traits.contains(&event.0) {
             continue;
         }
-        let Some(ct) = trait_registry.0.get(&event.0) else {
+        let Some(ct) = trait_registry.get(&event.0) else {
             continue;
         };
-        if !check_trait_requirement(&stats.0, ct.condition.as_ref()) {
+        if !check_trait_requirement(stats, ct.condition.as_ref()) {
             continue;
         }
-        traits.0.push(event.0.clone());
+        traits.push(event.0.clone());
         pts.0 -= 1;
     }
 }
@@ -258,49 +257,49 @@ pub(super) fn apply_inventory_changes(
         match event {
             InventoryChanged::Equip(idx) => {
                 let idx = *idx;
-                if idx >= inventory.0.len() {
+                if idx >= inventory.len() {
                     continue;
                 }
-                match &inventory.0[idx] {
+                match &inventory[idx] {
                     InventoryItem::Equipment(name) => {
                         let name = name.clone();
-                        if let Some(eq) = equipment_registry.0.get(&name) {
+                        if let Some(eq) = equipment_registry.get(&name) {
                             let slot = eq.slot;
                             if slot != EquipmentSlot::Ring {
-                                if let Some(existing) = equipment.0.get(&slot) {
+                                if let Some(existing) = equipment.get(&slot) {
                                     for old_name in existing.clone() {
-                                        inventory.0.push(InventoryItem::Equipment(old_name));
+                                        inventory.push(InventoryItem::Equipment(old_name));
                                     }
                                 }
-                                equipment.0.insert(slot, vec![name]);
+                                equipment.insert(slot, vec![name]);
                             } else {
-                                equipment.0.entry(slot).or_default().push(name);
+                                equipment.entry(slot).or_default().push(name);
                             }
-                            inventory.0.remove(idx);
+                            inventory.remove(idx);
                         }
                     }
                     InventoryItem::Weapon(name) => {
-                        if weapons.0.len() >= MAX_EQUIPPED_WEAPONS {
+                        if weapons.len() >= MAX_EQUIPPED_WEAPONS {
                             continue;
                         }
                         let name = name.clone();
-                        weapons.0.push(name);
-                        inventory.0.remove(idx);
+                        weapons.push(name);
+                        inventory.remove(idx);
                     }
                     InventoryItem::Item(_) => {}
                 }
             }
             InventoryChanged::Remove(idx) => {
                 let idx = *idx;
-                if idx < inventory.0.len() {
-                    inventory.0.remove(idx);
+                if idx < inventory.len() {
+                    inventory.remove(idx);
                 }
             }
             InventoryChanged::UnequipGear(idx) => {
                 let idx = *idx;
                 let mut current = 0;
                 let mut target: Option<(EquipmentSlot, usize)> = None;
-                for (slot, names) in equipment.0.iter() {
+                for (slot, names) in equipment.iter() {
                     if idx < current + names.len() {
                         target = Some((*slot, idx - current));
                         break;
@@ -308,22 +307,22 @@ pub(super) fn apply_inventory_changes(
                     current += names.len();
                 }
                 if let Some((slot, inner_idx)) = target {
-                    let name = equipment.0.get_mut(&slot).unwrap().remove(inner_idx);
-                    if equipment.0.get(&slot).is_some_and(|v| v.is_empty()) {
-                        equipment.0.remove(&slot);
+                    let name = equipment.get_mut(&slot).unwrap().remove(inner_idx);
+                    if equipment.get(&slot).is_some_and(|v| v.is_empty()) {
+                        equipment.remove(&slot);
                     }
-                    inventory.0.push(InventoryItem::Equipment(name));
+                    inventory.push(InventoryItem::Equipment(name));
                 }
             }
             InventoryChanged::UnequipWeapon(idx) => {
                 let idx = *idx;
-                if idx < weapons.0.len() {
-                    let name = weapons.0.remove(idx);
-                    inventory.0.push(InventoryItem::Weapon(name));
+                if idx < weapons.len() {
+                    let name = weapons.remove(idx);
+                    inventory.push(InventoryItem::Weapon(name));
                 }
             }
             InventoryChanged::AddExisting(item) => {
-                inventory.0.push(item.clone());
+                inventory.push(item.clone());
             }
         }
     }
@@ -345,48 +344,39 @@ pub(super) fn apply_create_item(
             CreateItem::Weapon(weapon) => {
                 let item_name = weapon.name.clone();
                 weapon_registry
-                    .0
                     .weapons
                     .insert(item_name.clone(), weapon.clone());
-                inventory.0.push(InventoryItem::Weapon(item_name));
+                inventory.push(InventoryItem::Weapon(item_name));
                 save_to_json_file(
                     "data/weapons.json",
-                    weapon_registry.0.weapons.values().collect(),
+                    weapon_registry.weapons.values().collect(),
                 );
-                pending_messages
-                    .0
-                    .push(shared::ClientMessage::CreateWeapon {
-                        weapon: weapon.clone(),
-                    });
+                pending_messages.push(shared::ClientMessage::CreateWeapon {
+                    weapon: weapon.clone(),
+                });
             }
             CreateItem::Equipment(eq) => {
                 let item_name = eq.name.clone();
                 equipment_registry
-                    .0
                     .equipment
                     .insert(item_name.clone(), eq.clone());
-                inventory.0.push(InventoryItem::Equipment(item_name));
+                inventory.push(InventoryItem::Equipment(item_name));
                 save_to_json_file(
                     "data/equipment.json",
-                    equipment_registry.0.equipment.values().collect(),
+                    equipment_registry.equipment.values().collect(),
                 );
-                pending_messages
-                    .0
-                    .push(shared::ClientMessage::CreateEquipment {
-                        equipment: eq.clone(),
-                    });
+                pending_messages.push(shared::ClientMessage::CreateEquipment {
+                    equipment: eq.clone(),
+                });
             }
             CreateItem::Item(item) => {
                 let item_name = item.name.clone();
                 item_registry
-                    .0
                     .items
                     .insert(item_name.clone(), item.clone());
-                inventory.0.push(InventoryItem::Item(item_name));
-                save_to_json_file("data/items.json", item_registry.0.items.values().collect());
-                pending_messages
-                    .0
-                    .push(shared::ClientMessage::CreateItem { item: item.clone() });
+                inventory.push(InventoryItem::Item(item_name));
+                save_to_json_file("data/items.json", item_registry.items.values().collect());
+                pending_messages.push(shared::ClientMessage::CreateItem { item: item.clone() });
             }
         }
     }

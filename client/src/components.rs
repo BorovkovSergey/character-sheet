@@ -20,10 +20,10 @@ pub struct CharacterId(pub Uuid);
 #[derive(Component)]
 pub struct CharacterName(pub String);
 
-#[derive(Component)]
+#[derive(Component, Deref)]
 pub struct CharacterRace(pub Race);
 
-#[derive(Component)]
+#[derive(Component, Deref)]
 pub struct CharacterClass(pub Class);
 
 #[derive(Component)]
@@ -50,7 +50,7 @@ pub struct ActionPoints {
     pub max: u32,
 }
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct CharacterStats(pub Characteristics);
 
 #[derive(Component)]
@@ -65,37 +65,37 @@ pub struct AbilityPoints(pub u32);
 #[derive(Component)]
 pub struct TraitPoints(pub u32);
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 #[allow(dead_code)]
 pub struct CharacterSkillList(pub Vec<CharacterSkill>);
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct CharacterTraitNames(pub Vec<String>);
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct CharacterAbilityNames(pub Vec<String>);
 
 #[derive(Component, Deref, DerefMut)]
 pub struct Wallet(pub SharedWallet);
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 #[allow(dead_code)]
 pub struct CharacterWeaponNames(pub Vec<String>);
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct CharacterEquipment(pub BTreeMap<EquipmentSlot, Vec<String>>);
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 #[allow(dead_code)]
 pub struct Inventory(pub Vec<InventoryItem>);
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct ActiveEffects(pub Vec<Effect>);
 
 impl ActiveEffects {
     pub fn get_resists(&self) -> BTreeMap<Resist, u32> {
         let mut result: BTreeMap<Resist, u32> = Resist::iter().map(|k| (k, 0)).collect();
-        for effect in &self.0 {
+        for effect in self.iter() {
             if let Effect::Resist(r, m) = effect {
                 *result.entry(*r).or_insert(0) += m;
             }
@@ -105,7 +105,7 @@ impl ActiveEffects {
 
     pub fn get_protections(&self) -> BTreeMap<Protection, u32> {
         let mut result: BTreeMap<Protection, u32> = Protection::iter().map(|k| (k, 0)).collect();
-        for effect in &self.0 {
+        for effect in self.iter() {
             if let Effect::Protection(p, m) = effect {
                 *result.entry(*p).or_insert(0) += m;
             }
@@ -114,8 +114,7 @@ impl ActiveEffects {
     }
 
     pub fn armor(&self) -> i32 {
-        self.0
-            .iter()
+        self.iter()
             .filter_map(|e| match e {
                 Effect::Armor(v) => Some(*v),
                 _ => None,
@@ -124,8 +123,7 @@ impl ActiveEffects {
     }
 
     pub fn initiative_bonus(&self) -> i32 {
-        self.0
-            .iter()
+        self.iter()
             .filter_map(|e| match e {
                 Effect::Initiative(v) => Some(*v),
                 _ => None,
@@ -135,7 +133,7 @@ impl ActiveEffects {
 
     pub fn characteristic_bonuses(&self) -> BTreeMap<CharacteristicKind, i32> {
         let mut result = BTreeMap::new();
-        for effect in &self.0 {
+        for effect in self.iter() {
             if let Effect::Characteristic(kind, v) = effect {
                 *result.entry(*kind).or_insert(0) += v;
             }
@@ -158,8 +156,7 @@ impl ActiveEffects {
     }
 
     pub fn skill_bonus(&self, skill_name: &str) -> i32 {
-        self.0
-            .iter()
+        self.iter()
             .filter_map(|e| match e {
                 Effect::Skill(name, v) if name == skill_name => Some(*v),
                 _ => None,
@@ -168,8 +165,7 @@ impl ActiveEffects {
     }
 
     pub fn action_points_bonus(&self) -> i32 {
-        self.0
-            .iter()
+        self.iter()
             .filter_map(|e| match e {
                 Effect::ActionPoints(v) => Some(*v),
                 _ => None,
@@ -257,17 +253,17 @@ pub fn recalculate_effects(
     for (race, traits, weapons, equipment, stats, mut effects, mut hp, mut mana, mut ap) in
         &mut query
     {
-        let s = &stats.0;
+        let s = &**stats;
 
         // Step 1: Collect source effects and store them so effective_level() works
-        effects.0 = shared::collect_source_effects(
-            race.0,
-            &traits.0,
-            &weapons.0,
-            &equipment.0,
-            &trait_registry.0,
-            &weapon_registry.0,
-            &equipment_registry.0,
+        **effects = shared::collect_source_effects(
+            **race,
+            traits,
+            weapons,
+            equipment,
+            &trait_registry,
+            &weapon_registry,
+            &equipment_registry,
         );
 
         // Step 2: Compute effective characteristic levels (base + bonuses from source effects)
@@ -288,8 +284,8 @@ pub fn recalculate_effects(
             Effect::Protection(Protection::Mind, 10 + eff_willpower),
             // ProtectionRange comes from race size
         ];
-        combined.append(&mut effects.0);
-        effects.0 = combined;
+        combined.append(&mut effects);
+        **effects = combined;
 
         // Step 4: Recompute HP max using effective endurance
         let new_max_hp = eff_endurance * 3 + 3;
@@ -301,7 +297,7 @@ pub fn recalculate_effects(
 
         // Step 5: Recompute Mana max using effective willpower + Mana effect bonuses
         let mut new_max_mana = eff_willpower * 3 + 3;
-        for effect in &effects.0 {
+        for effect in effects.iter() {
             if let Effect::Mana {
                 dependent,
                 increase_per_point,
@@ -319,7 +315,7 @@ pub fn recalculate_effects(
 
         // Step 8: Recompute AP max = race base + action points bonus
         let ap_bonus: i32 = effects.action_points_bonus();
-        let new_max_ap = (race.0.base_action_points() as i32 + ap_bonus).max(0) as u32;
+        let new_max_ap = (race.base_action_points() as i32 + ap_bonus).max(0) as u32;
         if ap.max != new_max_ap {
             let spent = ap.max.saturating_sub(ap.current);
             ap.max = new_max_ap;

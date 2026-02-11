@@ -7,7 +7,7 @@ use shared::CharacterTrait;
 
 use crate::events::{LearnAbility, LearnTrait};
 
-use super::helpers::{check_trait_requirement, format_ability_check, format_effect};
+use super::helpers::{check_trait_requirement, format_effect};
 use super::icons::UiIcons;
 use super::layout::CharacterQueryDataItem;
 use super::params::{LearnAbilityOpen, LearnTraitOpen, Registries, UiEvents};
@@ -70,12 +70,10 @@ pub(super) fn render_learn_ability_overlay(
             // col maps to LearnScreenPosition.column.
             // Tuple: (name, mp_cost, can_learn, already_learned)
             let mut grid: [[Option<(&str, Option<u32>, bool, bool)>; 3]; 3] = Default::default();
-            if let Some(class_abilities) = registries
-                .abilities
-                .0
-                .get_class_abilities(&character.class.0)
+            if let Some(class_abilities) =
+                registries.abilities.get_class_abilities(character.class)
             {
-                let known = &character.ability_names.0;
+                let known: &[String] = character.ability_names;
                 for (name, ability) in &class_abilities.acquire {
                     if let Some(pos) = &ability.learn_screen_position {
                         let r = pos.row as usize;
@@ -95,10 +93,8 @@ pub(super) fn render_learn_ability_overlay(
             }
 
             let ability_icon = icons.ability_placeholder.id();
-            let class_abilities = registries
-                .abilities
-                .0
-                .get_class_abilities(&character.class.0);
+            let class_abilities =
+                registries.abilities.get_class_abilities(character.class);
             for (row_idx, &col_count) in rows.iter().enumerate() {
                 let y = content.min.y + (cell_h + gap) * row_idx as f32;
                 let x_offset = if col_count == 2 { half_offset } else { 0.0 };
@@ -171,7 +167,7 @@ pub(super) fn render_learn_ability_overlay(
                                                 ability
                                                     .check
                                                     .as_ref()
-                                                    .map(format_ability_check)
+                                                    .map(|c| c.to_string())
                                                     .unwrap_or_default(),
                                             )
                                             .enemy_check(
@@ -279,11 +275,11 @@ pub(super) fn render_learn_trait_overlay(
             let mut state: LearnTraitDialogState =
                 ctx.data(|d| d.get_temp(state_id)).unwrap_or_default();
 
-            let known_traits = &character.trait_names.0;
+            let known_traits: &[String] = character.trait_names;
 
             // Build sorted list of all traits
             let mut all_traits: Vec<(&String, &CharacterTrait)> =
-                trait_registry.0.traits.iter().collect();
+                trait_registry.traits.iter().collect();
             all_traits.sort_by_key(|(name, _)| (*name).clone());
 
             // Scrollable list with radio buttons
@@ -299,7 +295,7 @@ pub(super) fn render_learn_trait_overlay(
                     for (name, ct) in &all_traits {
                         let already_learned = known_traits.contains(name);
                         let meets_requirement =
-                            check_trait_requirement(&character.stats.0, ct.condition.as_ref());
+                            check_trait_requirement(character.stats, ct.condition.as_ref());
                         let available = !already_learned && meets_requirement;
                         let is_selected = state.selected.as_deref() == Some(name.as_str());
 
