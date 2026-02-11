@@ -336,6 +336,34 @@ impl CharacterStore {
         summary
     }
 
+    pub async fn delete_version(&self, id: Uuid, version: u32) -> Option<bool> {
+        let (path, mut file) = self.read_character_file(id).await?;
+
+        // Prevent deleting the last remaining version
+        if file.versions.len() <= 1 {
+            warn!("Cannot delete the last version of character {}", id);
+            return Some(false);
+        }
+
+        let before = file.versions.len();
+        file.versions.retain(|v| v.version != version);
+        if file.versions.len() == before {
+            return Some(false);
+        }
+
+        {
+            write_character_file(&path, &file).await;
+            if let Some(summary) = summary_from_file(&file) {
+                let mut index = self.characters.write().await;
+                if let Some(ci) = index.get_mut(&id) {
+                    ci.summary = summary;
+                }
+            }
+        }
+
+        Some(true)
+    }
+
     pub async fn delete(&self, id: Uuid) -> bool {
         let path = {
             let mut index = self.characters.write().await;
@@ -358,6 +386,18 @@ impl CharacterStore {
         );
 
         let (path, mut file) = self.read_character_file(character.id).await?;
+
+        // Skip saving if nothing changed since the last version.
+        // Compare with active_effects cleared because it is #[serde(skip)]
+        // and will always be empty in the deserialized stored version.
+        if let Some(latest) = file.versions.last() {
+            let mut incoming = character.clone();
+            incoming.active_effects.clear();
+            if latest.character == incoming {
+                info!("No changes for character {}, skipping save", character.id);
+                return summary_from_file(&file);
+            }
+        }
 
         let now = current_timestamp();
         let new_version_num = file.versions.last().map(|v| v.version + 1).unwrap_or(1);

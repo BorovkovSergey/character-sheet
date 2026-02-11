@@ -112,6 +112,17 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Option<Se
                 })
             }
         }
+        ClientMessage::DeleteVersion { id, version } => {
+            match store.delete_version(id, version).await {
+                Some(true) => Some(ServerMessage::VersionDeleted { id, version }),
+                Some(false) => Some(ServerMessage::Error {
+                    message: format!("Version {} not found", version),
+                }),
+                None => Some(ServerMessage::Error {
+                    message: "Character not found".to_string(),
+                }),
+            }
+        }
         ClientMessage::UpdateCharacter { character } => match store.update(character).await {
             Some(summary) => Some(ServerMessage::CharacterUpdated { summary }),
             None => Some(ServerMessage::Error {

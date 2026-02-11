@@ -25,6 +25,9 @@ pub enum ClientMessage {
     /// Update a character (creates a new version)
     UpdateCharacter { character: Character },
 
+    /// Delete a specific version of a character
+    DeleteVersion { id: Uuid, version: u32 },
+
     /// Register a new weapon definition
     CreateWeapon { weapon: Weapon },
 
@@ -63,6 +66,9 @@ pub enum ServerMessage {
 
     /// A character was deleted
     CharacterDeleted { id: Uuid },
+
+    /// A specific version was deleted
+    VersionDeleted { id: Uuid, version: u32 },
 
     /// An error occurred
     Error { message: String },

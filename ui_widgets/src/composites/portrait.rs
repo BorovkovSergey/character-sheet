@@ -39,6 +39,8 @@ pub struct PortraitResponse {
     pub open_learn_trait: bool,
     pub open_create_item: bool,
     pub add_item: Option<AddItemSelection>,
+    pub save: bool,
+    pub back: bool,
 }
 
 /// Character portrait display area.
@@ -186,8 +188,19 @@ impl Portrait {
         let mut open_learn_trait = false;
         let mut open_create_item = false;
         let mut add_item_selection = None;
+        let mut save_clicked = false;
+        let mut back_clicked = false;
         let add_item_menu = self.add_item_menu;
         response.context_menu(|ui| {
+            if ui.button("Save").clicked() {
+                save_clicked = true;
+                ui.close();
+            }
+            if ui.button("Back").clicked() {
+                back_clicked = true;
+                ui.close();
+            }
+            ui.separator();
             if ui.button("Add EXP").clicked() {
                 ui.data_mut(|d| {
                     d.insert_temp(
@@ -340,6 +353,8 @@ impl Portrait {
             open_learn_trait,
             open_create_item,
             add_item: add_item_selection,
+            save: save_clicked,
+            back: back_clicked,
         }
     }
 }

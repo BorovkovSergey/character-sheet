@@ -15,14 +15,22 @@ pub struct VersionList {
     pub versions: Vec<VersionSummary>,
 }
 
+/// Pending delete confirmation state.
+#[derive(Resource, Default)]
+struct DeleteConfirm {
+    version: Option<u32>,
+}
+
 pub struct VersionSelectPlugin;
 
 impl Plugin for VersionSelectPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<VersionList>().add_systems(
-            EguiPrimaryContextPass,
-            render_version_select.run_if(in_state(AppScreen::VersionSelect)),
-        );
+        app.init_resource::<VersionList>()
+            .init_resource::<DeleteConfirm>()
+            .add_systems(
+                EguiPrimaryContextPass,
+                render_version_select.run_if(in_state(AppScreen::VersionSelect)),
+            );
     }
 }
 
@@ -31,6 +39,7 @@ fn render_version_select(
     version_list: Res<VersionList>,
     mut pending_messages: ResMut<PendingClientMessages>,
     mut next_state: ResMut<NextState<AppScreen>>,
+    mut delete_confirm: ResMut<DeleteConfirm>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
 
@@ -44,6 +53,7 @@ fn render_version_select(
 
     let mut selected_version: Option<u32> = None;
     let mut go_back = false;
+    let mut request_delete: Option<u32> = None;
 
     egui::Window::new("Select Version")
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -97,13 +107,18 @@ fn render_version_select(
 
             ui.add_space(8.0);
 
+            let can_delete = version_list.versions.len() > 1;
             egui::ScrollArea::vertical()
                 .max_height(scroll_height)
                 .show(ui, |ui| {
                     // Iterate in reverse to show newest first
                     for version in version_list.versions.iter().rev() {
-                        if render_version_entry(ui, version) {
+                        let action = render_version_entry(ui, version, can_delete);
+                        if action.selected {
                             selected_version = Some(version.version);
+                        }
+                        if action.delete {
+                            request_delete = Some(version.version);
                         }
                         ui.add_space(6.0);
                     }
@@ -111,6 +126,7 @@ fn render_version_select(
         });
 
     if go_back {
+        delete_confirm.version = None;
         next_state.set(AppScreen::CharacterSelect);
     }
 
@@ -121,15 +137,90 @@ fn render_version_select(
                 id: version_list.character_id,
                 version: Some(version),
             });
-        // Transition to CharacterSheet happens when the server responds with CharacterVersion
+    }
+
+    if let Some(version) = request_delete {
+        delete_confirm.version = Some(version);
+    }
+
+    // Confirmation dialog
+    if let Some(version) = delete_confirm.version {
+        let mut close = false;
+        egui::Window::new("Confirm Delete")
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .title_bar(false)
+            .collapsible(false)
+            .resizable(false)
+            .frame(
+                egui::Frame::new()
+                    .fill(SECONDARY_COLOR)
+                    .corner_radius(8.0)
+                    .stroke(egui::Stroke::new(1.0, STROKE_COLOR))
+                    .inner_margin(egui::Margin::same(20)),
+            )
+            .show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.add_space(4.0);
+                    ui.label(
+                        egui::RichText::new(format!("Delete version {}?", version))
+                            .size(18.0)
+                            .color(TEXT_COLOR),
+                    );
+                    ui.add_space(16.0);
+                    ui.horizontal(|ui| {
+                        let delete_btn = ui.add(
+                            egui::Button::new(
+                                egui::RichText::new("Delete")
+                                    .size(14.0)
+                                    .color(egui::Color32::WHITE),
+                            )
+                            .fill(egui::Color32::from_rgb(0xCC, 0x33, 0x33))
+                            .corner_radius(4.0),
+                        );
+                        if delete_btn.clicked() {
+                            pending_messages
+                                .0
+                                .push(shared::ClientMessage::DeleteVersion {
+                                    id: version_list.character_id,
+                                    version,
+                                });
+                            close = true;
+                        }
+                        ui.add_space(8.0);
+                        let cancel_btn = ui.add(
+                            egui::Button::new(
+                                egui::RichText::new("Cancel").size(14.0).color(TEXT_COLOR),
+                            )
+                            .fill(MAIN_COLOR)
+                            .stroke(egui::Stroke::new(1.0, STROKE_COLOR))
+                            .corner_radius(4.0),
+                        );
+                        if cancel_btn.clicked() {
+                            close = true;
+                        }
+                    });
+                    ui.add_space(4.0);
+                });
+            });
+        if close {
+            delete_confirm.version = None;
+        }
     }
 
     Ok(())
 }
 
-/// Renders a single version entry as a clickable card.
-/// Returns `true` if the card was clicked.
-fn render_version_entry(ui: &mut egui::Ui, version: &VersionSummary) -> bool {
+struct VersionEntryAction {
+    selected: bool,
+    delete: bool,
+}
+
+/// Renders a single version entry as a clickable card with a delete button.
+fn render_version_entry(
+    ui: &mut egui::Ui,
+    version: &VersionSummary,
+    can_delete: bool,
+) -> VersionEntryAction {
     let id = ui.id().with(("version", version.version));
     let was_hovered = ui.data(|d| d.get_temp::<bool>(id).unwrap_or(false));
 
@@ -138,6 +229,8 @@ fn render_version_entry(ui: &mut egui::Ui, version: &VersionSummary) -> bool {
     } else {
         SECONDARY_COLOR
     };
+
+    let mut delete_clicked = false;
 
     let frame_response = egui::Frame::new()
         .corner_radius(6.0)
@@ -153,6 +246,21 @@ fn render_version_entry(ui: &mut egui::Ui, version: &VersionSummary) -> bool {
                         .color(TEXT_COLOR),
                 );
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if can_delete {
+                        let x_btn = ui.add(
+                            egui::Button::new(
+                                egui::RichText::new("\u{00D7}")
+                                    .size(18.0)
+                                    .color(egui::Color32::from_rgb(0xAA, 0x44, 0x44)),
+                            )
+                            .fill(egui::Color32::TRANSPARENT)
+                            .stroke(egui::Stroke::NONE)
+                            .min_size(egui::vec2(28.0, 28.0)),
+                        );
+                        if x_btn.clicked() {
+                            delete_clicked = true;
+                        }
+                    }
                     ui.label(
                         egui::RichText::new(format!("Level {}", version.level))
                             .size(13.0)
@@ -168,10 +276,16 @@ fn render_version_entry(ui: &mut egui::Ui, version: &VersionSummary) -> bool {
             );
         });
 
-    let response = frame_response.response.interact(egui::Sense::click());
-    ui.data_mut(|d| d.insert_temp(id, response.hovered()));
+    let response = &frame_response.response;
+    let hovered = response.contains_pointer();
+    let card_clicked =
+        hovered && !delete_clicked && ui.input(|i| i.pointer.primary_clicked());
+    ui.data_mut(|d| d.insert_temp(id, hovered));
 
-    response.clicked()
+    VersionEntryAction {
+        selected: card_clicked,
+        delete: delete_clicked,
+    }
 }
 
 /// Format a Unix timestamp (seconds UTC) into a human-readable date string.

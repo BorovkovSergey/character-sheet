@@ -244,6 +244,12 @@ fn process_server_messages(
                 info!("Character deleted: {}", id);
                 character_list.characters.retain(|c| c.id != id);
             }
+            ServerMessage::VersionDeleted { id, version } => {
+                info!("Version {} deleted for character {}", version, id);
+                if version_list.character_id == id {
+                    version_list.versions.retain(|v| v.version != version);
+                }
+            }
             ServerMessage::Error { message } => {
                 error!("Server error: {message}");
             }

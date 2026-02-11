@@ -13,9 +13,10 @@ use ui_widgets::styles::UiStyle;
 
 use crate::components::{
     AbilityPoints, ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames,
-    CharacterClass, CharacterEquipment, CharacterName, CharacterRace, CharacterSkillList,
-    CharacterStats, CharacterTraitNames, CharacterWeaponNames, CharacteristicPoints, Experience,
-    Hp, Inventory as InventoryComponent, Level, Mana, SkillPoints, TraitPoints, Wallet,
+    CharacterClass, CharacterEquipment, CharacterId, CharacterName, CharacterRace,
+    CharacterSkillList, CharacterStats, CharacterTraitNames, CharacterWeaponNames,
+    CharacteristicPoints, Experience, Hp, Inventory as InventoryComponent, Level, Mana,
+    SkillPoints, TraitPoints, Wallet,
 };
 use crate::events::{
     CreateItem, ExperienceChanged, InventoryChanged, LearnAbility, LearnTrait, LevelUp,
@@ -176,6 +177,7 @@ const COL3_WIDTH: f32 = 0.24;
 
 #[derive(bevy::ecs::query::QueryData)]
 struct CharacterQueryData {
+    id: &'static CharacterId,
     name: &'static CharacterName,
     race: &'static CharacterRace,
     class: &'static CharacterClass,
@@ -214,6 +216,8 @@ fn render_ui(
     mut learn_ability_open: ResMut<LearnAbilityOpen>,
     mut learn_trait_open: ResMut<LearnTraitOpen>,
     mut create_item_open: ResMut<crate::create_item::CreateItemOpen>,
+    mut pending_messages: ResMut<crate::network::PendingClientMessages>,
+    mut next_state: ResMut<NextState<AppScreen>>,
 ) -> Result {
     let Some(icons) = icons else {
         return Ok(());
@@ -224,6 +228,9 @@ fn render_ui(
     };
 
     let ctx = contexts.ctx_mut()?;
+
+    let mut save_clicked = false;
+    let mut back_clicked = false;
 
     egui::CentralPanel::default()
         .frame(egui::Frame::NONE.fill(MAIN_COLOR))
@@ -242,7 +249,7 @@ fn render_ui(
 
             ui.horizontal(|ui| {
                 ui.add_space(margin);
-                render_left_column(
+                let left_resp = render_left_column(
                     ui,
                     total_w * COL1_WIDTH,
                     col_h,
@@ -257,6 +264,8 @@ fn render_ui(
                     &mut learn_trait_open,
                     &mut create_item_open,
                 );
+                save_clicked = left_resp.save;
+                back_clicked = left_resp.back;
                 ui.add_space(gap);
                 render_center_column(
                     ui,
@@ -284,6 +293,17 @@ fn render_ui(
                 );
             });
         });
+
+    if save_clicked {
+        let ch = build_character_from_components(&character);
+        pending_messages
+            .0
+            .push(shared::ClientMessage::UpdateCharacter { character: ch });
+    }
+
+    if back_clicked {
+        next_state.set(AppScreen::CharacterSelect);
+    }
 
     // "Learn Ability" overlay
     if learn_ability_open.0 {
@@ -504,6 +524,11 @@ fn render_ui(
     Ok(())
 }
 
+struct LeftColumnResponse {
+    save: bool,
+    back: bool,
+}
+
 fn render_left_column(
     ui: &mut egui::Ui,
     width: f32,
@@ -518,7 +543,7 @@ fn render_left_column(
     learn_ability_open: &mut LearnAbilityOpen,
     learn_trait_open: &mut LearnTraitOpen,
     create_item_open: &mut crate::create_item::CreateItemOpen,
-) {
+) -> LeftColumnResponse {
     let gap = height * 0.03 / 4.0;
     let initiative =
         character.stats.0.perception.level as i32 + character.effects.initiative_bonus();
@@ -548,6 +573,8 @@ fn render_left_column(
         .trait_points(character.trait_pts.0)
         .add_item_menu(add_item_menu)
         .show(&mut portrait_ui);
+        let save_clicked = portrait_resp.save;
+        let back_clicked = portrait_resp.back;
         if let Some(exp) = portrait_resp.add_exp {
             ui_events.experience.write(ExperienceChanged(exp));
         }
@@ -642,7 +669,13 @@ fn render_left_column(
                 .inventory
                 .write(InventoryChanged::UnequipWeapon(i));
         }
-    });
+
+        LeftColumnResponse {
+            save: save_clicked,
+            back: back_clicked,
+        }
+    })
+    .inner
 }
 
 fn build_add_item_menu(
@@ -970,6 +1003,36 @@ fn check_trait_requirement(
             char_level >= *lvl
         }
         None => true,
+    }
+}
+
+fn build_character_from_components(c: &CharacterQueryDataItem) -> shared::Character {
+    shared::Character {
+        id: c.id.0,
+        name: c.name.0.clone(),
+        race: c.race.0,
+        class: c.class.0,
+        level: c.level.0,
+        experience: c.exp.0,
+        hp_spent: c.hp.max.saturating_sub(c.hp.current),
+        mana_spent: c.mana.max.saturating_sub(c.mana.current),
+        action_points: shared::Resource {
+            current: c.ap.current,
+            max: c.ap.max,
+        },
+        stats: c.stats.0,
+        characteristic_points: c.char_pts.0,
+        skill_points: c.skill_pts.0,
+        ability_points: c.ability_pts.0,
+        trait_points: c.trait_pts.0,
+        skills: c.skills.0.clone(),
+        traits: c.trait_names.0.clone(),
+        abilities: c.ability_names.0.clone(),
+        equipped_weapons: c.weapon_names.0.clone(),
+        equipped_equipment: c.equipment.0.clone(),
+        inventory: c.inventory.0.clone(),
+        wallet: c.wallet.0,
+        active_effects: Vec::new(),
     }
 }
 
