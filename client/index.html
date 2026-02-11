@@ -11,17 +11,49 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #1a1a2e;
+            background-color: #ffffff;
         }
         canvas {
             display: block;
             width: 100%;
             height: 100%;
         }
+        #loader {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            background-image: url('assets/loader.gif');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: min(300px, 60vw);
+            transition: opacity 0.4s ease;
+        }
+        #loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
+    <div id="loader"></div>
+
     <link data-trunk rel="rust" data-wasm-opt="z"/>
     <link data-trunk rel="copy-dir" href="assets"/>
+
+    <script>
+        var observer = new MutationObserver(function () {
+            if (document.querySelector('canvas')) {
+                var loader = document.getElementById('loader');
+                loader.classList.add('hidden');
+                setTimeout(function () { loader.remove(); }, 400);
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    </script>
 </body>
 </html>
