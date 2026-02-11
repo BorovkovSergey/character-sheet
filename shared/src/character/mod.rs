@@ -9,6 +9,7 @@ mod item;
 mod race;
 mod resource;
 mod skill;
+mod wallet;
 mod weapon;
 
 use std::collections::BTreeMap;
@@ -35,7 +36,31 @@ pub use item::{Item, ItemRegistry};
 pub use race::{Race, Size};
 pub use resource::Resource;
 pub use skill::{CharacterSkill, Skill, SkillRegistry};
+pub use wallet::Wallet;
 pub use weapon::{MeleeKind, RangeKind, Weapon, WeaponGrip, WeaponKind, WeaponRegistry};
+
+/// Trait for types that have a name field.
+pub trait Named {
+    fn name(&self) -> &str;
+}
+
+impl Named for Weapon {
+    fn name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl Named for Equipment {
+    fn name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl Named for Item {
+    fn name(&self) -> &str {
+        &self.name
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Character {
@@ -70,10 +95,9 @@ pub struct Character {
     pub equipped_equipment: BTreeMap<EquipmentSlot, Vec<String>>,
     #[serde(default)]
     pub inventory: Vec<InventoryItem>,
-    /// Total currency stored as a single value.
-    /// Gold = value / 1000, Silver = (value % 1000) / 10, Copper = value % 10.
+    /// Character's currency purse.
     #[serde(default)]
-    pub wallet: u64,
+    pub wallet: Wallet,
     #[serde(skip)]
     pub active_effects: Vec<Effect>,
 }
@@ -101,7 +125,7 @@ impl Character {
             equipped_weapons: Vec::new(),
             equipped_equipment: BTreeMap::new(),
             inventory: Vec::new(),
-            wallet: 0,
+            wallet: Wallet::default(),
             active_effects: Vec::new(),
         };
         // Effects will be calculated after traits are assigned
@@ -136,28 +160,15 @@ impl Character {
         weapon_registry: &WeaponRegistry,
         equipment_registry: &EquipmentRegistry,
     ) {
-        self.active_effects.clear();
-        self.active_effects.extend(self.race.get_effects());
-        self.active_effects.extend(self.race.size().get_effects());
-        for trait_name in &self.traits {
-            if let Some(character_trait) = trait_registry.get(trait_name) {
-                self.active_effects
-                    .extend(character_trait.effects.iter().cloned());
-            }
-        }
-        for weapon_name in &self.equipped_weapons {
-            if let Some(weapon) = weapon_registry.get(weapon_name) {
-                self.active_effects.extend(weapon.effects.iter().cloned());
-            }
-        }
-        for names in self.equipped_equipment.values() {
-            for equipment_name in names {
-                if let Some(equipment) = equipment_registry.get(equipment_name) {
-                    self.active_effects
-                        .extend(equipment.effects.iter().cloned());
-                }
-            }
-        }
+        self.active_effects = collect_source_effects(
+            self.race,
+            &self.traits,
+            &self.equipped_weapons,
+            &self.equipped_equipment,
+            trait_registry,
+            weapon_registry,
+            equipment_registry,
+        );
     }
 
     /// Aggregates effect values of a specific kind, summing magnitudes per key.
@@ -204,4 +215,42 @@ impl Character {
             .sum();
         perception + bonus
     }
+}
+
+/// Collects effects from all sources: race, size, traits, weapons, equipment.
+pub fn collect_source_effects(
+    race: Race,
+    trait_names: &[String],
+    weapon_names: &[String],
+    equipped_equipment: &BTreeMap<EquipmentSlot, Vec<String>>,
+    trait_registry: &TraitRegistry,
+    weapon_registry: &WeaponRegistry,
+    equipment_registry: &EquipmentRegistry,
+) -> Vec<Effect> {
+    let mut effects = Vec::new();
+    effects.extend(race.get_effects());
+    effects.extend(race.size().get_effects());
+    for name in trait_names {
+        if let Some(ct) = trait_registry.get(name) {
+            effects.extend(ct.effects.iter().cloned());
+        }
+    }
+    for name in weapon_names {
+        if let Some(w) = weapon_registry.get(name) {
+            effects.extend(w.effects.iter().cloned());
+        }
+    }
+    for names in equipped_equipment.values() {
+        for name in names {
+            if let Some(eq) = equipment_registry.get(name) {
+                effects.extend(eq.effects.iter().cloned());
+            }
+        }
+    }
+    effects
+}
+
+/// XP required to advance from `level` to `level + 1`.
+pub fn xp_to_next_level(level: u32) -> u32 {
+    (level + 1) * 10
 }

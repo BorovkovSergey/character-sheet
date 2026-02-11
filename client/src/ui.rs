@@ -73,6 +73,24 @@ struct UiEvents<'w> {
     create_item: MessageWriter<'w, CreateItem>,
 }
 
+#[derive(SystemParam)]
+struct Registries<'w> {
+    traits: Res<'w, crate::network::ClientTraitRegistry>,
+    skills: Res<'w, crate::network::ClientSkillRegistry>,
+    abilities: Res<'w, crate::network::ClientAbilityRegistry>,
+    weapons: Res<'w, crate::network::ClientWeaponRegistry>,
+    equipment: Res<'w, crate::network::ClientEquipmentRegistry>,
+    items: Res<'w, crate::network::ClientItemRegistry>,
+}
+
+#[derive(SystemParam)]
+struct UiModals<'w> {
+    edit_mode: ResMut<'w, EditMode>,
+    learn_ability: ResMut<'w, LearnAbilityOpen>,
+    learn_trait: ResMut<'w, LearnTraitOpen>,
+    create_item: ResMut<'w, crate::create_item::CreateItemOpen>,
+}
+
 pub struct UiPlugin;
 
 impl Plugin for UiPlugin {
@@ -205,17 +223,9 @@ fn render_ui(
     mut contexts: EguiContexts,
     icons: Option<Res<UiIcons>>,
     character_query: Query<CharacterQueryData, With<ActiveCharacter>>,
-    trait_registry: Res<crate::network::ClientTraitRegistry>,
-    skill_registry: Res<crate::network::ClientSkillRegistry>,
-    ability_registry: Res<crate::network::ClientAbilityRegistry>,
-    weapon_registry: Res<crate::network::ClientWeaponRegistry>,
-    equipment_registry: Res<crate::network::ClientEquipmentRegistry>,
-    item_registry: Res<crate::network::ClientItemRegistry>,
+    registries: Registries,
     mut ui_events: UiEvents,
-    mut edit_mode: ResMut<EditMode>,
-    mut learn_ability_open: ResMut<LearnAbilityOpen>,
-    mut learn_trait_open: ResMut<LearnTraitOpen>,
-    mut create_item_open: ResMut<crate::create_item::CreateItemOpen>,
+    mut modals: UiModals,
     mut pending_messages: ResMut<crate::network::PendingClientMessages>,
     mut next_state: ResMut<NextState<AppScreen>>,
 ) -> Result {
@@ -255,14 +265,9 @@ fn render_ui(
                     col_h,
                     &icons,
                     &character,
-                    &weapon_registry,
-                    &equipment_registry,
-                    &item_registry,
+                    &registries,
                     &mut ui_events,
-                    &mut edit_mode,
-                    &mut learn_ability_open,
-                    &mut learn_trait_open,
-                    &mut create_item_open,
+                    &mut modals,
                 );
                 save_clicked = left_resp.save;
                 back_clicked = left_resp.back;
@@ -273,11 +278,9 @@ fn render_ui(
                     col_h,
                     &icons,
                     &character,
-                    &trait_registry,
-                    &skill_registry,
-                    &ability_registry,
+                    &registries,
                     &mut ui_events,
-                    edit_mode.0,
+                    modals.edit_mode.0,
                 );
                 ui.add_space(gap);
                 render_right_column(
@@ -286,9 +289,7 @@ fn render_ui(
                     col_h,
                     &icons,
                     &character,
-                    &weapon_registry,
-                    &equipment_registry,
-                    &item_registry,
+                    &registries,
                     &mut ui_events,
                 );
             });
@@ -306,7 +307,7 @@ fn render_ui(
     }
 
     // "Learn Ability" overlay
-    if learn_ability_open.0 {
+    if modals.learn_ability.0 {
         let screen = ctx.content_rect();
 
         // Semi-transparent backdrop that blocks interaction behind the dialog
@@ -318,7 +319,7 @@ fn render_ui(
                 ui.painter()
                     .rect_filled(rect, 0.0, egui::Color32::from_black_alpha(120));
                 if resp.clicked() {
-                    learn_ability_open.0 = false;
+                    modals.learn_ability.0 = false;
                 }
             });
 
@@ -359,7 +360,7 @@ fn render_ui(
                 let mut grid: [[Option<(&str, Option<u32>, bool, bool)>; 3]; 3] =
                     Default::default();
                 if let Some(class_abilities) =
-                    ability_registry.0.get_class_abilities(&character.class.0)
+                    registries.abilities.0.get_class_abilities(&character.class.0)
                 {
                     let known = &character.ability_names.0;
                     for (name, ability) in &class_abilities.acquire {
@@ -381,7 +382,7 @@ fn render_ui(
                 }
 
                 let ability_icon = icons.ability_placeholder.id();
-                let class_abilities = ability_registry.0.get_class_abilities(&character.class.0);
+                let class_abilities = registries.abilities.0.get_class_abilities(&character.class.0);
                 for (row_idx, &col_count) in rows.iter().enumerate() {
                     let y = content.min.y + (cell_h + gap) * row_idx as f32;
                     let x_offset = if col_count == 2 { half_offset } else { 0.0 };
@@ -413,7 +414,7 @@ fn render_ui(
                                     .learn_ability
                                     .write(LearnAbility(name.to_string()));
                                 if character.ability_pts.0 == 1 {
-                                    learn_ability_open.0 = false;
+                                    modals.learn_ability.0 = false;
                                 }
                             }
                             if response.hovered() {
@@ -494,19 +495,20 @@ fn render_ui(
     }
 
     // "Learn Trait" overlay
-    if learn_trait_open.0 {
+    if modals.learn_trait.0 {
         render_learn_trait_overlay(
             ctx,
             &character,
-            &trait_registry,
+            &registries.traits,
             &mut ui_events.learn_trait,
-            &mut learn_trait_open,
+            &mut modals.learn_trait,
         );
     }
 
     // "Create Item" overlay
-    if create_item_open.0 {
-        let skill_names: Vec<String> = skill_registry
+    if modals.create_item.0 {
+        let skill_names: Vec<String> = registries
+            .skills
             .0
             .classes
             .values()
@@ -514,7 +516,7 @@ fn render_ui(
             .collect();
         crate::create_item::render_create_item_popup(
             ctx,
-            &mut create_item_open,
+            &mut modals.create_item,
             &mut ui_events.create_item,
             &format_effect,
             &skill_names,
@@ -535,14 +537,9 @@ fn render_left_column(
     height: f32,
     icons: &UiIcons,
     character: &CharacterQueryDataItem,
-    weapon_registry: &crate::network::ClientWeaponRegistry,
-    equipment_registry: &crate::network::ClientEquipmentRegistry,
-    item_registry: &crate::network::ClientItemRegistry,
+    registries: &Registries,
     ui_events: &mut UiEvents,
-    edit_mode: &mut EditMode,
-    learn_ability_open: &mut LearnAbilityOpen,
-    learn_trait_open: &mut LearnTraitOpen,
-    create_item_open: &mut crate::create_item::CreateItemOpen,
+    modals: &mut UiModals,
 ) -> LeftColumnResponse {
     let gap = height * 0.03 / 4.0;
     let initiative =
@@ -559,14 +556,16 @@ fn render_left_column(
                 .layout(egui::Layout::top_down(egui::Align::Min)),
         );
         let add_item_menu =
-            build_add_item_menu(&weapon_registry.0, &equipment_registry.0, &item_registry.0);
+            build_add_item_menu(&registries.weapons.0, &registries.equipment.0, &registries.items.0);
+        let xp_fraction =
+            character.exp.0 as f32 / shared::xp_to_next_level(character.level.0) as f32;
         let portrait_resp = Portrait::new(
             icons.avatar_border_1.id(),
             icons.avatar_border_2.id(),
             icons.avatar_placeholder.id(),
             character.level.0,
-            character.exp.0,
-            edit_mode.0,
+            xp_fraction,
+            modals.edit_mode.0,
         )
         .shield(icons.shield.id(), character.effects.armor())
         .ability_points(character.ability_pts.0)
@@ -579,16 +578,16 @@ fn render_left_column(
             ui_events.experience.write(ExperienceChanged(exp));
         }
         if portrait_resp.toggle_edit {
-            edit_mode.0 = !edit_mode.0;
+            modals.edit_mode.0 = !modals.edit_mode.0;
         }
         if portrait_resp.open_learn_ability {
-            learn_ability_open.0 = true;
+            modals.learn_ability.0 = true;
         }
         if portrait_resp.open_learn_trait {
-            learn_trait_open.0 = true;
+            modals.learn_trait.0 = true;
         }
         if portrait_resp.open_create_item {
-            create_item_open.0 = true;
+            modals.create_item.0 = true;
         }
         if let Some(selection) = portrait_resp.add_item {
             let inv_item = match selection {
@@ -644,7 +643,7 @@ fn render_left_column(
             .0
             .iter()
             .filter_map(|name| {
-                weapon_registry.0.get(name).map(|w| WeaponSlot {
+                registries.weapons.0.get(name).map(|w| WeaponSlot {
                     name: w.name.clone(),
                     kind: w.kind.to_string(),
                     attack: format!("{:+}", w.attack),
@@ -799,9 +798,8 @@ fn apply_experience_changes(
     };
     for event in reader.read() {
         exp.0 += event.0;
-        // Level up: subtract (next_level * 10) XP each time the threshold is met.
         loop {
-            let needed = (level.0 + 1) * 10;
+            let needed = shared::xp_to_next_level(level.0);
             if exp.0 < needed {
                 break;
             }
@@ -989,19 +987,7 @@ fn check_trait_requirement(
         Some(shared::TraitCondition::CharacteristicsRequired {
             characteristic,
             lvl,
-        }) => {
-            let char_level = match characteristic {
-                CharacteristicKind::Strength => stats.strength.level,
-                CharacteristicKind::Dexterity => stats.dexterity.level,
-                CharacteristicKind::Endurance => stats.endurance.level,
-                CharacteristicKind::Perception => stats.perception.level,
-                CharacteristicKind::Magic => stats.magic.level,
-                CharacteristicKind::Willpower => stats.willpower.level,
-                CharacteristicKind::Intellect => stats.intellect.level,
-                CharacteristicKind::Charisma => stats.charisma.level,
-            };
-            char_level >= *lvl
-        }
+        }) => stats.get_level(*characteristic) >= *lvl,
         None => true,
     }
 }
@@ -1042,9 +1028,7 @@ fn render_center_column(
     height: f32,
     icons: &UiIcons,
     character: &CharacterQueryDataItem,
-    trait_registry: &crate::network::ClientTraitRegistry,
-    skill_registry: &crate::network::ClientSkillRegistry,
-    ability_registry: &crate::network::ClientAbilityRegistry,
+    registries: &Registries,
     ui_events: &mut UiEvents,
     edit_mode: bool,
 ) {
@@ -1088,14 +1072,8 @@ fn render_center_column(
             Points::new(character.char_pts.0, character.skill_pts.0),
         );
         ui.add_space(gap);
-        let char_bonuses = character.effects.characteristic_bonuses();
-        let effective_level = |kind: CharacteristicKind| -> u32 {
-            let base = stats.get_level(kind);
-            let bonus = char_bonuses.get(&kind).copied().unwrap_or(0);
-            (base as i32 + bonus).max(0) as u32
-        };
-
-        let skill_entries: Vec<SkillEntry> = skill_registry
+        let skill_entries: Vec<SkillEntry> = registries
+            .skills
             .0
             .get_class_skills(&character.class.0)
             .into_iter()
@@ -1108,7 +1086,7 @@ fn render_center_column(
                     .find(|s| s.name == *name)
                     .map_or(0, |s| s.level);
                 let skill_bonus = character.effects.skill_bonus(name);
-                let max_level = effective_level(skill.dependency);
+                let max_level = character.effects.effective_level(stats, skill.dependency);
                 SkillEntry {
                     name: name.clone(),
                     dependency: skill.dependency.to_string(),
@@ -1129,7 +1107,8 @@ fn render_center_column(
             .edit_mode(edit_mode, character.skill_pts.0)
             .show(&mut skill_ui)
         {
-            if let Some(name) = skill_registry
+            if let Some(name) = registries
+                .skills
                 .0
                 .get_class_skills(&character.class.0)
                 .into_iter()
@@ -1145,7 +1124,7 @@ fn render_center_column(
             .0
             .iter()
             .filter_map(|name| {
-                trait_registry.0.get(name).map(|ct| TraitEntry {
+                registries.traits.0.get(name).map(|ct| TraitEntry {
                     name: name.clone(),
                     description: ct.description.clone(),
                     effects: ct.effects.iter().map(format_effect).collect(),
@@ -1159,7 +1138,8 @@ fn render_center_column(
             .0
             .iter()
             .filter_map(|name| {
-                let ability = ability_registry
+                let ability = registries
+                    .abilities
                     .0
                     .get_class_abilities(&character.class.0)
                     .and_then(|ca| ca.innate.get(name).or_else(|| ca.acquire.get(name)));
@@ -1444,9 +1424,7 @@ fn render_right_column(
     height: f32,
     icons: &UiIcons,
     character: &CharacterQueryDataItem,
-    weapon_registry: &crate::network::ClientWeaponRegistry,
-    equipment_registry: &crate::network::ClientEquipmentRegistry,
-    item_registry: &crate::network::ClientItemRegistry,
+    registries: &Registries,
     ui_events: &mut UiEvents,
 ) {
     let gap = height * 0.03 / 2.0;
@@ -1458,7 +1436,8 @@ fn render_right_column(
         .iter()
         .map(|inv_item| match inv_item {
             shared::InventoryItem::Weapon(name) => {
-                weapon_registry
+                registries
+                    .weapons
                     .0
                     .get(name)
                     .map(|w| InventoryTooltip::Weapon {
@@ -1471,7 +1450,8 @@ fn render_right_column(
                     })
             }
             shared::InventoryItem::Equipment(name) => {
-                equipment_registry
+                registries
+                    .equipment
                     .0
                     .get(name)
                     .map(|e| InventoryTooltip::Equipment {
@@ -1482,7 +1462,7 @@ fn render_right_column(
                     })
             }
             shared::InventoryItem::Item(name) => {
-                item_registry.0.get(name).map(|i| InventoryTooltip::Item {
+                registries.items.0.get(name).map(|i| InventoryTooltip::Item {
                     name: i.name.clone(),
                     description: i.description.clone(),
                 })
@@ -1496,7 +1476,8 @@ fn render_right_column(
         .values()
         .flat_map(|names| names.iter())
         .map(|name| {
-            equipment_registry
+            registries
+                .equipment
                 .0
                 .get(name)
                 .map(|e| InventoryTooltip::Equipment {
@@ -1586,8 +1567,7 @@ fn apply_wallet_changes(
         return;
     };
     for event in reader.read() {
-        let new_val = wallet.0 as i64 + event.0;
-        wallet.0 = new_val.max(0) as u64;
+        wallet.add(event.0);
     }
 }
 
@@ -1703,7 +1683,7 @@ fn apply_create_item(
                     .weapons
                     .insert(item_name.clone(), weapon.clone());
                 inventory.0.push(InventoryItem::Weapon(item_name));
-                save_weapons_to_file(&weapon_registry.0);
+                save_to_json_file("data/weapons.json", weapon_registry.0.weapons.values().collect());
                 pending_messages
                     .0
                     .push(shared::ClientMessage::CreateWeapon {
@@ -1717,7 +1697,7 @@ fn apply_create_item(
                     .equipment
                     .insert(item_name.clone(), eq.clone());
                 inventory.0.push(InventoryItem::Equipment(item_name));
-                save_equipment_to_file(&equipment_registry.0);
+                save_to_json_file("data/equipment.json", equipment_registry.0.equipment.values().collect());
                 pending_messages
                     .0
                     .push(shared::ClientMessage::CreateEquipment {
@@ -1731,7 +1711,7 @@ fn apply_create_item(
                     .items
                     .insert(item_name.clone(), item.clone());
                 inventory.0.push(InventoryItem::Item(item_name));
-                save_items_to_file(&item_registry.0);
+                save_to_json_file("data/items.json", item_registry.0.items.values().collect());
                 pending_messages
                     .0
                     .push(shared::ClientMessage::CreateItem { item: item.clone() });
@@ -1741,49 +1721,16 @@ fn apply_create_item(
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn save_weapons_to_file(registry: &shared::WeaponRegistry) {
-    let weapons: Vec<&shared::Weapon> = registry.weapons.values().collect();
-    match serde_json::to_string_pretty(&weapons) {
-        Ok(json) => {
-            if let Err(e) = std::fs::write("data/weapons.json", json) {
-                warn!("Failed to save weapons.json: {e}");
-            }
-        }
-        Err(e) => warn!("Failed to serialize weapons: {e}"),
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-fn save_weapons_to_file(_registry: &shared::WeaponRegistry) {}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn save_equipment_to_file(registry: &shared::EquipmentRegistry) {
-    let equipment: Vec<&shared::Equipment> = registry.equipment.values().collect();
-    match serde_json::to_string_pretty(&equipment) {
-        Ok(json) => {
-            if let Err(e) = std::fs::write("data/equipment.json", json) {
-                warn!("Failed to save equipment.json: {e}");
-            }
-        }
-        Err(e) => warn!("Failed to serialize equipment: {e}"),
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-fn save_equipment_to_file(_registry: &shared::EquipmentRegistry) {}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn save_items_to_file(registry: &shared::ItemRegistry) {
-    let items: Vec<&shared::Item> = registry.items.values().collect();
+fn save_to_json_file<T: serde::Serialize>(path: &str, items: Vec<&T>) {
     match serde_json::to_string_pretty(&items) {
         Ok(json) => {
-            if let Err(e) = std::fs::write("data/items.json", json) {
-                warn!("Failed to save items.json: {e}");
+            if let Err(e) = std::fs::write(path, json) {
+                warn!("Failed to save {path}: {e}");
             }
         }
-        Err(e) => warn!("Failed to serialize items: {e}"),
+        Err(e) => warn!("Failed to serialize to {path}: {e}"),
     }
 }
 
 #[cfg(target_arch = "wasm32")]
-fn save_items_to_file(_registry: &shared::ItemRegistry) {}
+fn save_to_json_file<T>(_path: &str, _items: Vec<&T>) {}

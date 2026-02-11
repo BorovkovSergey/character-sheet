@@ -8,9 +8,9 @@ pub use character::{
     CharacteristicKindMarker, CharacteristicTrait, Characteristics, Charisma, Class,
     ClassAbilities, Dexterity, Effect, Endurance, EnemyCheck, Equipment, EquipmentRegistry,
     EquipmentSlot, GetEffects, Intellect, InventoryItem, Item, ItemRegistry, LearnScreenPosition,
-    Magic, MeleeKind, Perception, Protection, Race, RangeKind, Resist, Resource, Size, Skill,
-    SkillRegistry, Strength, TraitCondition, TraitRegistry, Weapon, WeaponGrip, WeaponKind,
-    WeaponRegistry, Willpower,
+    Magic, MeleeKind, Named, Perception, Protection, Race, RangeKind, Resist, Resource, Size, Skill,
+    SkillRegistry, Strength, TraitCondition, TraitRegistry, Wallet, Weapon, WeaponGrip, WeaponKind,
+    WeaponRegistry, Willpower, collect_source_effects, xp_to_next_level,
 };
 pub use messages::{ClientMessage, ServerMessage};
 pub use version::{CharacterFile, CharacterSummary, CharacterVersion, Timestamp, VersionSummary};

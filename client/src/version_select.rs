@@ -278,8 +278,7 @@ fn render_version_entry(
 
     let response = &frame_response.response;
     let hovered = response.contains_pointer();
-    let card_clicked =
-        hovered && !delete_clicked && ui.input(|i| i.pointer.primary_clicked());
+    let card_clicked = hovered && !delete_clicked && ui.input(|i| i.pointer.primary_clicked());
     ui.data_mut(|d| d.insert_temp(id, hovered));
 
     VersionEntryAction {

@@ -1,6 +1,7 @@
+use serde::de::DeserializeOwned;
 use shared::{
     Character, CharacterFile, CharacterSummary, CharacterVersion, Equipment, EquipmentRegistry,
-    Item, ItemRegistry, TraitRegistry, VersionSummary, Weapon, WeaponRegistry,
+    Item, ItemRegistry, Named, TraitRegistry, VersionSummary, Weapon, WeaponRegistry,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -429,45 +430,35 @@ impl CharacterStore {
         Some(summary)
     }
 
-    pub async fn save_weapon(&self, weapon: Weapon) -> Result<(), String> {
-        let path = self.data_dir.join("weapons.json");
-        let mut items: Vec<Weapon> = match tokio::fs::read_to_string(&path).await {
+    /// Upserts a named item into a JSON array file: reads existing items,
+    /// removes the one with the same name (if any), appends the new item, and writes back.
+    async fn upsert_named_item<T>(&self, filename: &str, item: T) -> Result<(), String>
+    where
+        T: Named + serde::Serialize + DeserializeOwned,
+    {
+        let path = self.data_dir.join(filename);
+        let mut items: Vec<T> = match tokio::fs::read_to_string(&path).await {
             Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
             Err(_) => Vec::new(),
         };
-        items.retain(|w| w.name != weapon.name);
-        items.push(weapon);
-        let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
-        tokio::fs::write(&path, json)
-            .await
-            .map_err(|e| e.to_string())
-    }
-
-    pub async fn save_equipment(&self, equipment: Equipment) -> Result<(), String> {
-        let path = self.data_dir.join("equipment.json");
-        let mut items: Vec<Equipment> = match tokio::fs::read_to_string(&path).await {
-            Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
-            Err(_) => Vec::new(),
-        };
-        items.retain(|e| e.name != equipment.name);
-        items.push(equipment);
-        let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
-        tokio::fs::write(&path, json)
-            .await
-            .map_err(|e| e.to_string())
-    }
-
-    pub async fn save_item(&self, item: Item) -> Result<(), String> {
-        let path = self.data_dir.join("items.json");
-        let mut items: Vec<Item> = match tokio::fs::read_to_string(&path).await {
-            Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
-            Err(_) => Vec::new(),
-        };
-        items.retain(|i| i.name != item.name);
+        let name = item.name().to_string();
+        items.retain(|existing| existing.name() != name);
         items.push(item);
         let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
         tokio::fs::write(&path, json)
             .await
             .map_err(|e| e.to_string())
+    }
+
+    pub async fn save_weapon(&self, weapon: Weapon) -> Result<(), String> {
+        self.upsert_named_item("weapons.json", weapon).await
+    }
+
+    pub async fn save_equipment(&self, equipment: Equipment) -> Result<(), String> {
+        self.upsert_named_item("equipment.json", equipment).await
+    }
+
+    pub async fn save_item(&self, item: Item) -> Result<(), String> {
+        self.upsert_named_item("items.json", item).await
     }
 }

@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use shared::character::OnLvlUp;
 use shared::{
     Character, CharacterSkill, CharacteristicKind, Characteristics, Class, Effect, EquipmentSlot,
-    GetEffects, InventoryItem, Protection, Race, Resist,
+    InventoryItem, Protection, Race, Resist, Wallet as SharedWallet,
 };
 use strum::IntoEnumIterator;
 use uuid::Uuid;
@@ -75,22 +75,8 @@ pub struct CharacterTraitNames(pub Vec<String>);
 #[derive(Component)]
 pub struct CharacterAbilityNames(pub Vec<String>);
 
-#[derive(Component)]
-pub struct Wallet(pub u64);
-
-impl Wallet {
-    pub fn gold(&self) -> u32 {
-        (self.0 / 1000) as u32
-    }
-
-    pub fn silver(&self) -> u32 {
-        ((self.0 % 1000) / 10) as u32
-    }
-
-    pub fn copper(&self) -> u32 {
-        (self.0 % 10) as u32
-    }
-}
+#[derive(Component, Deref, DerefMut)]
+pub struct Wallet(pub SharedWallet);
 
 #[derive(Component)]
 #[allow(dead_code)]
@@ -155,6 +141,24 @@ impl ActiveEffects {
             }
         }
         result
+    }
+
+    /// Returns the effective characteristic level (base + bonus from effects), minimum 0.
+    pub fn effective_level(
+        &self,
+        stats: &Characteristics,
+        kind: CharacteristicKind,
+    ) -> u32 {
+        let base = stats.get_level(kind);
+        let bonus: i32 = self
+            .0
+            .iter()
+            .filter_map(|e| match e {
+                Effect::Characteristic(k, v) if *k == kind => Some(*v),
+                _ => None,
+            })
+            .sum();
+        (base as i32 + bonus).max(0) as u32
     }
 
     pub fn skill_bonus(&self, skill_name: &str) -> i32 {
@@ -226,7 +230,6 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
         .id()
 }
 
-
 /// Recalculates active effects from race, traits, equipment, and base level-up bonuses.
 /// Applies all effect types: Characteristic bonuses flow into derived stats (protections, HP, mana),
 /// ActionPoints bonus adjusts AP max, and Mana effects add to max mana.
@@ -260,51 +263,26 @@ pub fn recalculate_effects(
     {
         let s = &stats.0;
 
-        // Step 1: Collect source effects (race, size, traits, weapons, equipment)
-        let mut source_effects: Vec<Effect> = Vec::new();
-        source_effects.extend(race.0.get_effects());
-        source_effects.extend(race.0.size().get_effects());
-        for trait_name in &traits.0 {
-            if let Some(ct) = trait_registry.0.get(trait_name) {
-                source_effects.extend(ct.effects.iter().cloned());
-            }
-        }
-        for weapon_name in &weapons.0 {
-            if let Some(w) = weapon_registry.0.get(weapon_name) {
-                source_effects.extend(w.effects.iter().cloned());
-            }
-        }
-        for names in equipment.0.values() {
-            for equipment_name in names {
-                if let Some(eq) = equipment_registry.0.get(equipment_name) {
-                    source_effects.extend(eq.effects.iter().cloned());
-                }
-            }
-        }
+        // Step 1: Collect source effects and store them so effective_level() works
+        effects.0 = shared::collect_source_effects(
+            race.0,
+            &traits.0,
+            &weapons.0,
+            &equipment.0,
+            &trait_registry.0,
+            &weapon_registry.0,
+            &equipment_registry.0,
+        );
 
-        // Step 2: Extract characteristic bonuses from source effects
-        let mut char_bonuses = BTreeMap::<CharacteristicKind, i32>::new();
-        for effect in &source_effects {
-            if let Effect::Characteristic(kind, v) = effect {
-                *char_bonuses.entry(*kind).or_insert(0) += v;
-            }
-        }
+        // Step 2: Compute effective characteristic levels (base + bonuses from source effects)
+        let eff_dexterity = effects.effective_level(s, CharacteristicKind::Dexterity);
+        let eff_endurance = effects.effective_level(s, CharacteristicKind::Endurance);
+        let eff_magic = effects.effective_level(s, CharacteristicKind::Magic);
+        let eff_willpower = effects.effective_level(s, CharacteristicKind::Willpower);
+        let eff_intellect = effects.effective_level(s, CharacteristicKind::Intellect);
 
-        // Step 3: Compute effective characteristic levels (base + bonus)
-        let effective_level = |kind: CharacteristicKind| -> u32 {
-            let base = s.get_level(kind);
-            let bonus = char_bonuses.get(&kind).copied().unwrap_or(0);
-            (base as i32 + bonus).max(0) as u32
-        };
-
-        let eff_dexterity = effective_level(CharacteristicKind::Dexterity);
-        let eff_endurance = effective_level(CharacteristicKind::Endurance);
-        let eff_magic = effective_level(CharacteristicKind::Magic);
-        let eff_willpower = effective_level(CharacteristicKind::Willpower);
-        let eff_intellect = effective_level(CharacteristicKind::Intellect);
-
-        // Step 4: Build default effects using effective levels
-        let default_effects = vec![
+        // Step 3: Prepend default effects (computed from effective levels)
+        let mut combined = vec![
             Effect::OnLvlUp(OnLvlUp::AddAbilityPoints(1)),
             Effect::OnLvlUp(OnLvlUp::AddSkillPoints(3 + eff_intellect as i32)),
             Effect::OnLvlUp(OnLvlUp::AddCharacteristicPoints(2)),
@@ -314,13 +292,10 @@ pub fn recalculate_effects(
             Effect::Protection(Protection::Mind, 10 + eff_willpower),
             // ProtectionRange comes from race size
         ];
+        combined.append(&mut effects.0);
+        effects.0 = combined;
 
-        // Step 5: Combine defaults + source effects
-        effects.0.clear();
-        effects.0.extend(default_effects);
-        effects.0.extend(source_effects);
-
-        // Step 6: Recompute HP max using effective endurance
+        // Step 4: Recompute HP max using effective endurance
         let new_max_hp = eff_endurance * 3 + 3;
         if hp.max != new_max_hp {
             let spent = hp.max.saturating_sub(hp.current);
@@ -328,7 +303,7 @@ pub fn recalculate_effects(
             hp.current = new_max_hp.saturating_sub(spent);
         }
 
-        // Step 7: Recompute Mana max using effective willpower + Mana effect bonuses
+        // Step 5: Recompute Mana max using effective willpower + Mana effect bonuses
         let mut new_max_mana = eff_willpower * 3 + 3;
         for effect in &effects.0 {
             if let Effect::Mana {
@@ -336,7 +311,7 @@ pub fn recalculate_effects(
                 increase_per_point,
             } = effect
             {
-                let dep_level = effective_level(*dependent) as i32;
+                let dep_level = effects.effective_level(s, *dependent) as i32;
                 new_max_mana = (new_max_mana as i32 + dep_level * increase_per_point).max(0) as u32;
             }
         }

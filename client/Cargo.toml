@@ -26,6 +26,7 @@ strum.workspace = true
 uuid.workspace = true
 image = { version = "0.25", default-features = false, features = ["png"] }
 ewebsock.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 
 # Required for WASM

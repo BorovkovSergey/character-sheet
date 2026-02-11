@@ -33,6 +33,45 @@ impl InventoryTooltip {
             }
         }
     }
+
+    /// Renders the appropriate tooltip card at the given position.
+    pub fn show_at(&self, ctx: &egui::Context, id: egui::Id, pos: egui::Pos2) {
+        match self {
+            Self::Weapon {
+                name,
+                kind,
+                attack,
+                damage,
+                range,
+                condition,
+            } => {
+                WeaponCard::new(name)
+                    .kind(kind)
+                    .attack(attack)
+                    .damage(damage)
+                    .range(range)
+                    .condition(condition)
+                    .show_at(ctx, id, pos);
+            }
+            Self::Equipment {
+                name,
+                slot,
+                description,
+                effects,
+            } => {
+                EquipmentCard::new(name)
+                    .slot(slot)
+                    .description(description)
+                    .effects(effects.clone())
+                    .show_at(ctx, id, pos);
+            }
+            Self::Item { name, description } => {
+                ItemCard::new(name)
+                    .description(description)
+                    .show_at(ctx, id, pos);
+            }
+        }
+    }
 }
 
 /// Action triggered from a cell context menu.
@@ -153,42 +192,7 @@ impl InventoryTable {
                 if let Some(Some(tooltip)) = self.items.get(i) {
                     let pos = response.hover_pos().unwrap_or(cell_rect.right_bottom())
                         + egui::vec2(8.0, 8.0);
-                    let id = response.id;
-                    match tooltip {
-                        InventoryTooltip::Weapon {
-                            name,
-                            kind,
-                            attack,
-                            damage,
-                            range,
-                            condition,
-                        } => {
-                            WeaponCard::new(name)
-                                .kind(kind)
-                                .attack(attack)
-                                .damage(damage)
-                                .range(range)
-                                .condition(condition)
-                                .show_at(ui.ctx(), id, pos);
-                        }
-                        InventoryTooltip::Equipment {
-                            name,
-                            slot,
-                            description,
-                            effects,
-                        } => {
-                            EquipmentCard::new(name)
-                                .slot(slot)
-                                .description(description)
-                                .effects(effects.clone())
-                                .show_at(ui.ctx(), id, pos);
-                        }
-                        InventoryTooltip::Item { name, description } => {
-                            ItemCard::new(name)
-                                .description(description)
-                                .show_at(ui.ctx(), id, pos);
-                        }
-                    }
+                    tooltip.show_at(ui.ctx(), response.id, pos);
                 }
             }
         }

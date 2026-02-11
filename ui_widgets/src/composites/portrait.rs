@@ -3,12 +3,7 @@ use std::collections::BTreeMap;
 use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{MAIN_COLOR, TEXT_COLOR};
 use crate::egui::{self, Align2, FontId, Stroke};
-use crate::molecules::{EquipmentCard, InventoryTooltip, ItemCard, WeaponCard};
-
-/// XP required to advance from `level` to `level + 1`.
-fn xp_to_next_level(level: u32) -> u32 {
-    (level + 1) * 10
-}
+use crate::molecules::InventoryTooltip;
 
 /// State stored in egui temp data for the "Add Experience" popup.
 #[derive(Clone)]
@@ -50,7 +45,7 @@ pub struct Portrait {
     avatar: egui::TextureId,
     shield: Option<egui::TextureId>,
     level: u32,
-    experience: u32,
+    xp_fraction: f32,
     edit_mode: bool,
     ability_points: u32,
     trait_points: u32,
@@ -64,7 +59,7 @@ impl Portrait {
         border_2: egui::TextureId,
         avatar: egui::TextureId,
         level: u32,
-        experience: u32,
+        xp_fraction: f32,
         edit_mode: bool,
     ) -> Self {
         Self {
@@ -72,7 +67,7 @@ impl Portrait {
             border_2,
             avatar,
             level,
-            experience,
+            xp_fraction,
             edit_mode,
             shield: None,
             ability_points: 0,
@@ -145,8 +140,7 @@ impl Portrait {
             .paint(&painter, arc_rect);
 
         // XP arc drawn on top
-        let xp_fraction = self.experience as f32 / xp_to_next_level(self.level) as f32;
-        paint_xp_arc(&painter, arc_rect, arc_thickness, xp_fraction);
+        paint_xp_arc(&painter, arc_rect, arc_thickness, self.xp_fraction);
 
         // Level text
         let level_text = self.level.to_string();
@@ -459,40 +453,5 @@ fn show_menu_tooltip(ui: &egui::Ui, resp: &egui::Response, tooltip: &InventoryTo
         return;
     }
     let pos = resp.rect.right_top() + egui::vec2(8.0, 0.0);
-    let id = resp.id;
-    match tooltip {
-        InventoryTooltip::Weapon {
-            name,
-            kind,
-            attack,
-            damage,
-            range,
-            condition,
-        } => {
-            WeaponCard::new(name)
-                .kind(kind)
-                .attack(attack)
-                .damage(damage)
-                .range(range)
-                .condition(condition)
-                .show_at(ui.ctx(), id, pos);
-        }
-        InventoryTooltip::Equipment {
-            name,
-            slot,
-            description,
-            effects,
-        } => {
-            EquipmentCard::new(name)
-                .slot(slot)
-                .description(description)
-                .effects(effects.clone())
-                .show_at(ui.ctx(), id, pos);
-        }
-        InventoryTooltip::Item { name, description } => {
-            ItemCard::new(name)
-                .description(description)
-                .show_at(ui.ctx(), id, pos);
-        }
-    }
+    tooltip.show_at(ui.ctx(), resp.id, pos);
 }
