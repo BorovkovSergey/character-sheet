@@ -27,10 +27,7 @@ echo "Copying static files..."
 sudo cp -r "$PROJECT_ROOT/server/static/"* "$APP_DIR/static/"
 
 echo "Copying data files..."
-BACKUP_DIR="$PROJECT_ROOT/backup/$(date +%Y-%m-%d_%H-%M-%S)"
-mkdir -p "$BACKUP_DIR"
-sudo cp "$APP_DIR/data/"* "$BACKUP_DIR/"
-sudo cp "$PROJECT_ROOT/data/"* "$APP_DIR/data/"
+sudo cp -r "$PROJECT_ROOT/data/"* "$APP_DIR/data/"
 
 # Set ownership
 sudo chown -R www-data:www-data "$APP_DIR"
