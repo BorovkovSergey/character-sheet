@@ -70,8 +70,7 @@ pub(super) fn render_learn_ability_overlay(
             // col maps to LearnScreenPosition.column.
             // Tuple: (name, mp_cost, can_learn, already_learned)
             let mut grid: [[Option<(&str, Option<u32>, bool, bool)>; 3]; 3] = Default::default();
-            if let Some(class_abilities) =
-                registries.abilities.get_class_abilities(character.class)
+            if let Some(class_abilities) = registries.abilities.get_class_abilities(character.class)
             {
                 let known: &[String] = character.ability_names;
                 for (name, ability) in &class_abilities.acquire {
@@ -93,8 +92,7 @@ pub(super) fn render_learn_ability_overlay(
             }
 
             let ability_icon = icons.ability_placeholder.id();
-            let class_abilities =
-                registries.abilities.get_class_abilities(character.class);
+            let class_abilities = registries.abilities.get_class_abilities(character.class);
             for (row_idx, &col_count) in rows.iter().enumerate() {
                 let y = content.min.y + (cell_h + gap) * row_idx as f32;
                 let x_offset = if col_count == 2 { half_offset } else { 0.0 };

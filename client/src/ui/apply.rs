@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use shared::character::OnLvlUp;
-use shared::{CharacteristicKind, CharacteristicTrait, Effect, EquipmentSlot, InventoryItem};
+use shared::{CharacteristicKind, Effect, EquipmentSlot, InventoryItem};
 
 use crate::components::{
     AbilityPoints, ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames,
@@ -371,9 +371,7 @@ pub(super) fn apply_create_item(
             }
             CreateItem::Item(item) => {
                 let item_name = item.name.clone();
-                item_registry
-                    .items
-                    .insert(item_name.clone(), item.clone());
+                item_registry.items.insert(item_name.clone(), item.clone());
                 inventory.push(InventoryItem::Item(item_name));
                 save_to_json_file("data/items.json", item_registry.items.values().collect());
                 pending_messages.push(shared::ClientMessage::CreateItem { item: item.clone() });

@@ -5,12 +5,11 @@ pub mod version;
 pub use character::{
     collect_source_effects, xp_to_next_level, Ability, AbilityCheck, AbilityRegistry,
     AbilityRequirements, AbilityType, AbilityUpgrade, Character, CharacterSkill, CharacterTrait,
-    Characteristic, CharacteristicKind, CharacteristicKindMarker, CharacteristicTrait,
-    Characteristics, Charisma, Class, ClassAbilities, Dexterity, Effect, Endurance, EnemyCheck,
-    Equipment, EquipmentRegistry, EquipmentSlot, GetEffects, Intellect, InventoryItem, Item,
-    ItemRegistry, LearnScreenPosition, Magic, MeleeKind, Named, Perception, Protection, Race,
-    RangeKind, Resist, Resource, Size, Skill, SkillRegistry, Strength, TraitCondition,
-    TraitRegistry, Wallet, Weapon, WeaponGrip, WeaponKind, WeaponRegistry, Willpower,
+    Characteristic, CharacteristicKind, Characteristics, Class, ClassAbilities, Effect, EnemyCheck,
+    Equipment, EquipmentRegistry, EquipmentSlot, GetEffects, InventoryItem, Item, ItemRegistry,
+    LearnScreenPosition, MeleeKind, Named, Protection, Race, RangeKind, Resist, Resource, Size,
+    Skill, SkillRegistry, TraitCondition, TraitRegistry, Wallet, Weapon, WeaponGrip, WeaponKind,
+    WeaponRegistry,
 };
 pub use messages::{ClientMessage, ServerMessage};
 pub use version::{CharacterFile, CharacterSummary, CharacterVersion, Timestamp, VersionSummary};

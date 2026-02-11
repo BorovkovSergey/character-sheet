@@ -202,8 +202,7 @@ fn render_left_column(
     modals: &mut UiModals,
 ) -> LeftColumnResponse {
     let gap = height * 0.03 / 4.0;
-    let initiative =
-        character.stats.perception.level as i32 + character.effects.initiative_bonus();
+    let initiative = character.stats.perception.level as i32 + character.effects.initiative_bonus();
 
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -585,11 +584,7 @@ fn render_center_column(
                     self_only: a.self_only,
                     range: a.requirements.as_ref().and_then(|r| r.range),
                     ability_type: a.ability_type.to_string(),
-                    check: a
-                        .check
-                        .as_ref()
-                        .map(|c| c.to_string())
-                        .unwrap_or_default(),
+                    check: a.check.as_ref().map(|c| c.to_string()).unwrap_or_default(),
                     enemy_check: a
                         .enemy_check
                         .as_ref()
@@ -650,13 +645,10 @@ fn render_right_column(
                     })
             }
             shared::InventoryItem::Item(name) => {
-                registries
-                    .items
-                    .get(name)
-                    .map(|i| InventoryTooltip::Item {
-                        name: i.name.clone(),
-                        description: i.description.clone(),
-                    })
+                registries.items.get(name).map(|i| InventoryTooltip::Item {
+                    name: i.name.clone(),
+                    description: i.description.clone(),
+                })
             }
         })
         .collect();

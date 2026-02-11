@@ -23,11 +23,7 @@ pub use ability::{
     ClassAbilities, EnemyCheck, LearnScreenPosition,
 };
 pub use character_trait::{CharacterTrait, TraitCondition, TraitRegistry};
-pub use characteristic::{
-    Characteristic, CharacteristicKind, CharacteristicKindMarker, CharacteristicTrait,
-    Characteristics, Charisma, Dexterity, Endurance, Intellect, Magic, Perception, Strength,
-    Willpower,
-};
+pub use characteristic::{Characteristic, CharacteristicKind, Characteristics};
 pub use class::Class;
 pub use effect::{Effect, GetEffects, OnLvlUp, Protection, Resist};
 pub use equipment::{Equipment, EquipmentRegistry, EquipmentSlot};
