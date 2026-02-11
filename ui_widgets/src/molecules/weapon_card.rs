@@ -8,6 +8,7 @@ pub struct WeaponCard {
     pub attack: String,
     pub damage: String,
     pub range: String,
+    pub condition: String,
 }
 
 impl WeaponCard {
@@ -18,6 +19,7 @@ impl WeaponCard {
             attack: String::new(),
             damage: String::new(),
             range: String::new(),
+            condition: String::new(),
         }
     }
 
@@ -38,6 +40,11 @@ impl WeaponCard {
 
     pub fn range(mut self, range: impl Into<String>) -> Self {
         self.range = range.into();
+        self
+    }
+
+    pub fn condition(mut self, condition: impl Into<String>) -> Self {
+        self.condition = condition.into();
         self
     }
 
@@ -98,6 +105,15 @@ impl WeaponCard {
                                 RichText::new(format!("Range: {}", self.range))
                                     .size(12.0)
                                     .color(TEXT_COLOR),
+                            );
+                        }
+                        if !self.condition.is_empty() {
+                            ui.add_space(2.0);
+                            ui.label(
+                                RichText::new(&self.condition)
+                                    .size(11.0)
+                                    .italics()
+                                    .color(STROKE_COLOR),
                             );
                         }
                     });

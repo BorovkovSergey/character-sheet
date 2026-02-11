@@ -11,6 +11,7 @@ pub enum InventoryTooltip {
         attack: String,
         damage: String,
         range: String,
+        condition: String,
     },
     Equipment {
         name: String,
@@ -23,6 +24,16 @@ pub enum InventoryTooltip {
         name: String,
         description: String,
     },
+}
+
+impl InventoryTooltip {
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Weapon { name, .. }
+            | Self::Equipment { name, .. }
+            | Self::Item { name, .. } => name,
+        }
+    }
 }
 
 /// Action triggered from a cell context menu.
@@ -119,24 +130,27 @@ impl InventoryTable {
                     .circle_filled(dot_center, dot_radius, crate::colors::STROKE_COLOR);
             }
 
+            let mut menu_open = false;
             if has_context && has_item {
-                response.context_menu(|ui| {
-                    if let Some(label) = &self.context_label {
-                        if ui.button(label.as_str()).clicked() {
-                            action = Some(CellAction::Primary(i));
-                            ui.close();
+                menu_open = response
+                    .context_menu(|ui| {
+                        if let Some(label) = &self.context_label {
+                            if ui.button(label.as_str()).clicked() {
+                                action = Some(CellAction::Primary(i));
+                                ui.close();
+                            }
                         }
-                    }
-                    if self.show_remove {
-                        if ui.button("Remove").clicked() {
-                            action = Some(CellAction::Remove(i));
-                            ui.close();
+                        if self.show_remove {
+                            if ui.button("Remove").clicked() {
+                                action = Some(CellAction::Remove(i));
+                                ui.close();
+                            }
                         }
-                    }
-                });
+                    })
+                    .is_some();
             }
 
-            if response.hovered() {
+            if response.hovered() && !menu_open {
                 if let Some(Some(tooltip)) = self.items.get(i) {
                     let pos = response.hover_pos().unwrap_or(cell_rect.right_bottom())
                         + egui::vec2(8.0, 8.0);
@@ -148,12 +162,14 @@ impl InventoryTable {
                             attack,
                             damage,
                             range,
+                            condition,
                         } => {
                             WeaponCard::new(name)
                                 .kind(kind)
                                 .attack(attack)
                                 .damage(damage)
                                 .range(range)
+                                .condition(condition)
                                 .show_at(ui.ctx(), id, pos);
                         }
                         InventoryTooltip::Equipment {

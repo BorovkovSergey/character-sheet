@@ -1,7 +1,7 @@
 use std::cell::Cell;
 
-use crate::colors::SECONDARY_COLOR;
-use crate::egui::{self, TextureId};
+use crate::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR};
+use crate::egui::{self, CornerRadius, RichText, Stroke, TextureId};
 use crate::molecules::{TitledBox, WeaponEntry};
 
 const SLOT_COUNT: usize = 3;
@@ -13,6 +13,7 @@ pub struct WeaponSlot {
     pub attack: String,
     pub damage: String,
     pub range: String,
+    pub condition: String,
 }
 
 /// Displays equipped weapon slots.
@@ -83,13 +84,41 @@ fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) 
                     }
                     entry.paint(ui.painter(), rect);
 
+                    let mut menu_open = false;
                     if has_weapon {
-                        response.context_menu(|ui| {
-                            if ui.button("Unequip").clicked() {
-                                action = Some(i);
-                                ui.close();
-                            }
-                        });
+                        menu_open = response
+                            .context_menu(|ui| {
+                                if ui.button("Unequip").clicked() {
+                                    action = Some(i);
+                                    ui.close();
+                                }
+                            })
+                            .is_some();
+                    }
+                    if let Some(slot) = slots.get(i) {
+                        if response.hovered() && !menu_open && !slot.condition.is_empty() {
+                            let pos =
+                                response.hover_pos().unwrap_or(rect.right_top())
+                                    + egui::vec2(8.0, 8.0);
+                            egui::Area::new(response.id.with("cond_tip"))
+                                .order(egui::Order::Tooltip)
+                                .fixed_pos(pos)
+                                .show(ui.ctx(), |ui| {
+                                    egui::Frame::NONE
+                                        .fill(MAIN_COLOR)
+                                        .stroke(Stroke::new(0.5, STROKE_COLOR))
+                                        .corner_radius(CornerRadius::same(6))
+                                        .inner_margin(6.0)
+                                        .show(ui, |ui| {
+                                            ui.label(
+                                                RichText::new(&slot.condition)
+                                                    .size(11.0)
+                                                    .italics()
+                                                    .color(crate::colors::TEXT_COLOR),
+                                            );
+                                        });
+                                });
+                        }
                     }
                 },
             );

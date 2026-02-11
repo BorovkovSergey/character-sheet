@@ -594,6 +594,7 @@ fn render_left_column(
                     attack: format!("{:+}", w.attack),
                     damage: w.damage.clone(),
                     range: w.range.to_string(),
+                    condition: w.condition.clone().unwrap_or_default(),
                 })
             })
             .collect();
@@ -621,23 +622,44 @@ fn build_add_item_menu(
     item_registry: &shared::ItemRegistry,
 ) -> AddItemMenu {
     use std::collections::BTreeMap;
+    use ui_widgets::molecules::InventoryTooltip;
 
-    let items: Vec<String> = item_registry.items.keys().cloned().collect();
+    let items: Vec<InventoryTooltip> = item_registry
+        .items
+        .values()
+        .map(|i| InventoryTooltip::Item {
+            name: i.name.clone(),
+            description: i.description.clone(),
+        })
+        .collect();
 
-    let mut equipment: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut equipment: BTreeMap<String, Vec<InventoryTooltip>> = BTreeMap::new();
     for eq in equipment_registry.equipment.values() {
         equipment
             .entry(eq.slot.to_string())
             .or_default()
-            .push(eq.name.clone());
+            .push(InventoryTooltip::Equipment {
+                name: eq.name.clone(),
+                slot: eq.slot.to_string(),
+                description: eq.description.clone(),
+                armor: eq.armor,
+                effects: eq.effects.iter().map(format_effect).collect(),
+            });
     }
 
-    let mut weapons: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut weapons: BTreeMap<String, Vec<InventoryTooltip>> = BTreeMap::new();
     for w in weapon_registry.weapons.values() {
         weapons
             .entry(w.kind.to_string())
             .or_default()
-            .push(w.name.clone());
+            .push(InventoryTooltip::Weapon {
+                name: w.name.clone(),
+                kind: w.kind.to_string(),
+                attack: format!("{:+}", w.attack),
+                damage: w.damage.clone(),
+                range: w.range.to_string(),
+                condition: w.condition.clone().unwrap_or_default(),
+            });
     }
 
     AddItemMenu {
@@ -1093,6 +1115,7 @@ fn render_right_column(
                         attack: format!("{:+}", w.attack),
                         damage: w.damage.clone(),
                         range: w.range.to_string(),
+                        condition: w.condition.clone().unwrap_or_default(),
                     })
             }
             shared::InventoryItem::Equipment(name) => {

@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{MAIN_COLOR, TEXT_COLOR};
 use crate::egui::{self, Align2, FontId, Stroke};
+use crate::molecules::{EquipmentCard, InventoryTooltip, ItemCard, WeaponCard};
 
 /// XP required to advance from `level` to `level + 1`.
 fn xp_to_next_level(level: u32) -> u32 {
@@ -18,9 +19,9 @@ struct AddExpPopupState {
 
 /// Data for the "Add item" context submenu.
 pub struct AddItemMenu {
-    pub items: Vec<String>,
-    pub equipment: BTreeMap<String, Vec<String>>,
-    pub weapons: BTreeMap<String, Vec<String>>,
+    pub items: Vec<InventoryTooltip>,
+    pub equipment: BTreeMap<String, Vec<InventoryTooltip>>,
+    pub weapons: BTreeMap<String, Vec<InventoryTooltip>>,
 }
 
 /// What the user selected from the "Add item" menu.
@@ -183,24 +184,31 @@ impl Portrait {
                 ui.menu_button("Add item", |ui| {
                     if !menu.items.is_empty() {
                         ui.menu_button("Item", |ui| {
-                            for name in &menu.items {
-                                if ui.button(name).clicked() {
-                                    add_item_selection = Some(AddItemSelection::Item(name.clone()));
+                            for tooltip in &menu.items {
+                                let resp = ui.button(tooltip.name());
+                                if resp.clicked() {
+                                    add_item_selection =
+                                        Some(AddItemSelection::Item(tooltip.name().to_owned()));
                                     ui.close();
                                 }
+                                show_menu_tooltip(ui, &resp, tooltip);
                             }
                         });
                     }
                     if !menu.equipment.is_empty() {
                         ui.menu_button("Equipment", |ui| {
-                            for (slot, names) in &menu.equipment {
+                            for (slot, tooltips) in &menu.equipment {
                                 ui.menu_button(slot, |ui| {
-                                    for name in names {
-                                        if ui.button(name).clicked() {
+                                    for tooltip in tooltips {
+                                        let resp = ui.button(tooltip.name());
+                                        if resp.clicked() {
                                             add_item_selection =
-                                                Some(AddItemSelection::Equipment(name.clone()));
+                                                Some(AddItemSelection::Equipment(
+                                                    tooltip.name().to_owned(),
+                                                ));
                                             ui.close();
                                         }
+                                        show_menu_tooltip(ui, &resp, tooltip);
                                     }
                                 });
                             }
@@ -208,14 +216,18 @@ impl Portrait {
                     }
                     if !menu.weapons.is_empty() {
                         ui.menu_button("Weapon", |ui| {
-                            for (kind, names) in &menu.weapons {
+                            for (kind, tooltips) in &menu.weapons {
                                 ui.menu_button(kind, |ui| {
-                                    for name in names {
-                                        if ui.button(name).clicked() {
+                                    for tooltip in tooltips {
+                                        let resp = ui.button(tooltip.name());
+                                        if resp.clicked() {
                                             add_item_selection =
-                                                Some(AddItemSelection::Weapon(name.clone()));
+                                                Some(AddItemSelection::Weapon(
+                                                    tooltip.name().to_owned(),
+                                                ));
                                             ui.close();
                                         }
+                                        show_menu_tooltip(ui, &resp, tooltip);
                                     }
                                 });
                             }
@@ -376,4 +388,50 @@ fn lerp_color(a: egui::Color32, b: egui::Color32, t: f32) -> egui::Color32 {
     let t = t.clamp(0.0, 1.0);
     let lerp = |a: u8, b: u8| -> u8 { (a as f32 + (b as f32 - a as f32) * t) as u8 };
     egui::Color32::from_rgb(lerp(a.r(), b.r()), lerp(a.g(), b.g()), lerp(a.b(), b.b()))
+}
+
+/// Shows a tooltip card next to a hovered menu button.
+fn show_menu_tooltip(ui: &egui::Ui, resp: &egui::Response, tooltip: &InventoryTooltip) {
+    if !resp.hovered() {
+        return;
+    }
+    let pos = resp.rect.right_top() + egui::vec2(8.0, 0.0);
+    let id = resp.id;
+    match tooltip {
+        InventoryTooltip::Weapon {
+            name,
+            kind,
+            attack,
+            damage,
+            range,
+            condition,
+        } => {
+            WeaponCard::new(name)
+                .kind(kind)
+                .attack(attack)
+                .damage(damage)
+                .range(range)
+                .condition(condition)
+                .show_at(ui.ctx(), id, pos);
+        }
+        InventoryTooltip::Equipment {
+            name,
+            slot,
+            description,
+            armor,
+            effects,
+        } => {
+            EquipmentCard::new(name)
+                .slot(slot)
+                .description(description)
+                .armor(*armor)
+                .effects(effects.clone())
+                .show_at(ui.ctx(), id, pos);
+        }
+        InventoryTooltip::Item { name, description } => {
+            ItemCard::new(name)
+                .description(description)
+                .show_at(ui.ctx(), id, pos);
+        }
+    }
 }
