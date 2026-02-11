@@ -21,7 +21,7 @@ struct CreateCharacterState {
     race_idx: usize,
     class_idx: usize,
     characteristic_points: u32,
-    skill_points: u32,
+    skill_points: i32,
     stats: Stats,
     skills: Vec<CharacterSkill>,
     selected_traits: Vec<String>,
@@ -36,7 +36,7 @@ impl Default for CreateCharacterState {
             race_idx: 0,
             class_idx: 0,
             characteristic_points: 18,
-            skill_points: 10 + intellect,
+            skill_points: 10 + intellect as i32,
             stats: Stats {
                 strength: shared::Characteristic::new(1),
                 dexterity: shared::Characteristic::new(1),
@@ -246,9 +246,8 @@ pub fn render_create_character_overlay(
             // Intellect change adjusts skill points
             let new_intellect = state.stats.intellect.level;
             if new_intellect != prev_intellect {
-                state.skill_points = (state.skill_points as i64 + new_intellect as i64
-                    - prev_intellect as i64)
-                    .max(0) as u32;
+                state.skill_points +=
+                    new_intellect as i32 - prev_intellect as i32;
             }
 
             ui.add_space(8.0);
@@ -282,7 +281,7 @@ pub fn render_create_character_overlay(
                     .layout(egui::Layout::top_down(egui::Align::Min)),
             );
             match Skills::new(skill_entries)
-                .edit_mode(true, state.skill_points)
+                .edit_mode(true, state.skill_points.max(0) as u32)
                 .show(&mut skill_ui)
             {
                 Some(GridAction::Upgrade(idx)) => {
@@ -298,8 +297,8 @@ pub fn render_create_character_overlay(
                             .unwrap_or(0);
 
                         if let Some(cs) = state.skills.iter_mut().find(|s| s.name == *skill_name) {
-                            let spent = cs.up(state.skill_points, max_level);
-                            state.skill_points -= spent;
+                            let spent = cs.up(state.skill_points.max(0) as u32, max_level);
+                            state.skill_points -= spent as i32;
                         } else if state.skill_points >= 1 && max_level >= 1 {
                             state.skills.push(CharacterSkill::new(skill_name.clone()));
                             state.skill_points -= 1;
@@ -317,7 +316,7 @@ pub fn render_create_character_overlay(
                             if cs.level > 0 {
                                 let refund = cs.level;
                                 cs.level -= 1;
-                                state.skill_points += refund;
+                                state.skill_points += refund as i32;
                             }
                         }
                     }

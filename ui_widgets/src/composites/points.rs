@@ -1,23 +1,23 @@
 use crate::atoms::{Shape, ShapeBox, Text};
-use crate::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
+use crate::colors::{ERROR_COLOR, MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 use crate::egui::{self, Align2, CornerRadius, Rect, Stroke, Widget};
 use crate::traits::{Roundable, WithText};
 
 /// Response from an editable Points widget.
 pub struct PointsResponse {
     pub characteristic_points: u32,
-    pub skill_points: u32,
+    pub skill_points: i32,
 }
 
 /// Displays two point pools side by side: Characteristic points and Skill points.
 pub struct Points {
     characteristic_points: u32,
-    skill_points: u32,
+    skill_points: i32,
     editable: bool,
 }
 
 impl Points {
-    pub fn new(characteristic_points: u32, skill_points: u32) -> Self {
+    pub fn new(characteristic_points: u32, skill_points: i32) -> Self {
         Self {
             characteristic_points,
             skill_points,
@@ -38,10 +38,10 @@ impl Points {
         let spacing_x = 4.0;
         let item_width = (available_width - spacing_x) / 2.0;
 
-        let mut char_pts = self.characteristic_points;
+        let mut char_pts = self.characteristic_points as i32;
         let mut skill_pts = self.skill_points;
 
-        let items: [(&str, &mut u32, CornerRadius); 2] = [
+        let items: [(&str, &mut i32, CornerRadius); 2] = [
             (
                 "Characteristic points",
                 &mut char_pts,
@@ -87,7 +87,7 @@ impl Points {
                     let prev_id = id.with("prev_val");
 
                     // Detect external value changes by comparing with last-stored value
-                    let prev_val: u32 = ui.data(|d| d.get_temp(prev_id)).unwrap_or(*value);
+                    let prev_val: i32 = ui.data(|d| d.get_temp(prev_id)).unwrap_or(*value);
                     let mut text: String = if prev_val != *value {
                         // External change — sync text to new value
                         value.to_string()
@@ -108,7 +108,8 @@ impl Points {
                     );
 
                     // Draw ShapeBox-style background
-                    painter.rect_filled(box_rect, CornerRadius::same(8), MAIN_COLOR);
+                    let box_fill = if *value < 0 { ERROR_COLOR } else { MAIN_COLOR };
+                    painter.rect_filled(box_rect, CornerRadius::same(8), box_fill);
                     painter.rect_stroke(
                         box_rect,
                         CornerRadius::same(8),
@@ -130,8 +131,8 @@ impl Points {
                         .margin(egui::Margin::ZERO);
 
                     if child.add(edit).changed() {
-                        text.retain(|c| c.is_ascii_digit());
-                        if let Ok(v) = text.parse::<u32>() {
+                        text.retain(|c| c.is_ascii_digit() || c == '-');
+                        if let Ok(v) = text.parse::<i32>() {
                             *value = v;
                         } else if text.is_empty() {
                             *value = 0;
@@ -155,7 +156,7 @@ impl Points {
         });
 
         PointsResponse {
-            characteristic_points: char_pts,
+            characteristic_points: char_pts.max(0) as u32,
             skill_points: skill_pts,
         }
     }

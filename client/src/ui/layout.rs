@@ -523,7 +523,7 @@ fn render_center_column(
         ui.add_space(gap);
         ui.add_sized(
             [width, height * 0.05],
-            Points::new(character.char_pts.0, character.skill_pts.0),
+            Points::new(character.char_pts.0, character.skill_pts.0 as i32),
         );
         ui.add_space(gap);
         let skill_entries: Vec<SkillEntry> = registries
