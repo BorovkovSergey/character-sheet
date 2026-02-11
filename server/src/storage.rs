@@ -1,7 +1,9 @@
 use serde::de::DeserializeOwned;
+use shared::character::CharacterSkill;
 use shared::{
-    Character, CharacterFile, CharacterSummary, CharacterVersion, Equipment, EquipmentRegistry,
-    Item, ItemRegistry, Named, TraitRegistry, VersionSummary, Weapon, WeaponRegistry,
+    Character, CharacterFile, CharacterSummary, CharacterVersion, Characteristics, Class,
+    Equipment, EquipmentRegistry, Item, ItemRegistry, Named, Race, Resource, TraitRegistry,
+    VersionSummary, Weapon, WeaponRegistry,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -291,8 +293,22 @@ impl CharacterStore {
         }
     }
 
-    pub async fn create(&self, name: String) -> CharacterSummary {
+    pub async fn create(
+        &self,
+        name: String,
+        race: Race,
+        class: Class,
+        stats: Characteristics,
+        skills: Vec<CharacterSkill>,
+        traits: Vec<String>,
+    ) -> CharacterSummary {
         let mut character = Character::new(name);
+        character.race = race;
+        character.class = class;
+        character.stats = stats;
+        character.skills = skills;
+        character.traits = traits;
+        character.action_points = Resource::new(race.base_action_points());
         character.recalculate_effects(
             &self.trait_registry,
             &self.weapon_registry,

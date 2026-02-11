@@ -40,11 +40,16 @@ mod tests {
     fn test_client_message_serialization() {
         let msg = ClientMessage::CreateCharacter {
             name: "Gandalf".to_string(),
+            race: Race::default(),
+            class: Class::default(),
+            stats: Characteristics::default(),
+            skills: Vec::new(),
+            traits: Vec::new(),
         };
         let bytes = serialize(&msg).unwrap();
         let decoded: ClientMessage = deserialize(&bytes).unwrap();
         match decoded {
-            ClientMessage::CreateCharacter { name } => assert_eq!(name, "Gandalf"),
+            ClientMessage::CreateCharacter { name, .. } => assert_eq!(name, "Gandalf"),
             _ => panic!("Wrong message type"),
         }
     }

@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::character::CharacterSkill;
 use crate::version::{CharacterSummary, Timestamp, VersionSummary};
-use crate::{Character, Equipment, Item, Weapon};
+use crate::{Character, Characteristics, Class, Equipment, Item, Race, Weapon};
 
 /// Messages sent from client to server
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,8 +17,15 @@ pub enum ClientMessage {
     /// Request a specific version of a character (latest if version is None)
     RequestCharacterVersion { id: Uuid, version: Option<u32> },
 
-    /// Create a new character with the given name
-    CreateCharacter { name: String },
+    /// Create a new character with customized data
+    CreateCharacter {
+        name: String,
+        race: Race,
+        class: Class,
+        stats: Characteristics,
+        skills: Vec<CharacterSkill>,
+        traits: Vec<String>,
+    },
 
     /// Delete a character by ID (all versions)
     DeleteCharacter { id: Uuid },

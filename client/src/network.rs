@@ -178,6 +178,7 @@ fn drain_ws(
 fn process_server_messages(
     mut commands: Commands,
     mut pending: ResMut<PendingServerMessages>,
+    mut pending_client: ResMut<PendingClientMessages>,
     mut character_list: ResMut<CharacterList>,
     mut version_list: ResMut<VersionList>,
     trait_registry: Res<ClientTraitRegistry>,
@@ -228,7 +229,11 @@ fn process_server_messages(
             }
             ServerMessage::CharacterCreated { summary } => {
                 info!("Character created: {}", summary.name);
+                let id = summary.id;
                 character_list.characters.push(summary);
+                pending_client
+                    .0
+                    .push(shared::ClientMessage::RequestCharacterVersion { id, version: None });
             }
             ServerMessage::CharacterUpdated { summary } => {
                 info!("Character updated: {}", summary.name);

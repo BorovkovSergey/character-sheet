@@ -89,7 +89,14 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Option<Se
                 }),
             }
         }
-        ClientMessage::CreateCharacter { name } => {
+        ClientMessage::CreateCharacter {
+            name,
+            race,
+            class,
+            stats,
+            skills,
+            traits,
+        } => {
             if name.trim().is_empty() {
                 return Some(ServerMessage::Error {
                     message: "Character name cannot be empty".to_string(),
@@ -100,7 +107,7 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Option<Se
                     message: "Character name cannot exceed 100 characters".to_string(),
                 });
             }
-            let summary = store.create(name).await;
+            let summary = store.create(name, race, class, stats, skills, traits).await;
             Some(ServerMessage::CharacterCreated { summary })
         }
         ClientMessage::DeleteCharacter { id } => {

@@ -119,6 +119,7 @@ fn render_character_select(
             &mut create_open,
             &skill_registry,
             &trait_registry,
+            &mut pending_messages,
         );
     }
 

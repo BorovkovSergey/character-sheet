@@ -59,6 +59,7 @@ pub fn render_create_character_overlay(
     create_open: &mut CreateCharacterOpen,
     skill_registry: &ClientSkillRegistry,
     trait_registry: &ClientTraitRegistry,
+    pending_messages: &mut crate::network::PendingClientMessages,
 ) {
     let screen = ctx.content_rect();
     let state_id = egui::Id::new("create_character_state");
@@ -382,7 +383,18 @@ pub fn render_create_character_overlay(
                         .min_size(egui::vec2(dialog_w * 0.5, 36.0));
 
                 if ui.add_enabled(can_create, button).clicked() {
-                    // TODO: send create message to server
+                    let selected_race = Race::iter().nth(state.race_idx).unwrap_or_default();
+                    let selected_class = Class::iter().nth(state.class_idx).unwrap_or_default();
+                    pending_messages
+                        .0
+                        .push(shared::ClientMessage::CreateCharacter {
+                            name: state.name.clone(),
+                            race: selected_race,
+                            class: selected_class,
+                            stats: state.stats.clone(),
+                            skills: state.skills.clone(),
+                            traits: state.selected_traits.clone(),
+                        });
                     state = CreateCharacterState::default();
                     create_open.0 = false;
                 }
