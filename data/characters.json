@@ -7,14 +7,8 @@
       "class": "Bard",
       "level": 0,
       "experience": 0,
-      "hp": {
-        "current": 11,
-        "max": 20
-      },
-      "mana": {
-        "current": 10,
-        "max": 10
-      },
+      "hp_spent": 3,
+      "mana_spent": 0,
       "action_points": {
         "current": 3,
         "max": 3
@@ -65,14 +59,8 @@
       "class": "Bard",
       "level": 5,
       "experience": 30,
-      "hp": {
-        "current": 35,
-        "max": 35
-      },
-      "mana": {
-        "current": 20,
-        "max": 20
-      },
+      "hp_spent": 0,
+      "mana_spent": 0,
       "action_points": {
         "current": 4,
         "max": 4
@@ -166,14 +154,8 @@
       "class": "Bard",
       "level": 3,
       "experience": 10,
-      "hp": {
-        "current": 24,
-        "max": 24
-      },
-      "mana": {
-        "current": 15,
-        "max": 15
-      },
+      "hp_spent": 0,
+      "mana_spent": 0,
       "action_points": {
         "current": 3,
         "max": 3
@@ -231,14 +213,8 @@
       "class": "Bard",
       "level": 8,
       "experience": 50,
-      "hp": {
-        "current": 52,
-        "max": 52
-      },
-      "mana": {
-        "current": 30,
-        "max": 30
-      },
+      "hp_spent": 0,
+      "mana_spent": 0,
       "action_points": {
         "current": 5,
         "max": 5
@@ -301,14 +277,8 @@
       "class": "Bard",
       "level": 0,
       "experience": 0,
-      "hp": {
-        "current": 20,
-        "max": 20
-      },
-      "mana": {
-        "current": 10,
-        "max": 10
-      },
+      "hp_spent": 0,
+      "mana_spent": 0,
       "action_points": {
         "current": 3,
         "max": 3
@@ -360,14 +330,8 @@
       "class": "Bard",
       "level": 6,
       "experience": 30,
-      "hp": {
-        "current": 42,
-        "max": 42
-      },
-      "mana": {
-        "current": 25,
-        "max": 25
-      },
+      "hp_spent": 0,
+      "mana_spent": 0,
       "action_points": {
         "current": 4,
         "max": 4
@@ -425,14 +389,8 @@
       "class": "Bard",
       "level": 10,
       "experience": 50,
-      "hp": {
-        "current": 60,
-        "max": 60
-      },
-      "mana": {
-        "current": 40,
-        "max": 40
-      },
+      "hp_spent": 0,
+      "mana_spent": 0,
       "action_points": {
         "current": 6,
         "max": 6

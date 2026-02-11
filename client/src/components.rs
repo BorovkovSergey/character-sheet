@@ -149,13 +149,19 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
             CharacterClass(character.class),
             Level(character.level),
             Experience(character.experience),
-            Hp {
-                current: character.hp.current,
-                max: character.hp.max,
+            {
+                let max = character.stats.endurance.level * 3 + 3;
+                Hp {
+                    current: max.saturating_sub(character.hp_spent),
+                    max,
+                }
             },
-            Mana {
-                current: character.mana.current,
-                max: character.mana.max,
+            {
+                let max = character.stats.willpower.level * 3 + 3;
+                Mana {
+                    current: max.saturating_sub(character.mana_spent),
+                    max,
+                }
             },
             ActionPoints {
                 current: character.action_points.current,
@@ -190,6 +196,8 @@ pub fn recalculate_effects(
             &CharacterEquipment,
             &CharacterStats,
             &mut ActiveEffects,
+            &mut Hp,
+            &mut Mana,
         ),
         Or<(
             Changed<CharacterRace>,
@@ -203,7 +211,7 @@ pub fn recalculate_effects(
     weapon_registry: Res<crate::network::ClientWeaponRegistry>,
     equipment_registry: Res<crate::network::ClientEquipmentRegistry>,
 ) {
-    for (race, traits, weapons, equipment, stats, mut effects) in &mut query {
+    for (race, traits, weapons, equipment, stats, mut effects, mut hp, mut mana) in &mut query {
         effects.0.clear();
 
         let s = &stats.0;
@@ -236,6 +244,21 @@ pub fn recalculate_effects(
                     effects.0.extend(eq.effects.iter().cloned());
                 }
             }
+        }
+
+        // Recompute max HP and Mana from stats
+        let new_max_hp = s.endurance.level * 3 + 3;
+        if hp.max != new_max_hp {
+            let spent = hp.max.saturating_sub(hp.current);
+            hp.max = new_max_hp;
+            hp.current = new_max_hp.saturating_sub(spent);
+        }
+
+        let new_max_mana = s.willpower.level * 3 + 3;
+        if mana.max != new_max_mana {
+            let spent = mana.max.saturating_sub(mana.current);
+            mana.max = new_max_mana;
+            mana.current = new_max_mana.saturating_sub(spent);
         }
     }
 }

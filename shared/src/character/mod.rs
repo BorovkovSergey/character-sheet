@@ -45,8 +45,12 @@ pub struct Character {
     pub class: Class,
     pub level: u32,
     pub experience: u32,
-    pub hp: Resource,
-    pub mana: Resource,
+    /// Damage taken (max HP is computed from Endurance * 3 + 3).
+    #[serde(default)]
+    pub hp_spent: u32,
+    /// Mana spent (max Mana is computed from Willpower * 3 + 3).
+    #[serde(default)]
+    pub mana_spent: u32,
     pub action_points: Resource,
     pub stats: Characteristics,
     pub characteristic_points: u32,
@@ -83,8 +87,8 @@ impl Character {
             class: Class::default(),
             level: 0,
             experience: 0,
-            hp: Resource::new(20),
-            mana: Resource::new(10),
+            hp_spent: 0,
+            mana_spent: 0,
             action_points: Resource::new(3),
             stats: Characteristics::default(),
             characteristic_points: 0,
