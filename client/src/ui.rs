@@ -15,17 +15,17 @@ use crate::components::{
     AbilityPoints, ActionPoints, ActiveCharacter, ActiveEffects, CharacterAbilityNames,
     CharacterClass, CharacterEquipment, CharacterName, CharacterRace, CharacterSkillList,
     CharacterStats, CharacterTraitNames, CharacterWeaponNames, CharacteristicPoints, Experience,
-    Hp, Inventory as InventoryComponent, Level, Mana, SkillPoints, Wallet,
+    Hp, Inventory as InventoryComponent, Level, Mana, SkillPoints, TraitPoints, Wallet,
 };
 use crate::events::{
-    CreateItem, ExperienceChanged, InventoryChanged, LearnAbility, LevelUp, ResourceChanged,
-    UpgradeEvent, WalletChanged,
+    CreateItem, ExperienceChanged, InventoryChanged, LearnAbility, LearnTrait, LevelUp,
+    ResourceChanged, UpgradeEvent, WalletChanged,
 };
 use crate::state::AppScreen;
 use shared::character::OnLvlUp;
 use shared::{
-    AbilityCheck, AbilityType, CharacteristicKind, CharacteristicTrait, Effect, EquipmentSlot,
-    InventoryItem,
+    AbilityCheck, AbilityType, CharacterTrait, CharacteristicKind, CharacteristicTrait, Effect,
+    EquipmentSlot, InventoryItem,
 };
 
 #[derive(Resource)]
@@ -56,6 +56,9 @@ pub struct EditMode(pub bool);
 #[derive(Resource, Default)]
 pub struct LearnAbilityOpen(pub bool);
 
+#[derive(Resource, Default)]
+pub struct LearnTraitOpen(pub bool);
+
 #[derive(SystemParam)]
 struct UiEvents<'w> {
     resource: MessageWriter<'w, ResourceChanged>,
@@ -64,6 +67,7 @@ struct UiEvents<'w> {
     experience: MessageWriter<'w, ExperienceChanged>,
     upgrade: MessageWriter<'w, UpgradeEvent>,
     learn_ability: MessageWriter<'w, LearnAbility>,
+    learn_trait: MessageWriter<'w, LearnTrait>,
     create_item: MessageWriter<'w, CreateItem>,
 }
 
@@ -73,6 +77,7 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<EditMode>()
             .init_resource::<LearnAbilityOpen>()
+            .init_resource::<LearnTraitOpen>()
             .init_resource::<crate::create_item::CreateItemOpen>()
             .add_message::<ResourceChanged>()
             .add_message::<WalletChanged>()
@@ -81,6 +86,7 @@ impl Plugin for UiPlugin {
             .add_message::<LevelUp>()
             .add_message::<UpgradeEvent>()
             .add_message::<LearnAbility>()
+            .add_message::<LearnTrait>()
             .add_message::<CreateItem>()
             .add_systems(
                 EguiPrimaryContextPass,
@@ -99,6 +105,7 @@ impl Plugin for UiPlugin {
                     apply_level_up,
                     apply_upgrades,
                     apply_learn_ability,
+                    apply_learn_trait,
                 ),
             )
             .add_systems(Update, apply_create_item);
@@ -181,6 +188,7 @@ struct CharacterQueryData {
     char_pts: &'static CharacteristicPoints,
     skill_pts: &'static SkillPoints,
     ability_pts: &'static AbilityPoints,
+    trait_pts: &'static TraitPoints,
     skills: &'static CharacterSkillList,
     wallet: &'static Wallet,
     weapon_names: &'static CharacterWeaponNames,
@@ -202,6 +210,7 @@ fn render_ui(
     mut ui_events: UiEvents,
     mut edit_mode: ResMut<EditMode>,
     mut learn_ability_open: ResMut<LearnAbilityOpen>,
+    mut learn_trait_open: ResMut<LearnTraitOpen>,
     mut create_item_open: ResMut<crate::create_item::CreateItemOpen>,
 ) -> Result {
     let Some(icons) = icons else {
@@ -243,6 +252,7 @@ fn render_ui(
                     &mut ui_events,
                     &mut edit_mode,
                     &mut learn_ability_open,
+                    &mut learn_trait_open,
                     &mut create_item_open,
                 );
                 ui.add_space(gap);
@@ -461,6 +471,17 @@ fn render_ui(
             });
     }
 
+    // "Learn Trait" overlay
+    if learn_trait_open.0 {
+        render_learn_trait_overlay(
+            ctx,
+            &character,
+            &trait_registry,
+            &mut ui_events.learn_trait,
+            &mut learn_trait_open,
+        );
+    }
+
     // "Create Item" overlay
     if create_item_open.0 {
         let skill_names: Vec<String> = skill_registry
@@ -493,6 +514,7 @@ fn render_left_column(
     ui_events: &mut UiEvents,
     edit_mode: &mut EditMode,
     learn_ability_open: &mut LearnAbilityOpen,
+    learn_trait_open: &mut LearnTraitOpen,
     create_item_open: &mut crate::create_item::CreateItemOpen,
 ) {
     let gap = height * 0.03 / 4.0;
@@ -520,6 +542,7 @@ fn render_left_column(
             edit_mode.0,
         )
         .ability_points(character.ability_pts.0)
+        .trait_points(character.trait_pts.0)
         .add_item_menu(add_item_menu)
         .show(&mut portrait_ui);
         if let Some(exp) = portrait_resp.add_exp {
@@ -530,6 +553,9 @@ fn render_left_column(
         }
         if portrait_resp.open_learn_ability {
             learn_ability_open.0 = true;
+        }
+        if portrait_resp.open_learn_trait {
+            learn_trait_open.0 = true;
         }
         if portrait_resp.open_create_item {
             create_item_open.0 = true;
@@ -752,22 +778,31 @@ fn apply_experience_changes(
 }
 
 /// Applies all OnLvlUp effects from active effects on level up.
+/// Also grants 1 trait point every 3 levels.
 fn apply_level_up(
     mut query: Query<
         (
+            &Level,
             &ActiveEffects,
             &mut AbilityPoints,
             &mut SkillPoints,
             &mut CharacteristicPoints,
+            &mut TraitPoints,
         ),
         With<ActiveCharacter>,
     >,
     mut reader: MessageReader<LevelUp>,
 ) {
-    let Ok((effects, mut ability_pts, mut skill_pts, mut char_pts)) = query.single_mut() else {
+    let Ok((level, effects, mut ability_pts, mut skill_pts, mut char_pts, mut trait_pts)) =
+        query.single_mut()
+    else {
         return;
     };
-    for _ in reader.read() {
+    let level_ups: u32 = reader.read().count() as u32;
+    if level_ups == 0 {
+        return;
+    }
+    for _ in 0..level_ups {
         for effect in &effects.0 {
             if let Effect::OnLvlUp(on_lvl_up) = effect {
                 match on_lvl_up {
@@ -784,6 +819,9 @@ fn apply_level_up(
             }
         }
     }
+    // Grant 1 trait point for each level divisible by 3 that was crossed.
+    let prev_level = level.0 - level_ups;
+    trait_pts.0 += level.0 / 3 - prev_level / 3;
 }
 
 /// Applies characteristic and skill upgrades from edit mode.
@@ -881,6 +919,58 @@ fn apply_learn_ability(
             abilities.0.push(event.0.clone());
             pts.0 -= 1;
         }
+    }
+}
+
+/// Learns a trait: validates conditions, adds it to the character's trait list and deducts one trait point.
+fn apply_learn_trait(
+    mut query: Query<
+        (&mut CharacterTraitNames, &mut TraitPoints, &CharacterStats),
+        With<ActiveCharacter>,
+    >,
+    mut reader: MessageReader<LearnTrait>,
+    trait_registry: Res<crate::network::ClientTraitRegistry>,
+) {
+    let Ok((mut traits, mut pts, stats)) = query.single_mut() else {
+        return;
+    };
+    for event in reader.read() {
+        if pts.0 == 0 || traits.0.contains(&event.0) {
+            continue;
+        }
+        let Some(ct) = trait_registry.0.get(&event.0) else {
+            continue;
+        };
+        if !check_trait_requirement(&stats.0, ct.condition.as_ref()) {
+            continue;
+        }
+        traits.0.push(event.0.clone());
+        pts.0 -= 1;
+    }
+}
+
+fn check_trait_requirement(
+    stats: &shared::Characteristics,
+    condition: Option<&shared::TraitCondition>,
+) -> bool {
+    match condition {
+        Some(shared::TraitCondition::CharacteristicsRequired {
+            characteristic,
+            lvl,
+        }) => {
+            let char_level = match characteristic {
+                CharacteristicKind::Strength => stats.strength.level,
+                CharacteristicKind::Dexterity => stats.dexterity.level,
+                CharacteristicKind::Endurance => stats.endurance.level,
+                CharacteristicKind::Perception => stats.perception.level,
+                CharacteristicKind::Magic => stats.magic.level,
+                CharacteristicKind::Willpower => stats.willpower.level,
+                CharacteristicKind::Intellect => stats.intellect.level,
+                CharacteristicKind::Charisma => stats.charisma.level,
+            };
+            char_level >= *lvl
+        }
+        None => true,
     }
 }
 
@@ -1043,6 +1133,206 @@ fn render_center_column(
             ui_events.resource.write(ResourceChanged::Mp(new_mp));
         }
     });
+}
+
+/// State stored in egui temp data for the "Learn Trait" dialog.
+#[derive(Clone, Default)]
+struct LearnTraitDialogState {
+    selected: Option<String>,
+}
+
+fn render_learn_trait_overlay(
+    ctx: &egui::Context,
+    character: &CharacterQueryDataItem,
+    trait_registry: &crate::network::ClientTraitRegistry,
+    learn_trait_events: &mut MessageWriter<LearnTrait>,
+    learn_trait_open: &mut LearnTraitOpen,
+) {
+    let screen = ctx.content_rect();
+    let state_id = egui::Id::new("learn_trait_state");
+
+    // Semi-transparent backdrop
+    egui::Area::new(egui::Id::new("learn_trait_backdrop"))
+        .order(egui::Order::Middle)
+        .fixed_pos(screen.min)
+        .show(ctx, |ui| {
+            let (rect, resp) = ui.allocate_exact_size(screen.size(), egui::Sense::click());
+            ui.painter()
+                .rect_filled(rect, 0.0, egui::Color32::from_black_alpha(120));
+            if resp.clicked() {
+                learn_trait_open.0 = false;
+                ctx.data_mut(|d| d.remove::<LearnTraitDialogState>(state_id));
+            }
+        });
+
+    // Centered dialog
+    let dialog_size = egui::vec2(screen.width() * 0.4, screen.height() * 0.6);
+    let dialog_pos = egui::pos2(
+        screen.center().x - dialog_size.x / 2.0,
+        screen.center().y - dialog_size.y / 2.0,
+    );
+
+    egui::Area::new(egui::Id::new("learn_trait_dialog"))
+        .order(egui::Order::Foreground)
+        .fixed_pos(dialog_pos)
+        .show(ctx, |ui| {
+            let (rect, _) = ui.allocate_exact_size(dialog_size, egui::Sense::hover());
+            ui.painter()
+                .rect_filled(rect, egui::CornerRadius::same(16), MAIN_COLOR);
+            ui.painter().rect_stroke(
+                rect,
+                egui::CornerRadius::same(16),
+                egui::Stroke::new(1.0, egui::Color32::from_gray(200)),
+                egui::StrokeKind::Inside,
+            );
+
+            let pad = 16.0;
+            let content = rect.shrink(pad);
+
+            // Title
+            let title_height = 30.0;
+            let title_rect =
+                egui::Rect::from_min_size(content.min, egui::vec2(content.width(), title_height));
+            ui.painter().text(
+                title_rect.center(),
+                egui::Align2::CENTER_CENTER,
+                "Learn Trait",
+                egui::FontId::proportional(20.0),
+                ui_widgets::colors::TEXT_COLOR,
+            );
+
+            // Buttons area at the bottom
+            let button_height = 36.0;
+            let button_area_top = content.max.y - button_height;
+
+            // Scrollable list area
+            let list_top = content.min.y + title_height + 8.0;
+            let list_rect = egui::Rect::from_min_max(
+                egui::pos2(content.min.x, list_top),
+                egui::pos2(content.max.x, button_area_top - 8.0),
+            );
+
+            let mut state: LearnTraitDialogState =
+                ctx.data(|d| d.get_temp(state_id)).unwrap_or_default();
+
+            let known_traits = &character.trait_names.0;
+
+            // Build sorted list of all traits
+            let mut all_traits: Vec<(&String, &CharacterTrait)> =
+                trait_registry.0.traits.iter().collect();
+            all_traits.sort_by_key(|(name, _)| (*name).clone());
+
+            // Scrollable list with radio buttons
+            let mut list_ui = ui.new_child(
+                egui::UiBuilder::new()
+                    .max_rect(list_rect)
+                    .layout(egui::Layout::top_down(egui::Align::Min)),
+            );
+            egui::ScrollArea::vertical()
+                .id_salt("learn_trait_scroll")
+                .auto_shrink(false)
+                .show(&mut list_ui, |ui| {
+                    for (name, ct) in &all_traits {
+                        let already_learned = known_traits.contains(name);
+                        let meets_requirement =
+                            check_trait_requirement(&character.stats.0, ct.condition.as_ref());
+                        let available = !already_learned && meets_requirement;
+                        let is_selected = state.selected.as_deref() == Some(name.as_str());
+
+                        ui.horizontal(|ui| {
+                            if !available {
+                                ui.disable();
+                            }
+
+                            if ui.radio(is_selected, "").clicked() && available {
+                                state.selected = Some((*name).clone());
+                            }
+
+                            ui.vertical(|ui| {
+                                let label = if already_learned {
+                                    format!("{} (learned)", name)
+                                } else {
+                                    (*name).clone()
+                                };
+                                ui.label(
+                                    egui::RichText::new(label)
+                                        .strong()
+                                        .size(14.0)
+                                        .color(ui_widgets::colors::TEXT_COLOR),
+                                );
+                                ui.label(
+                                    egui::RichText::new(&ct.description)
+                                        .size(12.0)
+                                        .color(egui::Color32::GRAY),
+                                );
+                                if !ct.effects.is_empty() {
+                                    let effects_text: Vec<String> =
+                                        ct.effects.iter().map(format_effect).collect();
+                                    ui.label(
+                                        egui::RichText::new(effects_text.join(", "))
+                                            .size(11.0)
+                                            .color(egui::Color32::from_rgb(0x00, 0x99, 0x66)),
+                                    );
+                                }
+                                if let Some(shared::TraitCondition::CharacteristicsRequired {
+                                    characteristic,
+                                    lvl,
+                                }) = &ct.condition
+                                {
+                                    let color = if meets_requirement {
+                                        egui::Color32::from_rgb(0x99, 0x66, 0x00)
+                                    } else {
+                                        egui::Color32::from_rgb(0xCC, 0x33, 0x33)
+                                    };
+                                    ui.label(
+                                        egui::RichText::new(format!(
+                                            "Requires: {} {}",
+                                            characteristic, lvl
+                                        ))
+                                        .size(11.0)
+                                        .italics()
+                                        .color(color),
+                                    );
+                                }
+                            });
+                        });
+                        ui.add_space(4.0);
+                    }
+                });
+
+            // Buttons
+            let button_rect = egui::Rect::from_min_size(
+                egui::pos2(content.min.x, button_area_top),
+                egui::vec2(content.width(), button_height),
+            );
+            let mut button_ui = ui.new_child(
+                egui::UiBuilder::new()
+                    .max_rect(button_rect)
+                    .layout(egui::Layout::right_to_left(egui::Align::Center)),
+            );
+
+            let can_confirm = state.selected.as_ref().is_some_and(|name| {
+                character.trait_pts.0 > 0 && !known_traits.contains(name)
+            });
+            if button_ui
+                .add_enabled(can_confirm, egui::Button::new("Confirm"))
+                .clicked()
+            {
+                if let Some(name) = &state.selected {
+                    if !known_traits.contains(name) {
+                        learn_trait_events.write(LearnTrait(name.clone()));
+                    }
+                }
+                learn_trait_open.0 = false;
+                ctx.data_mut(|d| d.remove::<LearnTraitDialogState>(state_id));
+            }
+            if button_ui.button("Cancel").clicked() {
+                learn_trait_open.0 = false;
+                ctx.data_mut(|d| d.remove::<LearnTraitDialogState>(state_id));
+            }
+
+            ctx.data_mut(|d| d.insert_temp(state_id, state));
+        });
 }
 
 fn format_effect(effect: &Effect) -> String {

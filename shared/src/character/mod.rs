@@ -53,6 +53,8 @@ pub struct Character {
     pub skill_points: u32,
     #[serde(default)]
     pub ability_points: u32,
+    #[serde(default)]
+    pub trait_points: u32,
     pub skills: Vec<CharacterSkill>,
     #[serde(default)]
     pub traits: Vec<String>,
@@ -88,6 +90,7 @@ impl Character {
             characteristic_points: 0,
             skill_points: 0,
             ability_points: 0,
+            trait_points: 0,
             skills: Vec::new(),
             traits: Vec::new(),
             abilities: Vec::new(),

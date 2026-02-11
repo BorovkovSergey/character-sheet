@@ -63,6 +63,9 @@ pub struct SkillPoints(pub u32);
 pub struct AbilityPoints(pub u32);
 
 #[derive(Component)]
+pub struct TraitPoints(pub u32);
+
+#[derive(Component)]
 #[allow(dead_code)]
 pub struct CharacterSkillList(pub Vec<CharacterSkill>);
 
@@ -164,6 +167,7 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
             CharacteristicPoints(character.characteristic_points),
             SkillPoints(character.skill_points),
             AbilityPoints(character.ability_points),
+            TraitPoints(character.trait_points),
             CharacterSkillList(character.skills.clone()),
             CharacterTraitNames(character.traits.clone()),
             CharacterAbilityNames(character.abilities.clone()),

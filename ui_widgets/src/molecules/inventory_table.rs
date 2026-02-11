@@ -29,9 +29,9 @@ pub enum InventoryTooltip {
 impl InventoryTooltip {
     pub fn name(&self) -> &str {
         match self {
-            Self::Weapon { name, .. }
-            | Self::Equipment { name, .. }
-            | Self::Item { name, .. } => name,
+            Self::Weapon { name, .. } | Self::Equipment { name, .. } | Self::Item { name, .. } => {
+                name
+            }
         }
     }
 }

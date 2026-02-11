@@ -97,9 +97,8 @@ fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) 
                     }
                     if let Some(slot) = slots.get(i) {
                         if response.hovered() && !menu_open && !slot.condition.is_empty() {
-                            let pos =
-                                response.hover_pos().unwrap_or(rect.right_top())
-                                    + egui::vec2(8.0, 8.0);
+                            let pos = response.hover_pos().unwrap_or(rect.right_top())
+                                + egui::vec2(8.0, 8.0);
                             egui::Area::new(response.id.with("cond_tip"))
                                 .order(egui::Order::Tooltip)
                                 .fixed_pos(pos)

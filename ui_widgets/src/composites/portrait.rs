@@ -36,6 +36,7 @@ pub struct PortraitResponse {
     pub add_exp: Option<u32>,
     pub toggle_edit: bool,
     pub open_learn_ability: bool,
+    pub open_learn_trait: bool,
     pub open_create_item: bool,
     pub add_item: Option<AddItemSelection>,
 }
@@ -49,6 +50,7 @@ pub struct Portrait {
     experience: u32,
     edit_mode: bool,
     ability_points: u32,
+    trait_points: u32,
     add_item_menu: Option<AddItemMenu>,
 }
 
@@ -69,12 +71,18 @@ impl Portrait {
             experience,
             edit_mode,
             ability_points: 0,
+            trait_points: 0,
             add_item_menu: None,
         }
     }
 
     pub fn ability_points(mut self, points: u32) -> Self {
         self.ability_points = points;
+        self
+    }
+
+    pub fn trait_points(mut self, points: u32) -> Self {
+        self.trait_points = points;
         self
     }
 
@@ -143,6 +151,7 @@ impl Portrait {
         let popup_id = response.id.with("add_exp");
         let mut toggle_edit = false;
         let mut open_learn_ability = false;
+        let mut open_learn_trait = false;
         let mut open_create_item = false;
         let mut add_item_selection = None;
         let add_item_menu = self.add_item_menu;
@@ -176,6 +185,14 @@ impl Portrait {
                 open_learn_ability = true;
                 ui.close();
             }
+            let has_trait_points = self.trait_points > 0;
+            if ui
+                .add_enabled(has_trait_points, egui::Button::new("Learn trait"))
+                .clicked()
+            {
+                open_learn_trait = true;
+                ui.close();
+            }
             if ui.button("Create item").clicked() {
                 open_create_item = true;
                 ui.close();
@@ -202,10 +219,9 @@ impl Portrait {
                                     for tooltip in tooltips {
                                         let resp = ui.button(tooltip.name());
                                         if resp.clicked() {
-                                            add_item_selection =
-                                                Some(AddItemSelection::Equipment(
-                                                    tooltip.name().to_owned(),
-                                                ));
+                                            add_item_selection = Some(AddItemSelection::Equipment(
+                                                tooltip.name().to_owned(),
+                                            ));
                                             ui.close();
                                         }
                                         show_menu_tooltip(ui, &resp, tooltip);
@@ -221,10 +237,9 @@ impl Portrait {
                                     for tooltip in tooltips {
                                         let resp = ui.button(tooltip.name());
                                         if resp.clicked() {
-                                            add_item_selection =
-                                                Some(AddItemSelection::Weapon(
-                                                    tooltip.name().to_owned(),
-                                                ));
+                                            add_item_selection = Some(AddItemSelection::Weapon(
+                                                tooltip.name().to_owned(),
+                                            ));
                                             ui.close();
                                         }
                                         show_menu_tooltip(ui, &resp, tooltip);
@@ -290,6 +305,7 @@ impl Portrait {
             add_exp,
             toggle_edit,
             open_learn_ability,
+            open_learn_trait,
             open_create_item,
             add_item: add_item_selection,
         }
