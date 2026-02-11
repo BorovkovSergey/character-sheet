@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use shared::InventoryItem;
 
 /// Fired when the player triggers an equip/unequip action from a context menu.
 #[derive(Message)]
@@ -11,4 +12,6 @@ pub enum InventoryChanged {
     UnequipGear(usize),
     /// Unequip the weapon at the given slot index.
     UnequipWeapon(usize),
+    /// Add an existing item from the registry to inventory.
+    AddExisting(InventoryItem),
 }

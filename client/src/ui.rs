@@ -3,9 +3,10 @@ use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR};
 use ui_widgets::composites::{
-    Abilities, AbilityEntry, Characteristics, EquippedGear, IdentityBar, Inventory, Points,
-    Portrait, SkillEntry, Skills, Stats, StatusBar, StatusBarResponse, TraitEntry, Traits,
-    Wallet as WalletWidget, WalletResponse, Weapon, WeaponSlot,
+    Abilities, AbilityEntry, AddItemMenu, AddItemSelection, Characteristics, EquippedGear,
+    IdentityBar, Inventory, Points, Portrait, SkillEntry, Skills, Stats, StatusBar,
+    StatusBarResponse, TraitEntry, Traits, Wallet as WalletWidget, WalletResponse, Weapon,
+    WeaponSlot,
 };
 use ui_widgets::molecules::{AbilityCard, CellAction, InventoryTooltip, SmallAbility};
 use ui_widgets::styles::UiStyle;
@@ -237,6 +238,8 @@ fn render_ui(
                     &icons,
                     &character,
                     &weapon_registry,
+                    &equipment_registry,
+                    &item_registry,
                     &mut ui_events,
                     &mut edit_mode,
                     &mut learn_ability_open,
@@ -485,6 +488,8 @@ fn render_left_column(
     icons: &UiIcons,
     character: &CharacterQueryDataItem,
     weapon_registry: &crate::network::ClientWeaponRegistry,
+    equipment_registry: &crate::network::ClientEquipmentRegistry,
+    item_registry: &crate::network::ClientItemRegistry,
     ui_events: &mut UiEvents,
     edit_mode: &mut EditMode,
     learn_ability_open: &mut LearnAbilityOpen,
@@ -504,6 +509,8 @@ fn render_left_column(
                 .max_rect(portrait_rect)
                 .layout(egui::Layout::top_down(egui::Align::Min)),
         );
+        let add_item_menu =
+            build_add_item_menu(&weapon_registry.0, &equipment_registry.0, &item_registry.0);
         let portrait_resp = Portrait::new(
             icons.avatar_border_1.id(),
             icons.avatar_border_2.id(),
@@ -513,6 +520,7 @@ fn render_left_column(
             edit_mode.0,
         )
         .ability_points(character.ability_pts.0)
+        .add_item_menu(add_item_menu)
         .show(&mut portrait_ui);
         if let Some(exp) = portrait_resp.add_exp {
             ui_events.experience.write(ExperienceChanged(exp));
@@ -525,6 +533,16 @@ fn render_left_column(
         }
         if portrait_resp.open_create_item {
             create_item_open.0 = true;
+        }
+        if let Some(selection) = portrait_resp.add_item {
+            let inv_item = match selection {
+                AddItemSelection::Item(name) => InventoryItem::Item(name),
+                AddItemSelection::Equipment(name) => InventoryItem::Equipment(name),
+                AddItemSelection::Weapon(name) => InventoryItem::Weapon(name),
+            };
+            ui_events
+                .inventory
+                .write(InventoryChanged::AddExisting(inv_item));
         }
         ui.add_space(gap);
         ui.add_sized(
@@ -595,6 +613,38 @@ fn render_left_column(
                 .write(InventoryChanged::UnequipWeapon(i));
         }
     });
+}
+
+fn build_add_item_menu(
+    weapon_registry: &shared::WeaponRegistry,
+    equipment_registry: &shared::EquipmentRegistry,
+    item_registry: &shared::ItemRegistry,
+) -> AddItemMenu {
+    use std::collections::BTreeMap;
+
+    let items: Vec<String> = item_registry.items.keys().cloned().collect();
+
+    let mut equipment: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for eq in equipment_registry.equipment.values() {
+        equipment
+            .entry(eq.slot.to_string())
+            .or_default()
+            .push(eq.name.clone());
+    }
+
+    let mut weapons: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for w in weapon_registry.weapons.values() {
+        weapons
+            .entry(w.kind.to_string())
+            .or_default()
+            .push(w.name.clone());
+    }
+
+    AddItemMenu {
+        items,
+        equipment,
+        weapons,
+    }
 }
 
 fn send_status_bar_events(
@@ -1252,6 +1302,9 @@ fn apply_inventory_changes(
                     let name = weapons.0.remove(idx);
                     inventory.0.push(InventoryItem::Weapon(name));
                 }
+            }
+            InventoryChanged::AddExisting(item) => {
+                inventory.0.push(item.clone());
             }
         }
     }

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::atoms::{Shape, ShapeBox};
 use crate::colors::{MAIN_COLOR, TEXT_COLOR};
 use crate::egui::{self, Align2, FontId, Stroke};
@@ -14,12 +16,27 @@ struct AddExpPopupState {
     input_text: String,
 }
 
+/// Data for the "Add item" context submenu.
+pub struct AddItemMenu {
+    pub items: Vec<String>,
+    pub equipment: BTreeMap<String, Vec<String>>,
+    pub weapons: BTreeMap<String, Vec<String>>,
+}
+
+/// What the user selected from the "Add item" menu.
+pub enum AddItemSelection {
+    Item(String),
+    Equipment(String),
+    Weapon(String),
+}
+
 /// Response from portrait rendering.
 pub struct PortraitResponse {
     pub add_exp: Option<u32>,
     pub toggle_edit: bool,
     pub open_learn_ability: bool,
     pub open_create_item: bool,
+    pub add_item: Option<AddItemSelection>,
 }
 
 /// Character portrait display area.
@@ -31,6 +48,7 @@ pub struct Portrait {
     experience: u32,
     edit_mode: bool,
     ability_points: u32,
+    add_item_menu: Option<AddItemMenu>,
 }
 
 impl Portrait {
@@ -50,11 +68,17 @@ impl Portrait {
             experience,
             edit_mode,
             ability_points: 0,
+            add_item_menu: None,
         }
     }
 
     pub fn ability_points(mut self, points: u32) -> Self {
         self.ability_points = points;
+        self
+    }
+
+    pub fn add_item_menu(mut self, menu: AddItemMenu) -> Self {
+        self.add_item_menu = Some(menu);
         self
     }
 
@@ -119,6 +143,8 @@ impl Portrait {
         let mut toggle_edit = false;
         let mut open_learn_ability = false;
         let mut open_create_item = false;
+        let mut add_item_selection = None;
+        let add_item_menu = self.add_item_menu;
         response.context_menu(|ui| {
             if ui.button("Add EXP").clicked() {
                 ui.data_mut(|d| {
@@ -152,6 +178,50 @@ impl Portrait {
             if ui.button("Create item").clicked() {
                 open_create_item = true;
                 ui.close();
+            }
+            if let Some(menu) = &add_item_menu {
+                ui.menu_button("Add item", |ui| {
+                    if !menu.items.is_empty() {
+                        ui.menu_button("Item", |ui| {
+                            for name in &menu.items {
+                                if ui.button(name).clicked() {
+                                    add_item_selection = Some(AddItemSelection::Item(name.clone()));
+                                    ui.close();
+                                }
+                            }
+                        });
+                    }
+                    if !menu.equipment.is_empty() {
+                        ui.menu_button("Equipment", |ui| {
+                            for (slot, names) in &menu.equipment {
+                                ui.menu_button(slot, |ui| {
+                                    for name in names {
+                                        if ui.button(name).clicked() {
+                                            add_item_selection =
+                                                Some(AddItemSelection::Equipment(name.clone()));
+                                            ui.close();
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    if !menu.weapons.is_empty() {
+                        ui.menu_button("Weapon", |ui| {
+                            for (kind, names) in &menu.weapons {
+                                ui.menu_button(kind, |ui| {
+                                    for name in names {
+                                        if ui.button(name).clicked() {
+                                            add_item_selection =
+                                                Some(AddItemSelection::Weapon(name.clone()));
+                                            ui.close();
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
             }
         });
 
@@ -209,6 +279,7 @@ impl Portrait {
             toggle_edit,
             open_learn_ability,
             open_create_item,
+            add_item: add_item_selection,
         }
     }
 }
