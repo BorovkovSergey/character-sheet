@@ -349,7 +349,10 @@ pub(super) fn apply_create_item(
                     .weapons
                     .insert(item_name.clone(), weapon.clone());
                 inventory.0.push(InventoryItem::Weapon(item_name));
-                save_to_json_file("data/weapons.json", weapon_registry.0.weapons.values().collect());
+                save_to_json_file(
+                    "data/weapons.json",
+                    weapon_registry.0.weapons.values().collect(),
+                );
                 pending_messages
                     .0
                     .push(shared::ClientMessage::CreateWeapon {
@@ -363,7 +366,10 @@ pub(super) fn apply_create_item(
                     .equipment
                     .insert(item_name.clone(), eq.clone());
                 inventory.0.push(InventoryItem::Equipment(item_name));
-                save_to_json_file("data/equipment.json", equipment_registry.0.equipment.values().collect());
+                save_to_json_file(
+                    "data/equipment.json",
+                    equipment_registry.0.equipment.values().collect(),
+                );
                 pending_messages
                     .0
                     .push(shared::ClientMessage::CreateEquipment {

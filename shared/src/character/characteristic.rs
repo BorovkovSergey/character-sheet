@@ -26,21 +26,6 @@ pub enum CharacteristicKind {
     Charisma,
 }
 
-impl CharacteristicKind {
-    pub fn abbrev(self) -> &'static str {
-        match self {
-            Self::Strength => "STR",
-            Self::Dexterity => "DEX",
-            Self::Endurance => "END",
-            Self::Perception => "PER",
-            Self::Magic => "MAG",
-            Self::Willpower => "WIL",
-            Self::Intellect => "INT",
-            Self::Charisma => "CHA",
-        }
-    }
-}
-
 // Marker types for characteristics
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Strength;

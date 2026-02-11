@@ -20,7 +20,7 @@ use crate::events::{
     ExperienceChanged, InventoryChanged, ResourceChanged, UpgradeEvent, WalletChanged,
 };
 
-use super::helpers::{format_ability_check, format_ability_type, format_effect};
+use super::helpers::{format_ability_check, format_effect};
 use super::icons::UiIcons;
 use super::params::{Registries, UiEvents, UiModals};
 
@@ -216,8 +216,11 @@ fn render_left_column(
                 .max_rect(portrait_rect)
                 .layout(egui::Layout::top_down(egui::Align::Min)),
         );
-        let add_item_menu =
-            build_add_item_menu(&registries.weapons.0, &registries.equipment.0, &registries.items.0);
+        let add_item_menu = build_add_item_menu(
+            &registries.weapons.0,
+            &registries.equipment.0,
+            &registries.items.0,
+        );
         let xp_fraction =
             character.exp.0 as f32 / shared::xp_to_next_level(character.level.0) as f32;
         let portrait_resp = Portrait::new(
@@ -589,7 +592,7 @@ fn render_center_column(
                     ap_cost: a.requirements.as_ref().and_then(|r| r.action_points),
                     self_only: a.self_only,
                     range: a.requirements.as_ref().and_then(|r| r.range),
-                    ability_type: format_ability_type(a.ability_type),
+                    ability_type: a.ability_type.to_string(),
                     check: a
                         .check
                         .as_ref()
@@ -658,10 +661,14 @@ fn render_right_column(
                     })
             }
             shared::InventoryItem::Item(name) => {
-                registries.items.0.get(name).map(|i| InventoryTooltip::Item {
-                    name: i.name.clone(),
-                    description: i.description.clone(),
-                })
+                registries
+                    .items
+                    .0
+                    .get(name)
+                    .map(|i| InventoryTooltip::Item {
+                        name: i.name.clone(),
+                        description: i.description.clone(),
+                    })
             }
         })
         .collect();

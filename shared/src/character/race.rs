@@ -1,26 +1,18 @@
-use std::fmt;
-
 use serde::{Deserialize, Serialize};
+use strum::Display;
 
 use super::effect::{Effect, GetEffects, Protection, Resist};
 
 /// Character race
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum Race {
+    #[strum(serialize = "Dark Half-Elf")]
     DarkHalfElf,
 }
 
 impl Default for Race {
     fn default() -> Self {
         Self::DarkHalfElf
-    }
-}
-
-impl fmt::Display for Race {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Race::DarkHalfElf => write!(f, "Dark Half-Elf"),
-        }
     }
 }
 

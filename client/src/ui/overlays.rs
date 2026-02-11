@@ -7,7 +7,7 @@ use shared::CharacterTrait;
 
 use crate::events::{LearnAbility, LearnTrait};
 
-use super::helpers::{check_trait_requirement, format_ability_check, format_ability_type, format_effect};
+use super::helpers::{check_trait_requirement, format_ability_check, format_effect};
 use super::icons::UiIcons;
 use super::layout::CharacterQueryDataItem;
 use super::params::{LearnAbilityOpen, LearnTraitOpen, Registries, UiEvents};
@@ -70,8 +70,10 @@ pub(super) fn render_learn_ability_overlay(
             // col maps to LearnScreenPosition.column.
             // Tuple: (name, mp_cost, can_learn, already_learned)
             let mut grid: [[Option<(&str, Option<u32>, bool, bool)>; 3]; 3] = Default::default();
-            if let Some(class_abilities) =
-                registries.abilities.0.get_class_abilities(&character.class.0)
+            if let Some(class_abilities) = registries
+                .abilities
+                .0
+                .get_class_abilities(&character.class.0)
             {
                 let known = &character.ability_names.0;
                 for (name, ability) in &class_abilities.acquire {
@@ -93,7 +95,10 @@ pub(super) fn render_learn_ability_overlay(
             }
 
             let ability_icon = icons.ability_placeholder.id();
-            let class_abilities = registries.abilities.0.get_class_abilities(&character.class.0);
+            let class_abilities = registries
+                .abilities
+                .0
+                .get_class_abilities(&character.class.0);
             for (row_idx, &col_count) in rows.iter().enumerate() {
                 let y = content.min.y + (cell_h + gap) * row_idx as f32;
                 let x_offset = if col_count == 2 { half_offset } else { 0.0 };
@@ -149,10 +154,7 @@ pub(super) fn render_learn_ability_overlay(
                                         AbilityCard::new(ability_icon, &ability.description)
                                             .name(name)
                                             .mp_cost(
-                                                ability
-                                                    .requirements
-                                                    .as_ref()
-                                                    .and_then(|r| r.mp),
+                                                ability.requirements.as_ref().and_then(|r| r.mp),
                                             )
                                             .ap_cost(
                                                 ability
@@ -162,14 +164,9 @@ pub(super) fn render_learn_ability_overlay(
                                             )
                                             .self_only(ability.self_only)
                                             .range(
-                                                ability
-                                                    .requirements
-                                                    .as_ref()
-                                                    .and_then(|r| r.range),
+                                                ability.requirements.as_ref().and_then(|r| r.range),
                                             )
-                                            .ability_type(format_ability_type(
-                                                ability.ability_type,
-                                            ))
+                                            .ability_type(ability.ability_type.to_string())
                                             .check(
                                                 ability
                                                     .check
@@ -188,10 +185,7 @@ pub(super) fn render_learn_ability_overlay(
                                         ui.painter().rect_stroke(
                                             card_rect,
                                             egui::CornerRadius::same(12),
-                                            egui::Stroke::new(
-                                                1.0,
-                                                egui::Color32::from_gray(200),
-                                            ),
+                                            egui::Stroke::new(1.0, egui::Color32::from_gray(200)),
                                             egui::StrokeKind::Inside,
                                         );
                                     });

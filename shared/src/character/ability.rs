@@ -2,13 +2,14 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 use serde::Deserialize;
+use strum::Display;
 
 use super::character_trait::TraitCondition;
 use super::characteristic::CharacteristicKind;
 use super::class::Class;
 
 /// The type of an ability, determining how it behaves in gameplay.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display, Deserialize)]
 pub enum AbilityType {
     Stance,
     Attack,

@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::fmt;
 
 use serde::{Deserialize, Serialize};
 use strum::{Display, EnumIter};
@@ -51,19 +50,12 @@ pub enum MeleeKind {
 }
 
 /// Top-level weapon type: either ranged or melee, each with a subtype.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Display, Serialize, Deserialize)]
 pub enum WeaponKind {
+    #[strum(to_string = "{0}")]
     Range(RangeKind),
+    #[strum(to_string = "{0}")]
     Melee(MeleeKind),
-}
-
-impl fmt::Display for WeaponKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            WeaponKind::Range(k) => write!(f, "{k}"),
-            WeaponKind::Melee(k) => write!(f, "{k}"),
-        }
-    }
 }
 
 /// How the weapon is held.

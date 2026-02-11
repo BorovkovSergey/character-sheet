@@ -144,11 +144,7 @@ impl ActiveEffects {
     }
 
     /// Returns the effective characteristic level (base + bonus from effects), minimum 0.
-    pub fn effective_level(
-        &self,
-        stats: &Characteristics,
-        kind: CharacteristicKind,
-    ) -> u32 {
+    pub fn effective_level(&self, stats: &Characteristics, kind: CharacteristicKind) -> u32 {
         let base = stats.get_level(kind);
         let bonus: i32 = self
             .0
