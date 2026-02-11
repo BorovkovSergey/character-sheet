@@ -226,7 +226,6 @@ pub fn spawn_character(commands: &mut Commands, character: &Character) -> Entity
         .id()
 }
 
-const BASE_ACTION_POINTS: u32 = 3;
 
 /// Recalculates active effects from race, traits, equipment, and base level-up bonuses.
 /// Applies all effect types: Characteristic bonuses flow into derived stats (protections, HP, mana),
@@ -347,9 +346,9 @@ pub fn recalculate_effects(
             mana.current = new_max_mana.saturating_sub(spent);
         }
 
-        // Step 8: Recompute AP max = base + action points bonus
+        // Step 8: Recompute AP max = race base + action points bonus
         let ap_bonus: i32 = effects.action_points_bonus();
-        let new_max_ap = (BASE_ACTION_POINTS as i32 + ap_bonus).max(0) as u32;
+        let new_max_ap = (race.0.base_action_points() as i32 + ap_bonus).max(0) as u32;
         if ap.max != new_max_ap {
             let spent = ap.max.saturating_sub(ap.current);
             ap.max = new_max_ap;

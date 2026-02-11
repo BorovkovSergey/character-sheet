@@ -38,6 +38,12 @@ impl Race {
             Race::DarkHalfElf => Size::Medium,
         }
     }
+
+    pub fn base_action_points(&self) -> u32 {
+        match self {
+            Race::DarkHalfElf => 5,
+        }
+    }
 }
 
 impl GetEffects for Size {

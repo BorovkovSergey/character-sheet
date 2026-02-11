@@ -89,7 +89,7 @@ impl Character {
             experience: 0,
             hp_spent: 0,
             mana_spent: 0,
-            action_points: Resource::new(3),
+            action_points: Resource::new(Race::default().base_action_points()),
             stats: Characteristics::default(),
             characteristic_points: 0,
             skill_points: 0,
