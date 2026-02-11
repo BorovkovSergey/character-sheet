@@ -59,7 +59,6 @@ struct CreateItemState {
     name: String,
     description: String,
     slot_idx: usize,
-    armor: String,
     damage: String,
     attack: String,
     is_melee: bool,
@@ -160,15 +159,6 @@ pub fn render_create_item_popup(
                                     80.0,
                                 );
                             });
-                            ui.add_space(4.0);
-                            ui.horizontal(|ui| {
-                                ui.label("Armor:");
-                                ui.add(
-                                    egui::TextEdit::singleline(&mut state.armor)
-                                        .desired_width(60.0),
-                                );
-                            });
-                            state.armor.retain(|c| c.is_ascii_digit() || c == '-');
                         }
                         2 => {
                             // Weapon
@@ -312,7 +302,6 @@ pub fn render_create_item_popup(
                                         name: state.name.trim().to_string(),
                                         description: state.description.clone(),
                                         slot,
-                                        armor: state.armor.parse().unwrap_or(0),
                                         effects: state.effects.clone(),
                                     },
                                 ));

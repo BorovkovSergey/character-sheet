@@ -6,7 +6,6 @@ pub struct EquipmentCard {
     pub name: String,
     pub slot: String,
     pub description: String,
-    pub armor: i32,
     pub effects: Vec<String>,
 }
 
@@ -16,7 +15,6 @@ impl EquipmentCard {
             name: name.into(),
             slot: String::new(),
             description: String::new(),
-            armor: 0,
             effects: Vec::new(),
         }
     }
@@ -28,11 +26,6 @@ impl EquipmentCard {
 
     pub fn description(mut self, description: impl Into<String>) -> Self {
         self.description = description.into();
-        self
-    }
-
-    pub fn armor(mut self, armor: i32) -> Self {
-        self.armor = armor;
         self
     }
 
@@ -87,15 +80,6 @@ impl EquipmentCard {
                                     .color(TEXT_COLOR),
                             );
                             ui.add_space(4.0);
-                        }
-
-                        // Armor
-                        if self.armor != 0 {
-                            ui.label(
-                                RichText::new(format!("Armor: {}", self.armor))
-                                    .size(12.0)
-                                    .color(TEXT_COLOR),
-                            );
                         }
 
                         // Effects

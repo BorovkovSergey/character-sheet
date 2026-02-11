@@ -38,7 +38,6 @@ pub struct Equipment {
     pub name: String,
     pub description: String,
     pub slot: EquipmentSlot,
-    pub armor: i32,
     pub effects: Vec<Effect>,
 }
 

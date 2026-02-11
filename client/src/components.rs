@@ -127,6 +127,16 @@ impl ActiveEffects {
         result
     }
 
+    pub fn armor(&self) -> i32 {
+        self.0
+            .iter()
+            .filter_map(|e| match e {
+                Effect::Armor(v) => Some(*v),
+                _ => None,
+            })
+            .sum()
+    }
+
     pub fn initiative_bonus(&self) -> i32 {
         self.0
             .iter()

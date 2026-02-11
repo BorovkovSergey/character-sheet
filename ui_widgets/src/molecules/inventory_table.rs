@@ -17,7 +17,6 @@ pub enum InventoryTooltip {
         name: String,
         slot: String,
         description: String,
-        armor: i32,
         effects: Vec<String>,
     },
     Item {
@@ -176,13 +175,11 @@ impl InventoryTable {
                             name,
                             slot,
                             description,
-                            armor,
                             effects,
                         } => {
                             EquipmentCard::new(name)
                                 .slot(slot)
                                 .description(description)
-                                .armor(*armor)
                                 .effects(effects.clone())
                                 .show_at(ui.ctx(), id, pos);
                         }

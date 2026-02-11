@@ -3,8 +3,10 @@
     "name": "Iron Helmet",
     "description": "A sturdy iron helmet that protects the head.",
     "slot": "Head",
-    "armor": 3,
     "effects": [
+      {
+        "Armor": 3
+      },
       {
         "Protection": [
           "Melee",
@@ -17,15 +19,20 @@
     "name": "Leather Gloves",
     "description": "Simple leather gloves providing light protection.",
     "slot": "Gloves",
-    "armor": 1,
-    "effects": []
+    "effects": [
+      {
+        "Armor": 1
+      }
+    ]
   },
   {
     "name": "Chain Mail",
     "description": "Heavy chain mail armor offering solid defense.",
     "slot": "Armor",
-    "armor": 5,
     "effects": [
+      {
+        "Armor": 5
+      },
       {
         "Protection": [
           "Melee",

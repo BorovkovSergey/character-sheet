@@ -46,11 +46,13 @@ pub struct Portrait {
     border_1: egui::TextureId,
     border_2: egui::TextureId,
     avatar: egui::TextureId,
+    shield: Option<egui::TextureId>,
     level: u32,
     experience: u32,
     edit_mode: bool,
     ability_points: u32,
     trait_points: u32,
+    armor: i32,
     add_item_menu: Option<AddItemMenu>,
 }
 
@@ -70,10 +72,18 @@ impl Portrait {
             level,
             experience,
             edit_mode,
+            shield: None,
             ability_points: 0,
             trait_points: 0,
+            armor: 0,
             add_item_menu: None,
         }
+    }
+
+    pub fn shield(mut self, texture: egui::TextureId, armor: i32) -> Self {
+        self.shield = Some(texture);
+        self.armor = armor;
+        self
     }
 
     pub fn ability_points(mut self, points: u32) -> Self {
@@ -146,6 +156,28 @@ impl Portrait {
             FontId::proportional(font_size),
             TEXT_COLOR,
         );
+
+        // Armor shield in the bottom-right corner of the portrait
+        if let Some(shield_tex) = self.shield {
+            let shield_size = portrait_w * 0.3;
+            let shield_rect = egui::Rect::from_min_size(
+                egui::pos2(
+                    portrait_rect.max.x - shield_size,
+                    portrait_rect.max.y - shield_size - 10.0,
+                ),
+                egui::vec2(shield_size, shield_size),
+            );
+            painter.image(shield_tex, shield_rect, uv, egui::Color32::WHITE);
+            let armor_text = self.armor.to_string();
+            let armor_font_size = shield_size * 0.35;
+            painter.text(
+                shield_rect.center(),
+                Align2::CENTER_CENTER,
+                armor_text,
+                FontId::proportional(armor_font_size),
+                TEXT_COLOR,
+            );
+        }
 
         // Context menu on right-click
         let popup_id = response.id.with("add_exp");
@@ -434,13 +466,11 @@ fn show_menu_tooltip(ui: &egui::Ui, resp: &egui::Response, tooltip: &InventoryTo
             name,
             slot,
             description,
-            armor,
             effects,
         } => {
             EquipmentCard::new(name)
                 .slot(slot)
                 .description(description)
-                .armor(*armor)
                 .effects(effects.clone())
                 .show_at(ui.ctx(), id, pos);
         }

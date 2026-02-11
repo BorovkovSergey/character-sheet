@@ -40,6 +40,7 @@ struct UiIcons {
     ability_placeholder: egui::TextureHandle,
     weapon_placeholder: egui::TextureHandle,
     inventory_placeholder: egui::TextureHandle,
+    shield: egui::TextureHandle,
 }
 
 fn load_png_texture(ctx: &egui::Context, name: &str, png_bytes: &[u8]) -> egui::TextureHandle {
@@ -162,6 +163,7 @@ fn init_icons(mut contexts: EguiContexts, mut commands: Commands) -> Result {
             "inventory_placeholder",
             include_bytes!("../assets/ph_inventory.png"),
         ),
+        shield: load_png_texture(ctx, "shield", include_bytes!("../assets/shield.png")),
     });
     Ok(())
 }
@@ -541,6 +543,7 @@ fn render_left_column(
             character.exp.0,
             edit_mode.0,
         )
+        .shield(icons.shield.id(), character.effects.armor())
         .ability_points(character.ability_pts.0)
         .trait_points(character.trait_pts.0)
         .add_item_menu(add_item_menu)
@@ -668,7 +671,6 @@ fn build_add_item_menu(
                 name: eq.name.clone(),
                 slot: eq.slot.to_string(),
                 description: eq.description.clone(),
-                armor: eq.armor,
                 effects: eq.effects.iter().map(format_effect).collect(),
             });
     }
@@ -1416,7 +1418,6 @@ fn render_right_column(
                         name: e.name.clone(),
                         slot: e.slot.to_string(),
                         description: e.description.clone(),
-                        armor: e.armor,
                         effects: e.effects.iter().map(format_effect).collect(),
                     })
             }
@@ -1442,7 +1443,6 @@ fn render_right_column(
                     name: e.name.clone(),
                     slot: e.slot.to_string(),
                     description: e.description.clone(),
-                    armor: e.armor,
                     effects: e.effects.iter().map(format_effect).collect(),
                 })
         })
