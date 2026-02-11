@@ -12,6 +12,7 @@ pub enum InventoryTooltip {
         damage: String,
         range: String,
         condition: String,
+        effects: Vec<String>,
     },
     Equipment {
         name: String,
@@ -44,6 +45,7 @@ impl InventoryTooltip {
                 damage,
                 range,
                 condition,
+                effects,
             } => {
                 WeaponCard::new(name)
                     .kind(kind)
@@ -51,6 +53,7 @@ impl InventoryTooltip {
                     .damage(damage)
                     .range(range)
                     .condition(condition)
+                    .effects(effects.clone())
                     .show_at(ctx, id, pos);
             }
             Self::Equipment {

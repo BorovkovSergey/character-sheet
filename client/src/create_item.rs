@@ -61,7 +61,7 @@ struct CreateItemState {
     slot_idx: usize,
     damage: String,
     attack: String,
-    is_melee: bool,
+    weapon_kind_idx: usize,
     range_subtype_idx: usize,
     melee_subtype_idx: usize,
     grip_idx: usize,
@@ -162,70 +162,86 @@ pub fn render_create_item_popup(
                         }
                         2 => {
                             // Weapon
-                            ui.add_space(4.0);
-                            ui.horizontal(|ui| {
-                                ui.label("Damage:");
-                                ui.add(
-                                    egui::TextEdit::singleline(&mut state.damage)
-                                        .desired_width(80.0),
-                                );
-                            });
-                            ui.add_space(4.0);
-                            ui.horizontal(|ui| {
-                                ui.label("Attack:");
-                                ui.add(
-                                    egui::TextEdit::singleline(&mut state.attack)
-                                        .desired_width(60.0),
-                                );
-                            });
-                            state.attack.retain(|c| c.is_ascii_digit() || c == '-');
+                            const WEAPON_KIND_LABELS: [&str; 4] =
+                                ["Range", "Melee", "Shield", "Bard Instrument"];
                             ui.add_space(4.0);
                             ui.horizontal(|ui| {
                                 ui.label("Kind:");
-                                ui.radio_value(&mut state.is_melee, false, "Range");
-                                ui.radio_value(&mut state.is_melee, true, "Melee");
+                                for (i, label) in WEAPON_KIND_LABELS.iter().enumerate() {
+                                    ui.radio_value(&mut state.weapon_kind_idx, i, *label);
+                                }
                             });
-                            ui.add_space(4.0);
-                            if state.is_melee {
+
+                            let is_combat = state.weapon_kind_idx <= 1;
+
+                            if is_combat {
+                                ui.add_space(4.0);
                                 ui.horizontal(|ui| {
-                                    ui.label("Subtype:");
-                                    enum_combo::<MeleeKind>(
-                                        ui,
-                                        "melee_sub",
-                                        &mut state.melee_subtype_idx,
-                                        80.0,
+                                    ui.label("Damage:");
+                                    ui.add(
+                                        egui::TextEdit::singleline(&mut state.damage)
+                                            .desired_width(80.0),
                                     );
                                 });
-                            } else {
+                                ui.add_space(4.0);
                                 ui.horizontal(|ui| {
-                                    ui.label("Subtype:");
-                                    enum_combo::<RangeKind>(
-                                        ui,
-                                        "range_sub",
-                                        &mut state.range_subtype_idx,
-                                        80.0,
+                                    ui.label("Attack:");
+                                    ui.add(
+                                        egui::TextEdit::singleline(&mut state.attack)
+                                            .desired_width(60.0),
                                     );
                                 });
+                                state.attack.retain(|c| c.is_ascii_digit() || c == '-');
                             }
+
                             ui.add_space(4.0);
-                            ui.horizontal(|ui| {
-                                ui.label("Grip:");
-                                enum_combo::<WeaponGrip>(
-                                    ui,
-                                    "wpn_grip",
-                                    &mut state.grip_idx,
-                                    100.0,
-                                );
-                            });
-                            ui.add_space(4.0);
-                            ui.horizontal(|ui| {
-                                ui.label("Range:");
-                                ui.add(
-                                    egui::TextEdit::singleline(&mut state.range)
-                                        .desired_width(60.0),
-                                );
-                            });
-                            state.range.retain(|c| c.is_ascii_digit());
+                            match state.weapon_kind_idx {
+                                0 => {
+                                    ui.horizontal(|ui| {
+                                        ui.label("Subtype:");
+                                        enum_combo::<RangeKind>(
+                                            ui,
+                                            "range_sub",
+                                            &mut state.range_subtype_idx,
+                                            80.0,
+                                        );
+                                    });
+                                }
+                                1 => {
+                                    ui.horizontal(|ui| {
+                                        ui.label("Subtype:");
+                                        enum_combo::<MeleeKind>(
+                                            ui,
+                                            "melee_sub",
+                                            &mut state.melee_subtype_idx,
+                                            80.0,
+                                        );
+                                    });
+                                }
+                                _ => {}
+                            }
+
+                            if is_combat {
+                                ui.add_space(4.0);
+                                ui.horizontal(|ui| {
+                                    ui.label("Grip:");
+                                    enum_combo::<WeaponGrip>(
+                                        ui,
+                                        "wpn_grip",
+                                        &mut state.grip_idx,
+                                        100.0,
+                                    );
+                                });
+                                ui.add_space(4.0);
+                                ui.horizontal(|ui| {
+                                    ui.label("Range:");
+                                    ui.add(
+                                        egui::TextEdit::singleline(&mut state.range)
+                                            .desired_width(60.0),
+                                    );
+                                });
+                                state.range.retain(|c| c.is_ascii_digit());
+                            }
                         }
                         _ => {}
                     }
@@ -307,24 +323,48 @@ pub fn render_create_item_popup(
                                 ));
                             }
                             2 => {
-                                let kind = if state.is_melee {
-                                    let sub = nth_variant::<MeleeKind>(state.melee_subtype_idx)
-                                        .unwrap_or(MeleeKind::Slashing);
-                                    WeaponKind::Melee(sub)
-                                } else {
-                                    let sub = nth_variant::<RangeKind>(state.range_subtype_idx)
-                                        .unwrap_or(RangeKind::Bow);
-                                    WeaponKind::Range(sub)
+                                let kind = match state.weapon_kind_idx {
+                                    1 => {
+                                        let sub =
+                                            nth_variant::<MeleeKind>(state.melee_subtype_idx)
+                                                .unwrap_or(MeleeKind::Slashing);
+                                        WeaponKind::Melee(sub)
+                                    }
+                                    2 => WeaponKind::Shield,
+                                    3 => WeaponKind::BardInstrument,
+                                    _ => {
+                                        let sub =
+                                            nth_variant::<RangeKind>(state.range_subtype_idx)
+                                                .unwrap_or(RangeKind::Bow);
+                                        WeaponKind::Range(sub)
+                                    }
                                 };
-                                let grip = nth_variant::<WeaponGrip>(state.grip_idx)
-                                    .unwrap_or(WeaponGrip::OneHanded);
+                                let is_combat = state.weapon_kind_idx <= 1;
+                                let grip = if is_combat {
+                                    nth_variant::<WeaponGrip>(state.grip_idx)
+                                        .unwrap_or(WeaponGrip::OneHanded)
+                                } else {
+                                    WeaponGrip::OneHanded
+                                };
                                 create_item_events.write(CreateItem::Weapon(shared::Weapon {
                                     name: state.name.trim().to_string(),
-                                    damage: state.damage.clone(),
-                                    attack: state.attack.parse().unwrap_or(0),
+                                    damage: if is_combat {
+                                        state.damage.clone()
+                                    } else {
+                                        String::new()
+                                    },
+                                    attack: if is_combat {
+                                        state.attack.parse().unwrap_or(0)
+                                    } else {
+                                        0
+                                    },
                                     kind,
                                     grip,
-                                    range: state.range.parse().unwrap_or(1),
+                                    range: if is_combat {
+                                        state.range.parse().unwrap_or(1)
+                                    } else {
+                                        0
+                                    },
                                     effects: state.effects.clone(),
                                     condition: None,
                                 }));

@@ -9,6 +9,7 @@ pub struct WeaponCard {
     pub damage: String,
     pub range: String,
     pub condition: String,
+    pub effects: Vec<String>,
 }
 
 impl WeaponCard {
@@ -20,6 +21,7 @@ impl WeaponCard {
             damage: String::new(),
             range: String::new(),
             condition: String::new(),
+            effects: Vec::new(),
         }
     }
 
@@ -45,6 +47,11 @@ impl WeaponCard {
 
     pub fn condition(mut self, condition: impl Into<String>) -> Self {
         self.condition = condition.into();
+        self
+    }
+
+    pub fn effects(mut self, effects: Vec<String>) -> Self {
+        self.effects = effects;
         self
     }
 
@@ -115,6 +122,18 @@ impl WeaponCard {
                                     .italics()
                                     .color(STROKE_COLOR),
                             );
+                        }
+                        if !self.effects.is_empty() {
+                            ui.add_space(4.0);
+                            ui.separator();
+                            ui.add_space(2.0);
+                            for effect in &self.effects {
+                                ui.label(
+                                    RichText::new(effect)
+                                        .size(11.0)
+                                        .color(TEXT_COLOR),
+                                );
+                            }
                         }
                     });
             });

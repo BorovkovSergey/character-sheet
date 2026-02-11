@@ -95,7 +95,7 @@ pub struct Weapon {
     pub range: u32,
     pub effects: Vec<Effect>,
     /// Optional extra condition or note (free-form text).
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub condition: Option<String>,
 }
 

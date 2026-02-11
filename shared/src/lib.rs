@@ -50,6 +50,58 @@ mod tests {
     }
 
     #[test]
+    fn test_create_shield_weapon_roundtrip() {
+        let weapon = Weapon {
+            name: "Tower Shield".to_string(),
+            damage: String::new(),
+            attack: 0,
+            kind: WeaponKind::Shield,
+            grip: WeaponGrip::OneHanded,
+            range: 0,
+            effects: vec![Effect::Armor(2)],
+            condition: None,
+        };
+        let msg = ClientMessage::CreateWeapon {
+            weapon: weapon.clone(),
+        };
+        let bytes = serialize(&msg).unwrap();
+        let decoded: ClientMessage = deserialize(&bytes).unwrap();
+        match decoded {
+            ClientMessage::CreateWeapon { weapon: w } => {
+                assert_eq!(w.name, "Tower Shield");
+                assert_eq!(w.kind, WeaponKind::Shield);
+            }
+            _ => panic!("Wrong message type"),
+        }
+    }
+
+    #[test]
+    fn test_create_bard_instrument_roundtrip() {
+        let weapon = Weapon {
+            name: "Lute".to_string(),
+            damage: String::new(),
+            attack: 0,
+            kind: WeaponKind::BardInstrument,
+            grip: WeaponGrip::OneHanded,
+            range: 0,
+            effects: vec![],
+            condition: None,
+        };
+        let msg = ClientMessage::CreateWeapon {
+            weapon: weapon.clone(),
+        };
+        let bytes = serialize(&msg).unwrap();
+        let decoded: ClientMessage = deserialize(&bytes).unwrap();
+        match decoded {
+            ClientMessage::CreateWeapon { weapon: w } => {
+                assert_eq!(w.name, "Lute");
+                assert_eq!(w.kind, WeaponKind::BardInstrument);
+            }
+            _ => panic!("Wrong message type"),
+        }
+    }
+
+    #[test]
     fn test_server_message_serialization() {
         let summary = CharacterSummary {
             id: uuid::Uuid::new_v4(),

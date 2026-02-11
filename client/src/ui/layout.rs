@@ -379,6 +379,7 @@ fn build_add_item_menu(
                 damage: w.damage.clone(),
                 range: w.range.to_string(),
                 condition: w.condition.clone().unwrap_or_default(),
+                effects: w.effects.iter().map(format_effect).collect(),
             });
     }
 
@@ -631,6 +632,7 @@ fn render_right_column(
                         damage: w.damage.clone(),
                         range: w.range.to_string(),
                         condition: w.condition.clone().unwrap_or_default(),
+                        effects: w.effects.iter().map(format_effect).collect(),
                     })
             }
             shared::InventoryItem::Equipment(name) => {
