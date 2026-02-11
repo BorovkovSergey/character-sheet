@@ -1,16 +1,15 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
-use shared::Character;
+use shared::CharacterSummary;
 use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 
-use crate::components::spawn_character;
-use crate::network::{ClientEquipmentRegistry, ClientTraitRegistry, ClientWeaponRegistry};
+use crate::network::PendingClientMessages;
 use crate::state::AppScreen;
 
-/// Holds the list of available characters received from the server.
+/// Holds the list of character summaries received from the server.
 #[derive(Debug, Clone, Resource, Default)]
 pub struct CharacterList {
-    pub characters: Vec<Character>,
+    pub characters: Vec<CharacterSummary>,
 }
 
 pub struct CharacterSelectPlugin;
@@ -26,11 +25,8 @@ impl Plugin for CharacterSelectPlugin {
 
 fn render_character_select(
     mut contexts: EguiContexts,
-    mut commands: Commands,
     character_list: Res<CharacterList>,
-    trait_registry: Res<ClientTraitRegistry>,
-    weapon_registry: Res<ClientWeaponRegistry>,
-    equipment_registry: Res<ClientEquipmentRegistry>,
+    mut pending_messages: ResMut<PendingClientMessages>,
     mut next_state: ResMut<NextState<AppScreen>>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
@@ -43,7 +39,7 @@ fn render_character_select(
     let panel_width = (screen_rect.width() * 0.4).max(340.0).min(500.0);
     let scroll_height = (screen_rect.height() * 0.6).max(350.0);
 
-    let mut selected: Option<Character> = None;
+    let mut selected: Option<CharacterSummary> = None;
 
     egui::Window::new("Select Character")
         .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
@@ -77,28 +73,29 @@ fn render_character_select(
             egui::ScrollArea::vertical()
                 .max_height(scroll_height)
                 .show(ui, |ui| {
-                    for character in &character_list.characters {
-                        if render_character_entry(ui, character) {
-                            selected = Some(character.clone());
+                    for summary in &character_list.characters {
+                        if render_character_entry(ui, summary) {
+                            selected = Some(summary.clone());
                         }
                         ui.add_space(6.0);
                     }
                 });
         });
 
-    if let Some(mut character) = selected {
-        character.recalculate_effects(&trait_registry.0, &weapon_registry.0, &equipment_registry.0);
-        spawn_character(&mut commands, &character);
-        next_state.set(AppScreen::CharacterSheet);
+    if let Some(summary) = selected {
+        pending_messages
+            .0
+            .push(shared::ClientMessage::RequestVersionList { id: summary.id });
+        next_state.set(AppScreen::VersionSelect);
     }
 
     Ok(())
 }
 
-/// Renders a single character entry as a clickable card.
+/// Renders a single character summary entry as a clickable card.
 /// Returns `true` if the card was clicked.
-fn render_character_entry(ui: &mut egui::Ui, character: &Character) -> bool {
-    let id = ui.id().with(character.id);
+fn render_character_entry(ui: &mut egui::Ui, summary: &CharacterSummary) -> bool {
+    let id = ui.id().with(summary.id);
     let was_hovered = ui.data(|d| d.get_temp::<bool>(id).unwrap_or(false));
 
     let fill = if was_hovered {
@@ -115,7 +112,7 @@ fn render_character_entry(ui: &mut egui::Ui, character: &Character) -> bool {
         .show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.label(
-                egui::RichText::new(&character.name)
+                egui::RichText::new(&summary.name)
                     .size(16.0)
                     .color(TEXT_COLOR),
             );
@@ -123,7 +120,7 @@ fn render_character_entry(ui: &mut egui::Ui, character: &Character) -> bool {
             ui.label(
                 egui::RichText::new(format!(
                     "{}  |  {}  |  Level {}",
-                    character.race, character.class, character.level
+                    summary.race, summary.class, summary.level
                 ))
                 .size(13.0)
                 .color(egui::Color32::from_rgb(0x88, 0x88, 0x99)),

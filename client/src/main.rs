@@ -5,6 +5,7 @@ mod events;
 mod network;
 mod state;
 mod ui;
+mod version_select;
 
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
@@ -14,6 +15,7 @@ use components::{despawn_active_character, recalculate_effects};
 use network::NetworkPlugin;
 use state::AppScreen;
 use ui::UiPlugin;
+use version_select::VersionSelectPlugin;
 
 fn main() {
     let mut app = App::new();
@@ -38,6 +40,7 @@ fn main() {
     .add_plugins(EguiPlugin::default())
     .init_state::<AppScreen>()
     .add_plugins(CharacterSelectPlugin)
+    .add_plugins(VersionSelectPlugin)
     .add_plugins(NetworkPlugin)
     .add_plugins(UiPlugin)
     .add_systems(PreStartup, setup)

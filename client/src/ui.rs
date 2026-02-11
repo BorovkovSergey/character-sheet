@@ -1309,9 +1309,10 @@ fn render_learn_trait_overlay(
                     .layout(egui::Layout::right_to_left(egui::Align::Center)),
             );
 
-            let can_confirm = state.selected.as_ref().is_some_and(|name| {
-                character.trait_pts.0 > 0 && !known_traits.contains(name)
-            });
+            let can_confirm = state
+                .selected
+                .as_ref()
+                .is_some_and(|name| character.trait_pts.0 > 0 && !known_traits.contains(name));
             if button_ui
                 .add_enabled(can_confirm, egui::Button::new("Confirm"))
                 .clicked()

@@ -20,9 +20,11 @@ async fn handle_socket(socket: WebSocket, store: CharacterStore) {
 
     info!("New WebSocket connection");
 
-    // Send initial character list
-    let characters = store.get_all().await;
-    let msg = ServerMessage::CharacterList { characters };
+    // Send character summaries on connect
+    let summaries = store.get_all_summaries().await;
+    let msg = ServerMessage::CharacterList {
+        characters: summaries,
+    };
     if let Ok(bytes) = serialize(&msg) {
         if sender.send(Message::Binary(bytes)).await.is_err() {
             return;
@@ -63,8 +65,29 @@ async fn handle_socket(socket: WebSocket, store: CharacterStore) {
 async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Option<ServerMessage> {
     match msg {
         ClientMessage::RequestCharacterList => {
-            let characters = store.get_all().await;
-            Some(ServerMessage::CharacterList { characters })
+            let summaries = store.get_all_summaries().await;
+            Some(ServerMessage::CharacterList {
+                characters: summaries,
+            })
+        }
+        ClientMessage::RequestVersionList { id } => match store.get_version_list(id).await {
+            Some(versions) => Some(ServerMessage::VersionList { id, versions }),
+            None => Some(ServerMessage::Error {
+                message: format!("Character {} not found", id),
+            }),
+        },
+        ClientMessage::RequestCharacterVersion { id, version } => {
+            match store.get_character_version(id, version).await {
+                Some(cv) => Some(ServerMessage::CharacterVersion {
+                    id,
+                    version: cv.version,
+                    saved_at: cv.saved_at,
+                    character: Box::new(cv.character),
+                }),
+                None => Some(ServerMessage::Error {
+                    message: "Version not found".to_string(),
+                }),
+            }
         }
         ClientMessage::CreateCharacter { name } => {
             if name.trim().is_empty() {
@@ -77,8 +100,8 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Option<Se
                     message: "Character name cannot exceed 100 characters".to_string(),
                 });
             }
-            let character = store.create(name).await;
-            Some(ServerMessage::CharacterCreated { character })
+            let summary = store.create(name).await;
+            Some(ServerMessage::CharacterCreated { summary })
         }
         ClientMessage::DeleteCharacter { id } => {
             if store.delete(id).await {
@@ -89,15 +112,12 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Option<Se
                 })
             }
         }
-        ClientMessage::UpdateCharacter { character } => {
-            if let Some(updated) = store.update(character).await {
-                Some(ServerMessage::CharacterUpdated { character: updated })
-            } else {
-                Some(ServerMessage::Error {
-                    message: "Character not found".to_string(),
-                })
-            }
-        }
+        ClientMessage::UpdateCharacter { character } => match store.update(character).await {
+            Some(summary) => Some(ServerMessage::CharacterUpdated { summary }),
+            None => Some(ServerMessage::Error {
+                message: "Character not found".to_string(),
+            }),
+        },
         ClientMessage::CreateWeapon { weapon } => {
             if let Err(e) = store.save_weapon(weapon).await {
                 error!("Failed to save weapon: {e}");

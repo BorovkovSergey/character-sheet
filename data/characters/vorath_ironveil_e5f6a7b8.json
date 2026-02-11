@@ -1,0 +1,73 @@
+{
+  "id": "e5f6a7b8-5555-4eee-ffff-555555555555",
+  "versions": [
+    {
+      "version": 1,
+      "saved_at": 1770830823,
+      "character": {
+        "id": "e5f6a7b8-5555-4eee-ffff-555555555555",
+        "name": "Vorath Ironveil",
+        "race": "DarkHalfElf",
+        "class": "Bard",
+        "level": 6,
+        "experience": 30,
+        "hp_spent": 0,
+        "mana_spent": 0,
+        "action_points": {
+          "current": 4,
+          "max": 4
+        },
+        "stats": {
+          "strength": {
+            "level": 14
+          },
+          "dexterity": {
+            "level": 11
+          },
+          "endurance": {
+            "level": 15
+          },
+          "perception": {
+            "level": 9
+          },
+          "magic": {
+            "level": 10
+          },
+          "willpower": {
+            "level": 16
+          },
+          "intellect": {
+            "level": 12
+          },
+          "charisma": {
+            "level": 9
+          }
+        },
+        "characteristic_points": 2,
+        "skill_points": 0,
+        "ability_points": 0,
+        "trait_points": 0,
+        "skills": [
+          {
+            "name": "MeleeAttack",
+            "level": 4
+          }
+        ],
+        "traits": [
+          "Blessed",
+          "Second Chance",
+          "Strength of Spirit"
+        ],
+        "abilities": [
+          "Enchanting song",
+          "False chord",
+          "From one eye"
+        ],
+        "equipped_weapons": [],
+        "equipped_equipment": {},
+        "inventory": [],
+        "wallet": 123456
+      }
+    }
+  ]
+}

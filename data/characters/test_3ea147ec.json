@@ -1,0 +1,66 @@
+{
+  "id": "3ea147ec-54d9-4b78-8490-96e0423bc19c",
+  "versions": [
+    {
+      "version": 1,
+      "saved_at": 1770830823,
+      "character": {
+        "id": "3ea147ec-54d9-4b78-8490-96e0423bc19c",
+        "name": "Test",
+        "race": "DarkHalfElf",
+        "class": "Bard",
+        "level": 0,
+        "experience": 0,
+        "hp_spent": 3,
+        "mana_spent": 0,
+        "action_points": {
+          "current": 3,
+          "max": 3
+        },
+        "stats": {
+          "strength": {
+            "level": 1
+          },
+          "dexterity": {
+            "level": 1
+          },
+          "endurance": {
+            "level": 1
+          },
+          "perception": {
+            "level": 1
+          },
+          "magic": {
+            "level": 1
+          },
+          "willpower": {
+            "level": 1
+          },
+          "intellect": {
+            "level": 1
+          },
+          "charisma": {
+            "level": 1
+          }
+        },
+        "characteristic_points": 0,
+        "skill_points": 0,
+        "ability_points": 0,
+        "trait_points": 0,
+        "skills": [],
+        "traits": [
+          "Magic Allergy"
+        ],
+        "abilities": [
+          "Enchanting song",
+          "False chord",
+          "From one eye"
+        ],
+        "equipped_weapons": [],
+        "equipped_equipment": {},
+        "inventory": [],
+        "wallet": 123456
+      }
+    }
+  ]
+}

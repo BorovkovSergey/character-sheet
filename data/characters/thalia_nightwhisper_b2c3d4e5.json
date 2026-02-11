@@ -1,0 +1,73 @@
+{
+  "id": "b2c3d4e5-2222-4bbb-cccc-222222222222",
+  "versions": [
+    {
+      "version": 1,
+      "saved_at": 1770830823,
+      "character": {
+        "id": "b2c3d4e5-2222-4bbb-cccc-222222222222",
+        "name": "Thalia Nightwhisper",
+        "race": "DarkHalfElf",
+        "class": "Bard",
+        "level": 3,
+        "experience": 10,
+        "hp_spent": 0,
+        "mana_spent": 0,
+        "action_points": {
+          "current": 3,
+          "max": 3
+        },
+        "stats": {
+          "strength": {
+            "level": 8
+          },
+          "dexterity": {
+            "level": 12
+          },
+          "endurance": {
+            "level": 9
+          },
+          "perception": {
+            "level": 15
+          },
+          "magic": {
+            "level": 14
+          },
+          "willpower": {
+            "level": 13
+          },
+          "intellect": {
+            "level": 11
+          },
+          "charisma": {
+            "level": 12
+          }
+        },
+        "characteristic_points": 0,
+        "skill_points": 0,
+        "ability_points": 0,
+        "trait_points": 0,
+        "skills": [
+          {
+            "name": "Eloquence",
+            "level": 2
+          }
+        ],
+        "traits": [
+          "Magician",
+          "Cat's Eye",
+          "Educated"
+        ],
+        "abilities": [
+          "Enchanting song",
+          "False chord",
+          "From one eye"
+        ],
+        "equipped_weapons": [],
+        "equipped_equipment": {},
+        "inventory": [],
+        "wallet": 123456
+      }
+    }
+  ]
+}

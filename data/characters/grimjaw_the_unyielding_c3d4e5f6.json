@@ -1,0 +1,78 @@
+{
+  "id": "c3d4e5f6-3333-4ccc-dddd-333333333333",
+  "versions": [
+    {
+      "version": 1,
+      "saved_at": 1770830823,
+      "character": {
+        "id": "c3d4e5f6-3333-4ccc-dddd-333333333333",
+        "name": "Grimjaw the Unyielding",
+        "race": "DarkHalfElf",
+        "class": "Bard",
+        "level": 8,
+        "experience": 50,
+        "hp_spent": 0,
+        "mana_spent": 0,
+        "action_points": {
+          "current": 5,
+          "max": 5
+        },
+        "stats": {
+          "strength": {
+            "level": 18
+          },
+          "dexterity": {
+            "level": 12
+          },
+          "endurance": {
+            "level": 16
+          },
+          "perception": {
+            "level": 10
+          },
+          "magic": {
+            "level": 8
+          },
+          "willpower": {
+            "level": 14
+          },
+          "intellect": {
+            "level": 9
+          },
+          "charisma": {
+            "level": 11
+          }
+        },
+        "characteristic_points": 3,
+        "skill_points": 5,
+        "ability_points": 0,
+        "trait_points": 0,
+        "skills": [
+          {
+            "name": "MeleeAttack",
+            "level": 5
+          },
+          {
+            "name": "Eloquence",
+            "level": 1
+          }
+        ],
+        "traits": [
+          "Battle Rage",
+          "Thick-Skinned",
+          "Fistfighter",
+          "Cold Calculation"
+        ],
+        "abilities": [
+          "Enchanting song",
+          "False chord",
+          "From one eye"
+        ],
+        "equipped_weapons": [],
+        "equipped_equipment": {},
+        "inventory": [],
+        "wallet": 123456
+      }
+    }
+  ]
+}

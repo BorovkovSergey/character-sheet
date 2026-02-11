@@ -4,5 +4,6 @@ use bevy::prelude::*;
 pub enum AppScreen {
     #[default]
     CharacterSelect,
+    VersionSelect,
     CharacterSheet,
 }

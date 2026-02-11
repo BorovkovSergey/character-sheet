@@ -7,6 +7,9 @@ use shared::{
 };
 
 use crate::character_select::CharacterList;
+use crate::components::spawn_character;
+use crate::state::AppScreen;
+use crate::version_select::VersionList;
 
 /// Holds the WebSocket sender/receiver pair as a non-send Bevy resource.
 ///
@@ -173,23 +176,73 @@ fn drain_ws(
 
 /// Normal system: processes buffered server messages and updates game state.
 fn process_server_messages(
+    mut commands: Commands,
     mut pending: ResMut<PendingServerMessages>,
     mut character_list: ResMut<CharacterList>,
+    mut version_list: ResMut<VersionList>,
+    trait_registry: Res<ClientTraitRegistry>,
+    weapon_registry: Res<ClientWeaponRegistry>,
+    equipment_registry: Res<ClientEquipmentRegistry>,
+    mut next_state: ResMut<NextState<AppScreen>>,
 ) {
     for msg in pending.0.drain(..) {
         match msg {
             ServerMessage::CharacterList { characters } => {
-                info!("Received {} character(s) from server", characters.len());
+                info!(
+                    "Received {} character summary(ies) from server",
+                    characters.len()
+                );
                 character_list.characters = characters;
             }
-            ServerMessage::CharacterCreated { .. } => {
-                warn!("Received unhandled CharacterCreated message");
+            ServerMessage::VersionList { id, versions } => {
+                info!(
+                    "Received {} version(s) for character {}",
+                    versions.len(),
+                    id
+                );
+                let name = character_list
+                    .characters
+                    .iter()
+                    .find(|c| c.id == id)
+                    .map(|c| c.name.clone())
+                    .unwrap_or_default();
+                version_list.character_id = id;
+                version_list.character_name = name;
+                version_list.versions = versions;
             }
-            ServerMessage::CharacterUpdated { .. } => {
-                warn!("Received unhandled CharacterUpdated message");
+            ServerMessage::CharacterVersion {
+                id,
+                version,
+                character,
+                ..
+            } => {
+                info!("Received character {} version {}", id, version);
+                let mut character = *character;
+                character.recalculate_effects(
+                    &trait_registry.0,
+                    &weapon_registry.0,
+                    &equipment_registry.0,
+                );
+                spawn_character(&mut commands, &character);
+                next_state.set(AppScreen::CharacterSheet);
             }
-            ServerMessage::CharacterDeleted { .. } => {
-                warn!("Received unhandled CharacterDeleted message");
+            ServerMessage::CharacterCreated { summary } => {
+                info!("Character created: {}", summary.name);
+                character_list.characters.push(summary);
+            }
+            ServerMessage::CharacterUpdated { summary } => {
+                info!("Character updated: {}", summary.name);
+                if let Some(existing) = character_list
+                    .characters
+                    .iter_mut()
+                    .find(|c| c.id == summary.id)
+                {
+                    *existing = summary;
+                }
+            }
+            ServerMessage::CharacterDeleted { id } => {
+                info!("Character deleted: {}", id);
+                character_list.characters.retain(|c| c.id != id);
             }
             ServerMessage::Error { message } => {
                 error!("Server error: {message}");

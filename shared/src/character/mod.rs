@@ -147,8 +147,7 @@ impl Character {
         }
         for weapon_name in &self.equipped_weapons {
             if let Some(weapon) = weapon_registry.get(weapon_name) {
-                self.active_effects
-                    .extend(weapon.effects.iter().cloned());
+                self.active_effects.extend(weapon.effects.iter().cloned());
             }
         }
         for names in self.equipped_equipment.values() {
