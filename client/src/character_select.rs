@@ -119,6 +119,11 @@ fn render_character_select(
     }
 
     if create_open.0 {
+        let existing_names: Vec<String> = character_list
+            .characters
+            .iter()
+            .map(|c| c.name.clone())
+            .collect();
         crate::create_character::render_create_character_overlay(
             ctx,
             &mut create_open,
@@ -128,6 +133,7 @@ fn render_character_select(
             &portrait_picker,
             &mut pending_creation_portrait,
             &mut crop_editor,
+            &existing_names,
         );
     }
 

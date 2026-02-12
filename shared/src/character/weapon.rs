@@ -85,6 +85,8 @@ pub enum WeaponGrip {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Weapon {
     pub name: String,
+    #[serde(default)]
+    pub description: String,
     /// Free-form damage description (e.g. "2d6+3").
     pub damage: String,
     /// Attack bonus.

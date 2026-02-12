@@ -9,6 +9,7 @@ const SLOT_COUNT: usize = 3;
 /// Data for a single weapon slot passed from the client.
 pub struct WeaponSlot {
     pub name: String,
+    pub description: String,
     pub kind: String,
     pub attack: String,
     pub damage: String,
@@ -96,7 +97,8 @@ fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) 
                             .is_some();
                     }
                     if let Some(slot) = slots.get(i) {
-                        if response.hovered() && !menu_open && !slot.condition.is_empty() {
+                        let has_tooltip = !slot.description.is_empty() || !slot.condition.is_empty();
+                    if response.hovered() && !menu_open && has_tooltip {
                             let pos = response.hover_pos().unwrap_or(rect.right_top())
                                 + egui::vec2(8.0, 8.0);
                             egui::Area::new(response.id.with("cond_tip"))
@@ -109,12 +111,24 @@ fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) 
                                         .corner_radius(CornerRadius::same(6))
                                         .inner_margin(6.0)
                                         .show(ui, |ui| {
-                                            ui.label(
-                                                RichText::new(&slot.condition)
-                                                    .size(11.0)
-                                                    .italics()
-                                                    .color(crate::colors::TEXT_COLOR),
-                                            );
+                                            if !slot.description.is_empty() {
+                                                ui.label(
+                                                    RichText::new(&slot.description)
+                                                        .size(11.0)
+                                                        .color(crate::colors::TEXT_COLOR),
+                                                );
+                                            }
+                                            if !slot.description.is_empty() && !slot.condition.is_empty() {
+                                                ui.separator();
+                                            }
+                                            if !slot.condition.is_empty() {
+                                                ui.label(
+                                                    RichText::new(&slot.condition)
+                                                        .size(11.0)
+                                                        .italics()
+                                                        .color(crate::colors::TEXT_COLOR),
+                                                );
+                                            }
                                         });
                                 });
                         }

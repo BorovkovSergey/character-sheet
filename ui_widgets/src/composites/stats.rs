@@ -8,14 +8,14 @@ use crate::traits::{Roundable, WithText};
 
 /// Displays the character's defense and resistance stats.
 pub struct Stats {
-    resists: BTreeMap<String, (TextureId, u32)>,
-    protections: BTreeMap<String, (TextureId, u32)>,
+    resists: BTreeMap<String, (TextureId, i32)>,
+    protections: BTreeMap<String, (TextureId, i32)>,
 }
 
 impl Stats {
     pub fn new(
-        resists: BTreeMap<String, (TextureId, u32)>,
-        protections: BTreeMap<String, (TextureId, u32)>,
+        resists: BTreeMap<String, (TextureId, i32)>,
+        protections: BTreeMap<String, (TextureId, i32)>,
     ) -> Self {
         Self {
             resists,
@@ -77,7 +77,7 @@ impl Widget for Stats {
 /// Lays out a row of equally-spaced inner [`TitledBox`] widgets with per-item icons.
 fn inner_titled_boxes_with_icons(
     ui: &mut egui::Ui,
-    values: &BTreeMap<String, (TextureId, u32)>,
+    values: &BTreeMap<String, (TextureId, i32)>,
     rounding: u8,
 ) {
     let count = values.len() as f32;
@@ -96,7 +96,7 @@ fn inner_titled_boxes_with_icons(
             ui.add_space(pad_x);
             ui.spacing_mut().item_spacing = egui::vec2(spacing, 0.0);
             for (label, (icon, value)) in values {
-                let text = format_signed(*value as i32);
+                let text = format_signed(*value);
 
                 ui.allocate_ui_with_layout(
                     egui::vec2(item_width, inner_height),

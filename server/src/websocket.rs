@@ -118,6 +118,12 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Vec<Serve
                     message: "Character name cannot exceed 100 characters".to_string(),
                 }];
             }
+            let trimmed = name.trim().to_string();
+            if store.character_name_exists(&trimmed).await {
+                return vec![ServerMessage::Error {
+                    message: format!("Character with name \"{}\" already exists", trimmed),
+                }];
+            }
             let summary = store.create(name, race, class, stats, skills, traits).await;
             vec![ServerMessage::CharacterCreated { summary }]
         }
@@ -147,24 +153,20 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Vec<Serve
                 message: "Character not found".to_string(),
             }],
         },
-        ClientMessage::CreateWeapon { weapon } => {
-            if let Err(e) = store.save_weapon(weapon).await {
-                error!("Failed to save weapon: {e}");
-            }
-            vec![]
-        }
+        ClientMessage::CreateWeapon { weapon } => match store.save_weapon(weapon).await {
+            Err(e) => vec![ServerMessage::Error { message: e }],
+            Ok(()) => vec![],
+        },
         ClientMessage::CreateEquipment { equipment } => {
-            if let Err(e) = store.save_equipment(equipment).await {
-                error!("Failed to save equipment: {e}");
+            match store.save_equipment(equipment).await {
+                Err(e) => vec![ServerMessage::Error { message: e }],
+                Ok(()) => vec![],
             }
-            vec![]
         }
-        ClientMessage::CreateItem { item } => {
-            if let Err(e) = store.save_item(item).await {
-                error!("Failed to save item: {e}");
-            }
-            vec![]
-        }
+        ClientMessage::CreateItem { item } => match store.save_item(item).await {
+            Err(e) => vec![ServerMessage::Error { message: e }],
+            Ok(()) => vec![],
+        },
         ClientMessage::UploadPortrait { id, png_data } => {
             if png_data.len() > MAX_PORTRAIT_SIZE {
                 return vec![ServerMessage::Error {

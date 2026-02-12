@@ -4,9 +4,9 @@ use shared::Effect;
 
 pub fn format_effect(effect: &Effect) -> String {
     match effect {
-        Effect::Resist(r, v) => format!("{r} Resist +{v}"),
+        Effect::Resist(r, v) => format!("{r} Resist {v:+}"),
         Effect::Skill(name, v) => format!("{name} {v:+}"),
-        Effect::Protection(p, v) => format!("{p} Protection +{v}"),
+        Effect::Protection(p, v) => format!("{p} Protection {v:+}"),
         Effect::Initiative(v) => format!("Initiative {v:+}"),
         Effect::Characteristic(c, v) => format!("{c} {v:+}"),
         Effect::ActionPoints(v) => format!("Action Points {v:+}"),

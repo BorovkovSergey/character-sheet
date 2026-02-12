@@ -39,7 +39,7 @@ impl Default for CreateCharacterState {
             race_idx: 0,
             class_idx: 0,
             characteristic_points: 18,
-            skill_points: 10 + intellect as i32,
+            skill_points: 10 + 3 * intellect as i32,
             stats: Stats {
                 strength: shared::Characteristic::new(1),
                 dexterity: shared::Characteristic::new(1),
@@ -68,6 +68,7 @@ pub fn render_create_character_overlay(
     portrait_picker: &PortraitPickerResult,
     pending_creation_portrait: &mut PendingCreationPortrait,
     crop_editor: &mut CropEditorSlot,
+    existing_names: &[String],
 ) {
     let screen = ctx.content_rect();
     let state_id = egui::Id::new("create_character_state");
@@ -307,10 +308,12 @@ pub fn render_create_character_overlay(
                 }
                 None => {}
             }
-            // Intellect change adjusts skill points
+            // Intellect change adjusts skill points (±1 per level change)
             let new_intellect = state.stats.intellect.level;
-            if new_intellect != prev_intellect {
-                state.skill_points += new_intellect as i32 - prev_intellect as i32;
+            if new_intellect > prev_intellect {
+                state.skill_points += 3;
+            } else if new_intellect < prev_intellect {
+                state.skill_points -= 3;
             }
 
             ui.add_space(8.0);
@@ -433,7 +436,10 @@ pub fn render_create_character_overlay(
                         level > 0 && level > state.stats.get_level(skill.dependency)
                     });
                 let all_points_spent = state.characteristic_points == 0 && state.skill_points == 0;
-                let can_create = !state.name.trim().is_empty()
+                let trimmed_name = state.name.trim();
+                let name_taken = existing_names.iter().any(|n| n == trimmed_name);
+                let can_create = !trimmed_name.is_empty()
+                    && !name_taken
                     && !has_over_limit_skills
                     && all_points_spent
                     && state.selected_traits.len() == 3;

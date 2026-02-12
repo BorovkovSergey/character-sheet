@@ -58,6 +58,7 @@ mod tests {
     fn test_create_shield_weapon_roundtrip() {
         let weapon = Weapon {
             name: "Tower Shield".to_string(),
+            description: String::new(),
             damage: String::new(),
             attack: 0,
             kind: WeaponKind::Shield,
@@ -84,6 +85,7 @@ mod tests {
     fn test_create_bard_instrument_roundtrip() {
         let weapon = Weapon {
             name: "Lute".to_string(),
+            description: String::new(),
             damage: String::new(),
             attack: 0,
             kind: WeaponKind::BardInstrument,

@@ -1,36 +1,52 @@
 [
-    {
-        "name": "Short Bow",
-        "damage": "1d6",
-        "attack": 0,
-        "kind": {
-            "Range": "Bow"
-        },
-        "grip": "TwoHanded",
-        "range": 6,
-        "effects": []
+  {
+    "name": "Short Bow",
+    "description": "",
+    "damage": "1d6",
+    "attack": 0,
+    "kind": {
+      "Range": "Bow"
     },
-    {
-        "name": "Pistol",
-        "damage": "2d6",
-        "attack": 0,
-        "kind": {
-            "Range": "Firearm"
-        },
-        "grip": "TwoHanded",
-        "range": 7,
-        "condition": "Needs to reload after shot",
-        "effects": []
+    "grip": "TwoHanded",
+    "range": 6,
+    "effects": [],
+    "condition": null
+  },
+  {
+    "name": "Cursed violin",
+    "description": "Cursed soul of young bard is jailed in this violin. She obsessed with the idea to kill Ignasio who did terrible things to her.",
+    "damage": "1d4",
+    "attack": 0,
+    "kind": "BardInstrument",
+    "grip": "OneHanded",
+    "range": 0,
+    "effects": [],
+    "condition": "Songs range +2 and damage +1."
+  },
+  {
+    "name": "Pistol",
+    "description": "",
+    "damage": "2d6",
+    "attack": 0,
+    "kind": {
+      "Range": "Firearm"
     },
-    {
-        "name": "Sword",
-        "damage": "1d6",
-        "attack": 0,
-        "kind": {
-            "Melee": "Slashing"
-        },
-        "grip": "OneHanded",
-        "range": 1,
-        "effects": []
-    }
+    "grip": "HandAndAHalf",
+    "range": 7,
+    "effects": [],
+    "condition": "Should be reloaded after each shot."
+  },
+  {
+    "name": "Sword",
+    "description": "",
+    "damage": "1d6",
+    "attack": 0,
+    "kind": {
+      "Melee": "Slashing"
+    },
+    "grip": "OneHanded",
+    "range": 1,
+    "effects": [],
+    "condition": null
+  }
 ]

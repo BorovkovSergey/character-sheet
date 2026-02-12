@@ -4,6 +4,7 @@ use crate::egui::{self, CornerRadius, RichText, Stroke};
 /// Data for displaying a weapon popup card.
 pub struct WeaponCard {
     pub name: String,
+    pub description: String,
     pub kind: String,
     pub attack: String,
     pub damage: String,
@@ -16,6 +17,7 @@ impl WeaponCard {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
+            description: String::new(),
             kind: String::new(),
             attack: String::new(),
             damage: String::new(),
@@ -23,6 +25,11 @@ impl WeaponCard {
             condition: String::new(),
             effects: Vec::new(),
         }
+    }
+
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = description.into();
+        self
     }
 
     pub fn kind(mut self, kind: impl Into<String>) -> Self {
@@ -113,6 +120,17 @@ impl WeaponCard {
                                     .size(12.0)
                                     .color(TEXT_COLOR),
                             );
+                        }
+                        if !self.description.is_empty() {
+                            ui.add_space(2.0);
+                            ui.label(
+                                RichText::new(&self.description)
+                                    .size(11.0)
+                                    .color(TEXT_COLOR),
+                            );
+                        }
+                        if !self.description.is_empty() && !self.condition.is_empty() {
+                            ui.separator();
                         }
                         if !self.condition.is_empty() {
                             ui.add_space(2.0);

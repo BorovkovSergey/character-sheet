@@ -168,22 +168,21 @@ impl Character {
     }
 
     /// Aggregates effect values of a specific kind, summing magnitudes per key.
-    fn aggregate<K>(&self, extract: impl Fn(&Effect) -> Option<(K, u32)>) -> BTreeMap<K, u32>
+    fn aggregate<K>(&self, extract: impl Fn(&Effect) -> Option<(K, i32)>) -> BTreeMap<K, i32>
     where
         K: Ord + Copy + IntoEnumIterator,
     {
-        let mut result: BTreeMap<K, u32> = K::iter().map(|k| (k, 0)).collect();
+        let mut result: BTreeMap<K, i32> = K::iter().map(|k| (k, 0)).collect();
         for effect in &self.active_effects {
             if let Some((key, magnitude)) = extract(effect) {
-                let entry = result.entry(key).or_insert(0);
-                *entry = entry.saturating_add(magnitude);
+                *result.entry(key).or_insert(0) += magnitude;
             }
         }
         result
     }
 
     /// Aggregates resist values from active effects, summing magnitudes per resist type.
-    pub fn get_resists(&self) -> BTreeMap<Resist, u32> {
+    pub fn get_resists(&self) -> BTreeMap<Resist, i32> {
         self.aggregate(|e| match e {
             Effect::Resist(r, m) => Some((*r, *m)),
             _ => None,
@@ -191,7 +190,7 @@ impl Character {
     }
 
     /// Aggregates protection values from active effects, summing magnitudes per protection type.
-    pub fn get_protections(&self) -> BTreeMap<Protection, u32> {
+    pub fn get_protections(&self) -> BTreeMap<Protection, i32> {
         self.aggregate(|e| match e {
             Effect::Protection(p, m) => Some((*p, *m)),
             _ => None,

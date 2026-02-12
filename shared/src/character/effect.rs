@@ -64,9 +64,9 @@ pub enum OnLvlUp {
 /// Effect with magnitude
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Effect {
-    Resist(Resist, u32),
+    Resist(Resist, i32),
     Skill(String, i32),
-    Protection(Protection, u32),
+    Protection(Protection, i32),
     Initiative(i32),
     Characteristic(CharacteristicKind, i32),
     ActionPoints(i32),

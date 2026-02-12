@@ -1,0 +1,398 @@
+{
+  "id": "ff7dd12b-08c2-4af0-b7d6-4c1203ca3147",
+  "versions": [
+    {
+      "version": 1,
+      "saved_at": 1770919273,
+      "character": {
+        "id": "ff7dd12b-08c2-4af0-b7d6-4c1203ca3147",
+        "name": "Talion",
+        "race": "HalfElf",
+        "class": "Bard",
+        "level": 0,
+        "experience": 0,
+        "hp_spent": 0,
+        "mana_spent": 0,
+        "action_points": {
+          "current": 5,
+          "max": 5
+        },
+        "stats": {
+          "strength": {
+            "level": 1
+          },
+          "dexterity": {
+            "level": 3
+          },
+          "endurance": {
+            "level": 2
+          },
+          "perception": {
+            "level": 1
+          },
+          "magic": {
+            "level": 2
+          },
+          "willpower": {
+            "level": 2
+          },
+          "intellect": {
+            "level": 2
+          },
+          "charisma": {
+            "level": 3
+          }
+        },
+        "characteristic_points": 0,
+        "skill_points": 0,
+        "ability_points": 0,
+        "trait_points": 0,
+        "skills": [
+          {
+            "name": "Art",
+            "level": 3
+          },
+          {
+            "name": "History",
+            "level": 2
+          },
+          {
+            "name": "Secrecy",
+            "level": 2
+          },
+          {
+            "name": "Trade",
+            "level": 2
+          },
+          {
+            "name": "Religion",
+            "level": 2
+          },
+          {
+            "name": "MeleeAttack",
+            "level": 1
+          }
+        ],
+        "traits": [
+          "Intuition",
+          "Artist",
+          "Harmless"
+        ],
+        "abilities": [],
+        "equipped_weapons": [],
+        "equipped_equipment": {},
+        "inventory": [],
+        "wallet": 0
+      }
+    },
+    {
+      "version": 2,
+      "saved_at": 1770919326,
+      "character": {
+        "id": "ff7dd12b-08c2-4af0-b7d6-4c1203ca3147",
+        "name": "Talion",
+        "race": "HalfElf",
+        "class": "Bard",
+        "level": 6,
+        "experience": 0,
+        "hp_spent": 0,
+        "mana_spent": 0,
+        "action_points": {
+          "current": 5,
+          "max": 5
+        },
+        "stats": {
+          "strength": {
+            "level": 1
+          },
+          "dexterity": {
+            "level": 3
+          },
+          "endurance": {
+            "level": 2
+          },
+          "perception": {
+            "level": 3
+          },
+          "magic": {
+            "level": 2
+          },
+          "willpower": {
+            "level": 2
+          },
+          "intellect": {
+            "level": 2
+          },
+          "charisma": {
+            "level": 5
+          }
+        },
+        "characteristic_points": 0,
+        "skill_points": 0,
+        "ability_points": 6,
+        "trait_points": 1,
+        "skills": [
+          {
+            "name": "Art",
+            "level": 5
+          },
+          {
+            "name": "History",
+            "level": 2
+          },
+          {
+            "name": "Secrecy",
+            "level": 2
+          },
+          {
+            "name": "Trade",
+            "level": 2
+          },
+          {
+            "name": "Religion",
+            "level": 2
+          },
+          {
+            "name": "MeleeAttack",
+            "level": 1
+          },
+          {
+            "name": "Eloquence",
+            "level": 4
+          },
+          {
+            "name": "RangeAttack",
+            "level": 3
+          },
+          {
+            "name": "Attention",
+            "level": 3
+          },
+          {
+            "name": "Mechanics",
+            "level": 2
+          }
+        ],
+        "traits": [
+          "Intuition",
+          "Artist",
+          "Harmless",
+          "Educated"
+        ],
+        "abilities": [],
+        "equipped_weapons": [],
+        "equipped_equipment": {},
+        "inventory": [],
+        "wallet": 0
+      }
+    },
+    {
+      "version": 3,
+      "saved_at": 1770919527,
+      "character": {
+        "id": "ff7dd12b-08c2-4af0-b7d6-4c1203ca3147",
+        "name": "Talion",
+        "race": "HalfElf",
+        "class": "Bard",
+        "level": 6,
+        "experience": 0,
+        "hp_spent": 0,
+        "mana_spent": 0,
+        "action_points": {
+          "current": 5,
+          "max": 5
+        },
+        "stats": {
+          "strength": {
+            "level": 1
+          },
+          "dexterity": {
+            "level": 3
+          },
+          "endurance": {
+            "level": 2
+          },
+          "perception": {
+            "level": 3
+          },
+          "magic": {
+            "level": 2
+          },
+          "willpower": {
+            "level": 2
+          },
+          "intellect": {
+            "level": 2
+          },
+          "charisma": {
+            "level": 5
+          }
+        },
+        "characteristic_points": 0,
+        "skill_points": 0,
+        "ability_points": 6,
+        "trait_points": 1,
+        "skills": [
+          {
+            "name": "Art",
+            "level": 5
+          },
+          {
+            "name": "History",
+            "level": 2
+          },
+          {
+            "name": "Secrecy",
+            "level": 2
+          },
+          {
+            "name": "Trade",
+            "level": 2
+          },
+          {
+            "name": "Religion",
+            "level": 2
+          },
+          {
+            "name": "MeleeAttack",
+            "level": 1
+          },
+          {
+            "name": "Eloquence",
+            "level": 4
+          },
+          {
+            "name": "RangeAttack",
+            "level": 3
+          },
+          {
+            "name": "Attention",
+            "level": 3
+          },
+          {
+            "name": "Mechanics",
+            "level": 2
+          }
+        ],
+        "traits": [
+          "Intuition",
+          "Artist",
+          "Harmless",
+          "Educated"
+        ],
+        "abilities": [],
+        "equipped_weapons": [
+          "Cursed violin"
+        ],
+        "equipped_equipment": {},
+        "inventory": [],
+        "wallet": 0
+      }
+    },
+    {
+      "version": 4,
+      "saved_at": 1770919720,
+      "character": {
+        "id": "ff7dd12b-08c2-4af0-b7d6-4c1203ca3147",
+        "name": "Talion",
+        "race": "HalfElf",
+        "class": "Bard",
+        "level": 6,
+        "experience": 0,
+        "hp_spent": 0,
+        "mana_spent": 0,
+        "action_points": {
+          "current": 5,
+          "max": 5
+        },
+        "stats": {
+          "strength": {
+            "level": 1
+          },
+          "dexterity": {
+            "level": 3
+          },
+          "endurance": {
+            "level": 2
+          },
+          "perception": {
+            "level": 3
+          },
+          "magic": {
+            "level": 2
+          },
+          "willpower": {
+            "level": 2
+          },
+          "intellect": {
+            "level": 2
+          },
+          "charisma": {
+            "level": 5
+          }
+        },
+        "characteristic_points": 0,
+        "skill_points": 0,
+        "ability_points": 6,
+        "trait_points": 1,
+        "skills": [
+          {
+            "name": "Art",
+            "level": 5
+          },
+          {
+            "name": "History",
+            "level": 2
+          },
+          {
+            "name": "Secrecy",
+            "level": 2
+          },
+          {
+            "name": "Trade",
+            "level": 2
+          },
+          {
+            "name": "Religion",
+            "level": 2
+          },
+          {
+            "name": "MeleeAttack",
+            "level": 1
+          },
+          {
+            "name": "Eloquence",
+            "level": 4
+          },
+          {
+            "name": "RangeAttack",
+            "level": 3
+          },
+          {
+            "name": "Attention",
+            "level": 3
+          },
+          {
+            "name": "Mechanics",
+            "level": 2
+          }
+        ],
+        "traits": [
+          "Intuition",
+          "Artist",
+          "Harmless",
+          "Educated"
+        ],
+        "abilities": [],
+        "equipped_weapons": [
+          "Cursed violin",
+          "Pistol",
+          "Sword"
+        ],
+        "equipped_equipment": {},
+        "inventory": [],
+        "wallet": 0
+      }
+    }
+  ]
+}

@@ -269,6 +269,11 @@ impl CharacterStore {
         index.values().map(|ci| ci.summary.clone()).collect()
     }
 
+    pub async fn character_name_exists(&self, name: &str) -> bool {
+        let index = self.characters.read().await;
+        index.values().any(|ci| ci.summary.name == name)
+    }
+
     pub async fn get_version_list(&self, id: Uuid) -> Option<Vec<VersionSummary>> {
         let (_, file) = self.read_character_file(id).await?;
         Some(
@@ -463,9 +468,9 @@ impl CharacterStore {
         Some(summary)
     }
 
-    /// Upserts a named item into a JSON array file: reads existing items,
-    /// removes the one with the same name (if any), appends the new item, and writes back.
-    async fn upsert_named_item<T>(&self, filename: &str, item: T) -> Result<(), String>
+    /// Inserts a named item into a JSON array file.
+    /// Returns an error if an item with the same name already exists.
+    async fn insert_named_item<T>(&self, filename: &str, item: T) -> Result<(), String>
     where
         T: Named + serde::Serialize + DeserializeOwned,
     {
@@ -475,7 +480,9 @@ impl CharacterStore {
             Err(_) => Vec::new(),
         };
         let name = item.name().to_string();
-        items.retain(|existing| existing.name() != name);
+        if items.iter().any(|existing| existing.name() == name) {
+            return Err(format!("Item with name \"{name}\" already exists"));
+        }
         items.push(item);
         let json = serde_json::to_string_pretty(&items).map_err(|e| e.to_string())?;
         tokio::fs::write(&path, json)
@@ -484,14 +491,14 @@ impl CharacterStore {
     }
 
     pub async fn save_weapon(&self, weapon: Weapon) -> Result<(), String> {
-        self.upsert_named_item("weapons.json", weapon).await
+        self.insert_named_item("weapons.json", weapon).await
     }
 
     pub async fn save_equipment(&self, equipment: Equipment) -> Result<(), String> {
-        self.upsert_named_item("equipment.json", equipment).await
+        self.insert_named_item("equipment.json", equipment).await
     }
 
     pub async fn save_item(&self, item: Item) -> Result<(), String> {
-        self.upsert_named_item("items.json", item).await
+        self.insert_named_item("items.json", item).await
     }
 }

@@ -7,6 +7,7 @@ use super::{EquipmentCard, InventoryCell, ItemCard, WeaponCard};
 pub enum InventoryTooltip {
     Weapon {
         name: String,
+        description: String,
         kind: String,
         attack: String,
         damage: String,
@@ -40,6 +41,7 @@ impl InventoryTooltip {
         match self {
             Self::Weapon {
                 name,
+                description,
                 kind,
                 attack,
                 damage,
@@ -48,6 +50,7 @@ impl InventoryTooltip {
                 effects,
             } => {
                 WeaponCard::new(name)
+                    .description(description)
                     .kind(kind)
                     .attack(attack)
                     .damage(damage)

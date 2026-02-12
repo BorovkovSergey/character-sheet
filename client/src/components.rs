@@ -99,8 +99,8 @@ pub struct ActiveEffects(pub Vec<Effect>);
 pub struct PortraitTexture(pub egui::TextureHandle);
 
 impl ActiveEffects {
-    pub fn get_resists(&self) -> BTreeMap<Resist, u32> {
-        let mut result: BTreeMap<Resist, u32> = Resist::iter().map(|k| (k, 0)).collect();
+    pub fn get_resists(&self) -> BTreeMap<Resist, i32> {
+        let mut result: BTreeMap<Resist, i32> = Resist::iter().map(|k| (k, 0)).collect();
         for effect in self.iter() {
             if let Effect::Resist(r, m) = effect {
                 *result.entry(*r).or_insert(0) += m;
@@ -109,8 +109,8 @@ impl ActiveEffects {
         result
     }
 
-    pub fn get_protections(&self) -> BTreeMap<Protection, u32> {
-        let mut result: BTreeMap<Protection, u32> = Protection::iter().map(|k| (k, 0)).collect();
+    pub fn get_protections(&self) -> BTreeMap<Protection, i32> {
+        let mut result: BTreeMap<Protection, i32> = Protection::iter().map(|k| (k, 0)).collect();
         for effect in self.iter() {
             if let Effect::Protection(p, m) = effect {
                 *result.entry(*p).or_insert(0) += m;
@@ -284,10 +284,10 @@ pub fn recalculate_effects(
             Effect::OnLvlUp(OnLvlUp::AddAbilityPoints(1)),
             Effect::OnLvlUp(OnLvlUp::AddSkillPoints(3 + eff_intellect as i32)),
             Effect::OnLvlUp(OnLvlUp::AddCharacteristicPoints(2)),
-            Effect::Protection(Protection::Melee, 10 + eff_dexterity),
-            Effect::Protection(Protection::Magic, 10 + eff_magic),
-            Effect::Protection(Protection::Body, 10 + eff_endurance),
-            Effect::Protection(Protection::Mind, 10 + eff_willpower),
+            Effect::Protection(Protection::Melee, 10 + eff_dexterity as i32),
+            Effect::Protection(Protection::Magic, 10 + eff_magic as i32),
+            Effect::Protection(Protection::Body, 10 + eff_endurance as i32),
+            Effect::Protection(Protection::Mind, 10 + eff_willpower as i32),
             // ProtectionRange comes from race size
         ];
         combined.append(&mut effects);

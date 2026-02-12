@@ -66,6 +66,7 @@ struct CreateItemState {
     melee_subtype_idx: usize,
     grip_idx: usize,
     range: String,
+    condition: String,
     // Effects
     effects: Vec<Effect>,
     effect_type_idx: usize,
@@ -81,6 +82,9 @@ pub fn render_create_item_popup(
     create_item_events: &mut MessageWriter<CreateItem>,
     format_effect: &dyn Fn(&Effect) -> String,
     skill_names: &[String],
+    existing_item_names: &std::collections::BTreeSet<String>,
+    existing_equipment_names: &std::collections::BTreeSet<String>,
+    existing_weapon_names: &std::collections::BTreeSet<String>,
 ) {
     let screen = ctx.content_rect();
 
@@ -242,6 +246,12 @@ pub fn render_create_item_popup(
                                 });
                                 state.range.retain(|c| c.is_ascii_digit());
                             }
+
+                            ui.add_space(4.0);
+                            ui.horizontal(|ui| {
+                                ui.label("Condition:");
+                                ui.text_edit_singleline(&mut state.condition);
+                            });
                         }
                         _ => {}
                     }
@@ -298,7 +308,14 @@ pub fn render_create_item_popup(
 
                     ui.add_space(12.0);
 
-                    let can_create = !state.name.trim().is_empty();
+                    let trimmed_name = state.name.trim().to_string();
+                    let name_taken = match state.item_type {
+                        0 => existing_item_names.contains(&trimmed_name),
+                        1 => existing_equipment_names.contains(&trimmed_name),
+                        2 => existing_weapon_names.contains(&trimmed_name),
+                        _ => false,
+                    };
+                    let can_create = !trimmed_name.is_empty() && !name_taken;
                     if ui
                         .add_enabled(can_create, egui::Button::new("Create"))
                         .clicked()
@@ -346,6 +363,7 @@ pub fn render_create_item_popup(
                                 };
                                 create_item_events.write(CreateItem::Weapon(shared::Weapon {
                                     name: state.name.trim().to_string(),
+                                    description: state.description.clone(),
                                     damage: if is_combat {
                                         state.damage.clone()
                                     } else {
@@ -364,7 +382,11 @@ pub fn render_create_item_popup(
                                         0
                                     },
                                     effects: state.effects.clone(),
-                                    condition: None,
+                                    condition: if state.condition.trim().is_empty() {
+                                        None
+                                    } else {
+                                        Some(state.condition.trim().to_string())
+                                    },
                                 }));
                             }
                             _ => {}
@@ -428,7 +450,7 @@ fn render_effect_fields(ui: &mut egui::Ui, state: &mut CreateItemState, skill_na
 fn build_effect_from_state(state: &CreateItemState, skill_names: &[String]) -> Option<Effect> {
     match state.effect_type_idx {
         0 => {
-            let val: u32 = state.effect_value.parse().ok()?;
+            let val: i32 = state.effect_value.parse().ok()?;
             let resist = nth_variant::<Resist>(state.effect_sub_idx)?;
             Some(Effect::Resist(resist, val))
         }
@@ -438,7 +460,7 @@ fn build_effect_from_state(state: &CreateItemState, skill_names: &[String]) -> O
             Some(Effect::Skill(name.clone(), val))
         }
         2 => {
-            let val: u32 = state.effect_value.parse().ok()?;
+            let val: i32 = state.effect_value.parse().ok()?;
             let prot = nth_variant::<Protection>(state.effect_sub_idx)?;
             Some(Effect::Protection(prot, val))
         }

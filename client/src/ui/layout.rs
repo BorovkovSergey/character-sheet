@@ -213,12 +213,18 @@ pub(super) fn render_ui(
             .values()
             .flat_map(|skills| skills.keys().cloned())
             .collect();
+        let existing_item_names = registries.items.0.items.keys().cloned().collect();
+        let existing_equipment_names = registries.equipment.0.equipment.keys().cloned().collect();
+        let existing_weapon_names = registries.weapons.0.weapons.keys().cloned().collect();
         crate::create_item::render_create_item_popup(
             ctx,
             &mut modals.create_item,
             &mut ui_events.create_item,
             &format_effect,
             &skill_names,
+            &existing_item_names,
+            &existing_equipment_names,
+            &existing_weapon_names,
         );
     }
 
@@ -391,6 +397,7 @@ fn render_left_column(
             .filter_map(|name| {
                 registries.weapons.get(name).map(|w| WeaponSlot {
                     name: w.name.clone(),
+                    description: w.description.clone(),
                     kind: w.kind.to_string(),
                     attack: format!("{:+}", w.attack),
                     damage: w.damage.clone(),
@@ -460,6 +467,7 @@ fn build_add_item_menu(
             .or_default()
             .push(InventoryTooltip::Weapon {
                 name: w.name.clone(),
+                description: w.description.clone(),
                 kind: w.kind.to_string(),
                 attack: format!("{:+}", w.attack),
                 damage: w.damage.clone(),
@@ -713,6 +721,7 @@ fn render_right_column(
                     .get(name)
                     .map(|w| InventoryTooltip::Weapon {
                         name: w.name.clone(),
+                        description: w.description.clone(),
                         kind: w.kind.to_string(),
                         attack: format!("{:+}", w.attack),
                         damage: w.damage.clone(),
