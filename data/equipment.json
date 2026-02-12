@@ -46,5 +46,37 @@
         ]
       }
     ]
+  },
+  {
+    "name": "Hunter armor",
+    "description": "",
+    "slot": "Armor",
+    "effects": [
+      {
+        "Resist": [
+          "Ice",
+          1
+        ]
+      },
+      {
+        "Armor": 1
+      }
+    ]
+  },
+  {
+    "name": "Ring of initiative",
+    "description": "Once a day +2 AP",
+    "slot": "Head",
+    "effects": [
+      {
+        "Resist": [
+          "Lightning",
+          -1
+        ]
+      },
+      {
+        "Initiative": 1
+      }
+    ]
   }
 ]

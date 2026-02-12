@@ -265,14 +265,12 @@ fn render_left_column(
                 .layout(egui::Layout::top_down(egui::Align::Min)),
         );
 
-        let mut save_clicked = false;
-        let mut back_clicked = false;
-
         // Consume confirmed portrait from crop popup.
         if let Some(bytes) = crop_editor.result.take() {
             upload_portrait = Some(bytes);
         }
 
+        let (save_clicked, back_clicked);
         {
             let add_item_menu = build_add_item_menu(
                 &registries.weapons,
@@ -662,13 +660,22 @@ fn render_center_column(
             .collect();
         ui.add_sized([width, height * 0.14], Traits::new(trait_entries));
         ui.add_space(gap);
-        let ability_entries: Vec<AbilityEntry> = character
-            .ability_names
+        let class_abilities = registries.abilities.get_class_abilities(character.class);
+        let innate_names: Vec<&String> = class_abilities
+            .map(|ca| ca.innate.keys().collect())
+            .unwrap_or_default();
+        let all_ability_names = innate_names
             .iter()
+            .copied()
+            .chain(
+                character
+                    .ability_names
+                    .iter()
+                    .filter(|n| !innate_names.contains(n)),
+            );
+        let ability_entries: Vec<AbilityEntry> = all_ability_names
             .filter_map(|name| {
-                let ability = registries
-                    .abilities
-                    .get_class_abilities(character.class)
+                let ability = class_abilities
                     .and_then(|ca| ca.innate.get(name).or_else(|| ca.acquire.get(name)));
                 ability.map(|a| AbilityEntry {
                     name: name.clone(),
