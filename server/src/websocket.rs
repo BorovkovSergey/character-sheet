@@ -11,6 +11,9 @@ use tracing::{error, info, warn};
 
 use crate::storage::CharacterStore;
 
+/// Maximum portrait size in bytes (512KB).
+const MAX_PORTRAIT_SIZE: usize = 512 * 1024;
+
 pub async fn ws_handler(ws: WebSocketUpgrade, State(store): State<CharacterStore>) -> Response {
     ws.on_upgrade(|socket| handle_socket(socket, store))
 }
@@ -36,7 +39,8 @@ async fn handle_socket(socket: WebSocket, store: CharacterStore) {
         match result {
             Ok(Message::Binary(data)) => {
                 if let Ok(client_msg) = deserialize::<ClientMessage>(&data) {
-                    if let Some(response) = handle_message(client_msg, &store).await {
+                    let responses = handle_message(client_msg, &store).await;
+                    for response in responses {
                         if let Ok(bytes) = serialize(&response) {
                             if sender.send(Message::Binary(bytes)).await.is_err() {
                                 break;
@@ -62,31 +66,38 @@ async fn handle_socket(socket: WebSocket, store: CharacterStore) {
     info!("WebSocket connection closed");
 }
 
-async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Option<ServerMessage> {
+async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Vec<ServerMessage> {
     match msg {
         ClientMessage::RequestCharacterList => {
             let summaries = store.get_all_summaries().await;
-            Some(ServerMessage::CharacterList {
+            vec![ServerMessage::CharacterList {
                 characters: summaries,
-            })
+            }]
         }
         ClientMessage::RequestVersionList { id } => match store.get_version_list(id).await {
-            Some(versions) => Some(ServerMessage::VersionList { id, versions }),
-            None => Some(ServerMessage::Error {
+            Some(versions) => vec![ServerMessage::VersionList { id, versions }],
+            None => vec![ServerMessage::Error {
                 message: format!("Character {} not found", id),
-            }),
+            }],
         },
         ClientMessage::RequestCharacterVersion { id, version } => {
             match store.get_character_version(id, version).await {
-                Some(cv) => Some(ServerMessage::CharacterVersion {
-                    id,
-                    version: cv.version,
-                    saved_at: cv.saved_at,
-                    character: Box::new(cv.character),
-                }),
-                None => Some(ServerMessage::Error {
+                Some(cv) => {
+                    let mut msgs = vec![ServerMessage::CharacterVersion {
+                        id,
+                        version: cv.version,
+                        saved_at: cv.saved_at,
+                        character: Box::new(cv.character),
+                    }];
+                    // Auto-include portrait if one exists
+                    if let Some(png_data) = store.load_portrait(id).await {
+                        msgs.push(ServerMessage::PortraitData { id, png_data });
+                    }
+                    msgs
+                }
+                None => vec![ServerMessage::Error {
                     message: "Version not found".to_string(),
-                }),
+                }],
             }
         }
         ClientMessage::CreateCharacter {
@@ -98,61 +109,74 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Option<Se
             traits,
         } => {
             if name.trim().is_empty() {
-                return Some(ServerMessage::Error {
+                return vec![ServerMessage::Error {
                     message: "Character name cannot be empty".to_string(),
-                });
+                }];
             }
             if name.len() > 100 {
-                return Some(ServerMessage::Error {
+                return vec![ServerMessage::Error {
                     message: "Character name cannot exceed 100 characters".to_string(),
-                });
+                }];
             }
             let summary = store.create(name, race, class, stats, skills, traits).await;
-            Some(ServerMessage::CharacterCreated { summary })
+            vec![ServerMessage::CharacterCreated { summary }]
         }
         ClientMessage::DeleteCharacter { id } => {
             if store.delete(id).await {
-                Some(ServerMessage::CharacterDeleted { id })
+                vec![ServerMessage::CharacterDeleted { id }]
             } else {
-                Some(ServerMessage::Error {
+                vec![ServerMessage::Error {
                     message: format!("Character with id {} not found", id),
-                })
+                }]
             }
         }
         ClientMessage::DeleteVersion { id, version } => {
             match store.delete_version(id, version).await {
-                Some(true) => Some(ServerMessage::VersionDeleted { id, version }),
-                Some(false) => Some(ServerMessage::Error {
+                Some(true) => vec![ServerMessage::VersionDeleted { id, version }],
+                Some(false) => vec![ServerMessage::Error {
                     message: format!("Version {} not found", version),
-                }),
-                None => Some(ServerMessage::Error {
+                }],
+                None => vec![ServerMessage::Error {
                     message: "Character not found".to_string(),
-                }),
+                }],
             }
         }
         ClientMessage::UpdateCharacter { character } => match store.update(character).await {
-            Some(summary) => Some(ServerMessage::CharacterUpdated { summary }),
-            None => Some(ServerMessage::Error {
+            Some(summary) => vec![ServerMessage::CharacterUpdated { summary }],
+            None => vec![ServerMessage::Error {
                 message: "Character not found".to_string(),
-            }),
+            }],
         },
         ClientMessage::CreateWeapon { weapon } => {
             if let Err(e) = store.save_weapon(weapon).await {
                 error!("Failed to save weapon: {e}");
             }
-            None
+            vec![]
         }
         ClientMessage::CreateEquipment { equipment } => {
             if let Err(e) = store.save_equipment(equipment).await {
                 error!("Failed to save equipment: {e}");
             }
-            None
+            vec![]
         }
         ClientMessage::CreateItem { item } => {
             if let Err(e) = store.save_item(item).await {
                 error!("Failed to save item: {e}");
             }
-            None
+            vec![]
         }
+        ClientMessage::UploadPortrait { id, png_data } => {
+            if png_data.len() > MAX_PORTRAIT_SIZE {
+                return vec![ServerMessage::Error {
+                    message: "Portrait too large (max 512KB)".to_string(),
+                }];
+            }
+            store.save_portrait(id, &png_data).await;
+            vec![ServerMessage::PortraitData { id, png_data }]
+        }
+        ClientMessage::RequestPortrait { id } => match store.load_portrait(id).await {
+            Some(png_data) => vec![ServerMessage::PortraitData { id, png_data }],
+            None => vec![],
+        },
     }
 }

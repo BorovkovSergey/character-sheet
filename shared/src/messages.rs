@@ -44,6 +44,12 @@ pub enum ClientMessage {
 
     /// Register a new item definition
     CreateItem { item: Item },
+
+    /// Upload a portrait image for a character (resized PNG bytes)
+    UploadPortrait { id: Uuid, png_data: Vec<u8> },
+
+    /// Request a character's portrait
+    RequestPortrait { id: Uuid },
 }
 
 /// Messages sent from server to client
@@ -77,6 +83,9 @@ pub enum ServerMessage {
 
     /// A specific version was deleted
     VersionDeleted { id: Uuid, version: u32 },
+
+    /// Portrait image data for a character
+    PortraitData { id: Uuid, png_data: Vec<u8> },
 
     /// An error occurred
     Error { message: String },

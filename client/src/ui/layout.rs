@@ -14,7 +14,7 @@ use crate::components::{
     CharacterClass, CharacterEquipment, CharacterId, CharacterName, CharacterRace,
     CharacterSkillList, CharacterStats, CharacterTraitNames, CharacterWeaponNames,
     CharacteristicPoints, Experience, Hp, Inventory as InventoryComponent, Level, Mana,
-    SkillPoints, TraitPoints, Wallet,
+    PortraitTexture, SkillPoints, TraitPoints, Wallet,
 };
 use crate::events::{
     ExperienceChanged, InventoryChanged, ResourceChanged, UpgradeEvent, WalletChanged,
@@ -54,6 +54,7 @@ pub(super) struct CharacterQueryData {
     pub equipment: &'static CharacterEquipment,
     pub inventory: &'static InventoryComponent,
     pub effects: &'static ActiveEffects,
+    pub portrait: Option<&'static PortraitTexture>,
 }
 
 pub(super) fn render_ui(
@@ -65,6 +66,7 @@ pub(super) fn render_ui(
     mut modals: UiModals,
     mut pending_messages: ResMut<crate::network::PendingClientMessages>,
     mut next_state: ResMut<NextState<crate::state::AppScreen>>,
+    portrait_picker: Res<crate::portrait::PortraitPickerResult>,
 ) -> Result {
     let Some(icons) = icons else {
         return Ok(());
@@ -105,6 +107,7 @@ pub(super) fn render_ui(
                     &registries,
                     &mut ui_events,
                     &mut modals,
+                    &portrait_picker,
                 );
                 save_clicked = left_resp.save;
                 back_clicked = left_resp.back;
@@ -215,6 +218,7 @@ fn render_left_column(
     registries: &Registries,
     ui_events: &mut UiEvents,
     modals: &mut UiModals,
+    portrait_picker: &crate::portrait::PortraitPickerResult,
 ) -> LeftColumnResponse {
     let gap = height * 0.03 / 4.0;
     let initiative = character.stats.perception.level as i32 + character.effects.initiative_bonus();
@@ -236,10 +240,14 @@ fn render_left_column(
         );
         let xp_next = shared::xp_to_next_level(character.level.0);
         let xp_fraction = character.exp.0 as f32 / xp_next as f32;
+        let avatar_texture = character
+            .portrait
+            .map(|p| p.0.id())
+            .unwrap_or_else(|| icons.avatar_placeholder.id());
         let portrait_resp = Portrait::new(
             icons.avatar_border_1.id(),
             icons.avatar_border_2.id(),
-            icons.avatar_placeholder.id(),
+            avatar_texture,
             character.level.0,
             character.exp.0,
             xp_next,
@@ -267,6 +275,9 @@ fn render_left_column(
         }
         if portrait_resp.open_create_item {
             modals.create_item.0 = true;
+        }
+        if portrait_resp.upload_portrait {
+            crate::portrait::spawn_portrait_picker(portrait_picker);
         }
         if let Some(selection) = portrait_resp.add_item {
             let inv_item = match selection {
@@ -330,10 +341,7 @@ fn render_left_column(
                 (p.to_string(), (icon, v))
             })
             .collect();
-        ui.add_sized(
-            [width, height * 0.20],
-            Stats::new(resists, protections),
-        );
+        ui.add_sized([width, height * 0.20], Stats::new(resists, protections));
         ui.add_space(gap);
 
         let weapon_slots: Vec<WeaponSlot> = character

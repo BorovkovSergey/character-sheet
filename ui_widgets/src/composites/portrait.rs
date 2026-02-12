@@ -36,6 +36,7 @@ pub struct PortraitResponse {
     pub add_item: Option<AddItemSelection>,
     pub save: bool,
     pub back: bool,
+    pub upload_portrait: bool,
 }
 
 /// Character portrait display area.
@@ -215,6 +216,7 @@ impl Portrait {
         let mut add_item_selection = None;
         let mut save_clicked = false;
         let mut back_clicked = false;
+        let mut upload_portrait = false;
         let add_item_menu = self.add_item_menu;
         response.context_menu(|ui| {
             if ui.button("Save").clicked() {
@@ -226,6 +228,10 @@ impl Portrait {
                 ui.close();
             }
             ui.separator();
+            if ui.button("Upload Portrait").clicked() {
+                upload_portrait = true;
+                ui.close();
+            }
             if ui.button("Add EXP").clicked() {
                 ui.data_mut(|d| {
                     d.insert_temp(
@@ -380,6 +386,7 @@ impl Portrait {
             add_item: add_item_selection,
             save: save_clicked,
             back: back_clicked,
+            upload_portrait,
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use bevy::prelude::*;
+use bevy_egui::egui;
 use shared::character::OnLvlUp;
 use shared::{
     Character, CharacterSkill, CharacteristicKind, Characteristics, Class, Effect, EquipmentSlot,
@@ -91,6 +92,11 @@ pub struct Inventory(pub Vec<InventoryItem>);
 
 #[derive(Component, Deref, DerefMut)]
 pub struct ActiveEffects(pub Vec<Effect>);
+
+/// Holds the portrait texture for the active character.
+/// When absent, the placeholder avatar is used.
+#[derive(Component)]
+pub struct PortraitTexture(pub egui::TextureHandle);
 
 impl ActiveEffects {
     pub fn get_resists(&self) -> BTreeMap<Resist, u32> {

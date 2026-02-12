@@ -11,6 +11,7 @@ use shared::{CharacterSkill, Characteristics as Stats, Class, Race};
 use crate::ui::{format_effect, render_trait_select_overlay, TraitSelectMode};
 
 use crate::network::{ClientSkillRegistry, ClientTraitRegistry};
+use crate::portrait::{PendingCreationPortrait, PortraitPickerResult};
 
 #[derive(Resource, Default)]
 pub struct CreateCharacterOpen(pub bool);
@@ -26,6 +27,8 @@ struct CreateCharacterState {
     skills: Vec<CharacterSkill>,
     selected_traits: Vec<String>,
     traits_open: bool,
+    portrait_bytes: Option<Vec<u8>>,
+    portrait_texture: Option<egui::TextureHandle>,
 }
 
 impl Default for CreateCharacterState {
@@ -50,6 +53,8 @@ impl Default for CreateCharacterState {
             skills: Vec::new(),
             selected_traits: Vec::new(),
             traits_open: false,
+            portrait_bytes: None,
+            portrait_texture: None,
         }
     }
 }
@@ -60,6 +65,8 @@ pub fn render_create_character_overlay(
     skill_registry: &ClientSkillRegistry,
     trait_registry: &ClientTraitRegistry,
     pending_messages: &mut crate::network::PendingClientMessages,
+    portrait_picker: &PortraitPickerResult,
+    pending_creation_portrait: &mut PendingCreationPortrait,
 ) {
     let screen = ctx.content_rect();
     let state_id = egui::Id::new("create_character_state");
@@ -82,6 +89,20 @@ pub fn render_create_character_overlay(
     let dialog_w = (screen.width() * 0.5).max(440.0).min(700.0);
 
     let mut state: CreateCharacterState = ctx.data(|d| d.get_temp(state_id)).unwrap_or_default();
+
+    // Poll portrait picker for newly selected file
+    if let Ok(mut guard) = portrait_picker.0.lock() {
+        if let Some(raw_bytes) = guard.take() {
+            if let Some(png_bytes) = crate::portrait::process_raw_image(&raw_bytes) {
+                if let Some(texture) =
+                    crate::portrait::png_to_texture(ctx, "create_portrait_preview", &png_bytes)
+                {
+                    state.portrait_texture = Some(texture);
+                    state.portrait_bytes = Some(png_bytes);
+                }
+            }
+        }
+    }
 
     let selected_class = Class::iter().nth(state.class_idx).unwrap_or_default();
 
@@ -113,6 +134,49 @@ pub fn render_create_character_overlay(
             });
 
             ui.separator();
+            ui.add_space(12.0);
+
+            // Portrait upload
+            ui.horizontal(|ui| {
+                let preview_size = 64.0;
+                if let Some(texture) = &state.portrait_texture {
+                    let img = egui::Image::new(egui::load::SizedTexture::new(
+                        texture.id(),
+                        egui::vec2(preview_size, preview_size),
+                    ));
+                    ui.add(img);
+                } else {
+                    let (rect, _) = ui.allocate_exact_size(
+                        egui::vec2(preview_size, preview_size),
+                        egui::Sense::hover(),
+                    );
+                    ui.painter()
+                        .rect_filled(rect, 8.0, egui::Color32::from_gray(40));
+                    ui.painter().text(
+                        rect.center(),
+                        egui::Align2::CENTER_CENTER,
+                        "?",
+                        egui::FontId::proportional(24.0),
+                        TEXT_COLOR,
+                    );
+                }
+                ui.add_space(8.0);
+                ui.vertical(|ui| {
+                    let label = if state.portrait_bytes.is_some() {
+                        "Change Portrait"
+                    } else {
+                        "Upload Portrait"
+                    };
+                    let button =
+                        egui::Button::new(egui::RichText::new(label).size(14.0).color(TEXT_COLOR))
+                            .corner_radius(6.0)
+                            .stroke(egui::Stroke::new(1.0, STROKE_COLOR))
+                            .fill(MAIN_COLOR);
+                    if ui.add(button).clicked() {
+                        crate::portrait::spawn_portrait_picker(portrait_picker);
+                    }
+                });
+            });
             ui.add_space(12.0);
 
             // Name
@@ -383,6 +447,8 @@ pub fn render_create_character_overlay(
                 if ui.add_enabled(can_create, button).clicked() {
                     let selected_race = Race::iter().nth(state.race_idx).unwrap_or_default();
                     let selected_class = Class::iter().nth(state.class_idx).unwrap_or_default();
+                    // Store portrait bytes for upload after CharacterCreated response
+                    pending_creation_portrait.0 = state.portrait_bytes.take();
                     pending_messages
                         .0
                         .push(shared::ClientMessage::CreateCharacter {

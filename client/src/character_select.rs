@@ -5,6 +5,7 @@ use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 
 use crate::create_character::CreateCharacterOpen;
 use crate::network::{ClientSkillRegistry, ClientTraitRegistry, PendingClientMessages};
+use crate::portrait::{PendingCreationPortrait, PortraitPickerResult};
 use crate::state::AppScreen;
 
 /// Holds the list of character summaries received from the server.
@@ -34,6 +35,8 @@ fn render_character_select(
     mut create_open: ResMut<CreateCharacterOpen>,
     skill_registry: Res<ClientSkillRegistry>,
     trait_registry: Res<ClientTraitRegistry>,
+    portrait_picker: Res<PortraitPickerResult>,
+    mut pending_creation_portrait: ResMut<PendingCreationPortrait>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
 
@@ -120,6 +123,8 @@ fn render_character_select(
             &skill_registry,
             &trait_registry,
             &mut pending_messages,
+            &portrait_picker,
+            &mut pending_creation_portrait,
         );
     }
 

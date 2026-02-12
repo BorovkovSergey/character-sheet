@@ -4,6 +4,7 @@ mod create_character;
 mod create_item;
 mod events;
 mod network;
+mod portrait;
 mod state;
 mod ui;
 mod version_select;
@@ -14,6 +15,7 @@ use bevy_egui::EguiPlugin;
 use character_select::CharacterSelectPlugin;
 use components::{despawn_active_character, recalculate_effects};
 use network::NetworkPlugin;
+use portrait::PortraitPlugin;
 use state::AppScreen;
 use ui::UiPlugin;
 use version_select::VersionSelectPlugin;
@@ -43,6 +45,7 @@ fn main() {
     .add_plugins(CharacterSelectPlugin)
     .add_plugins(VersionSelectPlugin)
     .add_plugins(NetworkPlugin)
+    .add_plugins(PortraitPlugin)
     .add_plugins(UiPlugin)
     .add_systems(PreStartup, setup)
     .add_systems(

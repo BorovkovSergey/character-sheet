@@ -8,6 +8,7 @@ use shared::{
 
 use crate::character_select::CharacterList;
 use crate::components::spawn_character;
+use crate::portrait::{PendingCreationPortrait, PendingPortraitData};
 use crate::state::AppScreen;
 use crate::version_select::VersionList;
 
@@ -185,6 +186,7 @@ fn process_server_messages(
     weapon_registry: Res<ClientWeaponRegistry>,
     equipment_registry: Res<ClientEquipmentRegistry>,
     mut next_state: ResMut<NextState<AppScreen>>,
+    mut pending_creation_portrait: ResMut<PendingCreationPortrait>,
 ) {
     for msg in pending.drain(..) {
         match msg {
@@ -230,6 +232,12 @@ fn process_server_messages(
             ServerMessage::CharacterCreated { summary } => {
                 info!("Character created: {}", summary.name);
                 let id = summary.id;
+                // Upload pending portrait if one was selected during creation
+                if let Some(png_data) = pending_creation_portrait.0.take() {
+                    pending_client
+                        .0
+                        .push(shared::ClientMessage::UploadPortrait { id, png_data });
+                }
                 character_list.characters.push(summary);
                 pending_client
                     .0
@@ -254,6 +262,10 @@ fn process_server_messages(
                 if version_list.character_id == id {
                     version_list.versions.retain(|v| v.version != version);
                 }
+            }
+            ServerMessage::PortraitData { id, png_data } => {
+                info!("Received portrait for character {}", id);
+                commands.insert_resource(PendingPortraitData { id, png_data });
             }
             ServerMessage::Error { message } => {
                 error!("Server error: {message}");

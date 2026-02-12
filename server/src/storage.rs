@@ -33,6 +33,7 @@ pub struct CharacterStore {
     #[allow(dead_code)]
     item_registry: Arc<ItemRegistry>,
     characters_dir: PathBuf,
+    portraits_dir: PathBuf,
     data_dir: PathBuf,
 }
 
@@ -97,13 +98,13 @@ impl CharacterStore {
     pub async fn new(data_dir: &str) -> Self {
         let data_dir_path = PathBuf::from(data_dir);
         let characters_dir = data_dir_path.join("characters");
+        let portraits_dir = data_dir_path.join("portraits");
 
         // Ensure directories exist
-        if let Err(e) = tokio::fs::create_dir_all(&characters_dir).await {
-            error!(
-                "Failed to create characters directory {:?}: {}",
-                characters_dir, e
-            );
+        for dir in [&characters_dir, &portraits_dir] {
+            if let Err(e) = tokio::fs::create_dir_all(dir).await {
+                error!("Failed to create directory {:?}: {}", dir, e);
+            }
         }
 
         let traits_path = data_dir_path.join("traits.json");
@@ -154,6 +155,7 @@ impl CharacterStore {
             equipment_registry,
             item_registry,
             characters_dir,
+            portraits_dir,
             data_dir: data_dir_path,
         }
     }
@@ -392,7 +394,22 @@ impl CharacterStore {
         if let Err(e) = tokio::fs::remove_file(&path).await {
             warn!("Failed to remove character file {:?}: {}", path, e);
         }
+        // Also remove the portrait if it exists
+        let portrait_path = self.portraits_dir.join(format!("{}.png", id));
+        let _ = tokio::fs::remove_file(&portrait_path).await;
         true
+    }
+
+    pub async fn save_portrait(&self, id: Uuid, png_data: &[u8]) {
+        let path = self.portraits_dir.join(format!("{}.png", id));
+        if let Err(e) = tokio::fs::write(&path, png_data).await {
+            error!("Failed to save portrait for {}: {}", id, e);
+        }
+    }
+
+    pub async fn load_portrait(&self, id: Uuid) -> Option<Vec<u8>> {
+        let path = self.portraits_dir.join(format!("{}.png", id));
+        tokio::fs::read(&path).await.ok()
     }
 
     pub async fn update(&self, mut character: Character) -> Option<CharacterSummary> {
