@@ -58,21 +58,23 @@ pub(super) struct CharacterQueryData {
 }
 
 pub(super) fn render_ui(
+    mut commands: Commands,
     mut contexts: EguiContexts,
     icons: Option<Res<UiIcons>>,
-    character_query: Query<CharacterQueryData, With<ActiveCharacter>>,
+    character_query: Query<(Entity, CharacterQueryData), With<ActiveCharacter>>,
     registries: Registries,
     mut ui_events: UiEvents,
     mut modals: UiModals,
     mut pending_messages: ResMut<crate::network::PendingClientMessages>,
     mut next_state: ResMut<NextState<crate::state::AppScreen>>,
     portrait_picker: Res<crate::portrait::PortraitPickerResult>,
+    mut crop_editor: ResMut<crate::portrait::CropEditorSlot>,
 ) -> Result {
     let Some(icons) = icons else {
         return Ok(());
     };
 
-    let Ok(character) = character_query.single() else {
+    let Ok((active_entity, character)) = character_query.single() else {
         return Ok(());
     };
 
@@ -108,9 +110,25 @@ pub(super) fn render_ui(
                     &mut ui_events,
                     &mut modals,
                     &portrait_picker,
+                    &mut crop_editor,
                 );
                 save_clicked = left_resp.save;
                 back_clicked = left_resp.back;
+                if let Some(png_bytes) = left_resp.upload_portrait {
+                    if let Some(texture) =
+                        crate::portrait::png_to_texture(ctx, "character_portrait", &png_bytes)
+                    {
+                        commands
+                            .entity(active_entity)
+                            .insert(PortraitTexture(texture));
+                    }
+                    pending_messages
+                        .0
+                        .push(shared::ClientMessage::UploadPortrait {
+                            id: character.id.0,
+                            png_data: png_bytes,
+                        });
+                }
                 ui.add_space(gap);
                 render_center_column(
                     ui,
@@ -145,6 +163,9 @@ pub(super) fn render_ui(
     if back_clicked {
         next_state.set(crate::state::AppScreen::CharacterSelect);
     }
+
+    // Poll picker & render crop popup when image is ready.
+    crate::portrait::poll_and_render_crop_popup(ctx, &mut crop_editor, &portrait_picker);
 
     // "Learn Ability" overlay
     if modals.learn_ability.0 {
@@ -207,6 +228,7 @@ pub(super) fn render_ui(
 struct LeftColumnResponse {
     save: bool,
     back: bool,
+    upload_portrait: Option<Vec<u8>>,
 }
 
 fn render_left_column(
@@ -219,9 +241,12 @@ fn render_left_column(
     ui_events: &mut UiEvents,
     modals: &mut UiModals,
     portrait_picker: &crate::portrait::PortraitPickerResult,
+    crop_editor: &mut crate::portrait::CropEditorSlot,
 ) -> LeftColumnResponse {
     let gap = height * 0.03 / 4.0;
     let initiative = character.stats.perception.level as i32 + character.effects.initiative_bonus();
+
+    let mut upload_portrait: Option<Vec<u8>> = None;
 
     ui.vertical(|ui| {
         ui.spacing_mut().item_spacing = egui::vec2(0.0, 0.0);
@@ -233,61 +258,77 @@ fn render_left_column(
                 .max_rect(portrait_rect)
                 .layout(egui::Layout::top_down(egui::Align::Min)),
         );
-        let add_item_menu = build_add_item_menu(
-            &registries.weapons,
-            &registries.equipment,
-            &registries.items,
-        );
-        let xp_next = shared::xp_to_next_level(character.level.0);
-        let xp_fraction = character.exp.0 as f32 / xp_next as f32;
-        let avatar_texture = character
-            .portrait
-            .map(|p| p.0.id())
-            .unwrap_or_else(|| icons.avatar_placeholder.id());
-        let portrait_resp = Portrait::new(
-            icons.avatar_border_1.id(),
-            icons.avatar_border_2.id(),
-            avatar_texture,
-            character.level.0,
-            character.exp.0,
-            xp_next,
-            xp_fraction,
-            modals.edit_mode.0,
-        )
-        .shield(icons.shield.id(), character.effects.armor())
-        .ability_points(character.ability_pts.0)
-        .trait_points(character.trait_pts.0)
-        .add_item_menu(add_item_menu)
-        .show(&mut portrait_ui);
-        let save_clicked = portrait_resp.save;
-        let back_clicked = portrait_resp.back;
-        if let Some(exp) = portrait_resp.add_exp {
-            ui_events.experience.write(ExperienceChanged(exp));
+
+        let mut save_clicked = false;
+        let mut back_clicked = false;
+
+        // Consume confirmed portrait from crop popup.
+        if let Some(bytes) = crop_editor.result.take() {
+            upload_portrait = Some(bytes);
         }
-        if portrait_resp.toggle_edit {
-            modals.edit_mode.0 = !modals.edit_mode.0;
-        }
-        if portrait_resp.open_learn_ability {
-            modals.learn_ability.0 = true;
-        }
-        if portrait_resp.open_learn_trait {
-            modals.learn_trait.0 = true;
-        }
-        if portrait_resp.open_create_item {
-            modals.create_item.0 = true;
-        }
-        if portrait_resp.upload_portrait {
-            crate::portrait::spawn_portrait_picker(portrait_picker);
-        }
-        if let Some(selection) = portrait_resp.add_item {
-            let inv_item = match selection {
-                AddItemSelection::Item(name) => shared::InventoryItem::Item(name),
-                AddItemSelection::Equipment(name) => shared::InventoryItem::Equipment(name),
-                AddItemSelection::Weapon(name) => shared::InventoryItem::Weapon(name),
-            };
-            ui_events
-                .inventory
-                .write(InventoryChanged::AddExisting(inv_item));
+
+        {
+            let add_item_menu = build_add_item_menu(
+                &registries.weapons,
+                &registries.equipment,
+                &registries.items,
+            );
+            let xp_next = shared::xp_to_next_level(character.level.0);
+            let xp_fraction = character.exp.0 as f32 / xp_next as f32;
+            let avatar_texture = character
+                .portrait
+                .map(|p| p.0.id())
+                .unwrap_or_else(|| icons.avatar_placeholder.id());
+            let avatar_size = character.portrait.map(|p| {
+                let s = p.0.size();
+                [s[0] as f32, s[1] as f32]
+            });
+            let portrait_resp = Portrait::new(
+                icons.avatar_border_1.id(),
+                icons.avatar_border_2.id(),
+                avatar_texture,
+                character.level.0,
+                character.exp.0,
+                xp_next,
+                xp_fraction,
+                modals.edit_mode.0,
+            )
+            .shield(icons.shield.id(), character.effects.armor())
+            .ability_points(character.ability_pts.0)
+            .trait_points(character.trait_pts.0)
+            .add_item_menu(add_item_menu)
+            .avatar_size(avatar_size)
+            .show(&mut portrait_ui);
+            save_clicked = portrait_resp.save;
+            back_clicked = portrait_resp.back;
+            if let Some(exp) = portrait_resp.add_exp {
+                ui_events.experience.write(ExperienceChanged(exp));
+            }
+            if portrait_resp.toggle_edit {
+                modals.edit_mode.0 = !modals.edit_mode.0;
+            }
+            if portrait_resp.open_learn_ability {
+                modals.learn_ability.0 = true;
+            }
+            if portrait_resp.open_learn_trait {
+                modals.learn_trait.0 = true;
+            }
+            if portrait_resp.open_create_item {
+                modals.create_item.0 = true;
+            }
+            if portrait_resp.upload_portrait {
+                crate::portrait::spawn_portrait_picker(portrait_picker);
+            }
+            if let Some(selection) = portrait_resp.add_item {
+                let inv_item = match selection {
+                    AddItemSelection::Item(name) => shared::InventoryItem::Item(name),
+                    AddItemSelection::Equipment(name) => shared::InventoryItem::Equipment(name),
+                    AddItemSelection::Weapon(name) => shared::InventoryItem::Weapon(name),
+                };
+                ui_events
+                    .inventory
+                    .write(InventoryChanged::AddExisting(inv_item));
+            }
         }
         ui.add_space(gap);
         ui.add_sized(
@@ -377,6 +418,7 @@ fn render_left_column(
         LeftColumnResponse {
             save: save_clicked,
             back: back_clicked,
+            upload_portrait,
         }
     })
     .inner

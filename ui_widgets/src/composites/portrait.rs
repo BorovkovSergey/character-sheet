@@ -54,6 +54,7 @@ pub struct Portrait {
     trait_points: u32,
     armor: i32,
     add_item_menu: Option<AddItemMenu>,
+    avatar_size: Option<[f32; 2]>,
 }
 
 impl Portrait {
@@ -81,6 +82,7 @@ impl Portrait {
             trait_points: 0,
             armor: 0,
             add_item_menu: None,
+            avatar_size: None,
         }
     }
 
@@ -105,6 +107,11 @@ impl Portrait {
         self
     }
 
+    pub fn avatar_size(mut self, size: Option<[f32; 2]>) -> Self {
+        self.avatar_size = size;
+        self
+    }
+
     /// Renders the portrait and returns actions from the context menu.
     pub fn show(self, ui: &mut egui::Ui) -> PortraitResponse {
         let size = ui.available_size();
@@ -125,7 +132,27 @@ impl Portrait {
 
         let border = size.y * 0.025;
         let clip_rect = portrait_rect.shrink(border);
-        paint_ellipse_image(&painter, self.avatar, clip_rect, rect);
+        // Compute cover-mode image_rect so uploaded portraits don't stretch.
+        let image_rect = if let Some([iw, ih]) = self.avatar_size {
+            if ih == 0.0 || clip_rect.height() == 0.0 {
+                clip_rect
+            } else {
+                let img_aspect = iw / ih;
+                let clip_aspect = clip_rect.width() / clip_rect.height();
+                if img_aspect > clip_aspect {
+                    let h = clip_rect.height();
+                    let w = h * img_aspect;
+                    egui::Rect::from_center_size(clip_rect.center(), egui::vec2(w, h))
+                } else {
+                    let w = clip_rect.width();
+                    let h = w / img_aspect;
+                    egui::Rect::from_center_size(clip_rect.center(), egui::vec2(w, h))
+                }
+            }
+        } else {
+            rect
+        };
+        paint_ellipse_image(&painter, self.avatar, clip_rect, image_rect);
 
         // Level circle in the top-left corner of the portrait
         let circle_size = portrait_w * 0.3;

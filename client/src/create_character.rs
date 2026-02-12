@@ -11,7 +11,7 @@ use shared::{CharacterSkill, Characteristics as Stats, Class, Race};
 use crate::ui::{format_effect, render_trait_select_overlay, TraitSelectMode};
 
 use crate::network::{ClientSkillRegistry, ClientTraitRegistry};
-use crate::portrait::{PendingCreationPortrait, PortraitPickerResult};
+use crate::portrait::{CropEditorSlot, PendingCreationPortrait, PortraitPickerResult};
 
 #[derive(Resource, Default)]
 pub struct CreateCharacterOpen(pub bool);
@@ -67,6 +67,7 @@ pub fn render_create_character_overlay(
     pending_messages: &mut crate::network::PendingClientMessages,
     portrait_picker: &PortraitPickerResult,
     pending_creation_portrait: &mut PendingCreationPortrait,
+    crop_editor: &mut CropEditorSlot,
 ) {
     let screen = ctx.content_rect();
     let state_id = egui::Id::new("create_character_state");
@@ -81,6 +82,9 @@ pub fn render_create_character_overlay(
                 .rect_filled(rect, 0.0, egui::Color32::from_black_alpha(120));
             if resp.clicked() {
                 create_open.0 = false;
+                crop_editor.open = false;
+                crop_editor.editor = None;
+                crop_editor.result = None;
                 ctx.data_mut(|d| d.remove::<CreateCharacterState>(state_id));
             }
         });
@@ -89,20 +93,6 @@ pub fn render_create_character_overlay(
     let dialog_w = (screen.width() * 0.5).max(440.0).min(700.0);
 
     let mut state: CreateCharacterState = ctx.data(|d| d.get_temp(state_id)).unwrap_or_default();
-
-    // Poll portrait picker for newly selected file
-    if let Ok(mut guard) = portrait_picker.0.lock() {
-        if let Some(raw_bytes) = guard.take() {
-            if let Some(png_bytes) = crate::portrait::process_raw_image(&raw_bytes) {
-                if let Some(texture) =
-                    crate::portrait::png_to_texture(ctx, "create_portrait_preview", &png_bytes)
-                {
-                    state.portrait_texture = Some(texture);
-                    state.portrait_bytes = Some(png_bytes);
-                }
-            }
-        }
-    }
 
     let selected_class = Class::iter().nth(state.class_idx).unwrap_or_default();
 
@@ -136,7 +126,7 @@ pub fn render_create_character_overlay(
             ui.separator();
             ui.add_space(12.0);
 
-            // Portrait upload
+            // Portrait preview + upload button
             ui.horizontal(|ui| {
                 let preview_size = 64.0;
                 if let Some(texture) = &state.portrait_texture {
@@ -177,6 +167,16 @@ pub fn render_create_character_overlay(
                     }
                 });
             });
+
+            // Consume confirmed portrait from crop popup.
+            if let Some(png_bytes) = crop_editor.result.take() {
+                if let Some(texture) =
+                    crate::portrait::png_to_texture(ctx, "create_portrait_preview", &png_bytes)
+                {
+                    state.portrait_texture = Some(texture);
+                }
+                state.portrait_bytes = Some(png_bytes);
+            }
             ui.add_space(12.0);
 
             // Name

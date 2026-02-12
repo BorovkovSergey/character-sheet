@@ -5,7 +5,8 @@ use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 
 use crate::create_character::CreateCharacterOpen;
 use crate::network::{ClientSkillRegistry, ClientTraitRegistry, PendingClientMessages};
-use crate::portrait::{PendingCreationPortrait, PortraitPickerResult};
+use crate::portrait::{CropEditorSlot, PendingCreationPortrait, PortraitPickerResult};
+
 use crate::state::AppScreen;
 
 /// Holds the list of character summaries received from the server.
@@ -37,6 +38,7 @@ fn render_character_select(
     trait_registry: Res<ClientTraitRegistry>,
     portrait_picker: Res<PortraitPickerResult>,
     mut pending_creation_portrait: ResMut<PendingCreationPortrait>,
+    mut crop_editor: ResMut<CropEditorSlot>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
 
@@ -125,8 +127,12 @@ fn render_character_select(
             &mut pending_messages,
             &portrait_picker,
             &mut pending_creation_portrait,
+            &mut crop_editor,
         );
     }
+
+    // Poll picker & render crop popup when image is ready.
+    crate::portrait::poll_and_render_crop_popup(ctx, &mut crop_editor, &portrait_picker);
 
     Ok(())
 }
