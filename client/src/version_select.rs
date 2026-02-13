@@ -41,6 +41,7 @@ fn render_version_select(
     mut pending_messages: ResMut<PendingClientMessages>,
     mut next_state: ResMut<NextState<AppScreen>>,
     mut delete_confirm: ResMut<DeleteConfirm>,
+    auth_state: Res<crate::network::AuthState>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
 
@@ -108,7 +109,7 @@ fn render_version_select(
 
             ui.add_space(8.0);
 
-            let can_delete = version_list.versions.len() > 1;
+            let can_delete = version_list.versions.len() > 1 && auth_state.authenticated;
             egui::ScrollArea::vertical()
                 .max_height(scroll_height)
                 .show(ui, |ui| {
@@ -129,22 +130,27 @@ fn render_version_select(
             ui.separator();
             ui.add_space(8.0);
 
-            ui.vertical_centered(|ui| {
-                let delete_char_btn = ui.add(
-                    egui::Button::new(
-                        egui::RichText::new("\u{00D7}  Delete Character")
-                            .size(14.0)
-                            .color(egui::Color32::from_rgb(0xCC, 0x33, 0x33)),
-                    )
-                    .fill(egui::Color32::TRANSPARENT)
-                    .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(0xAA, 0x44, 0x44)))
-                    .corner_radius(4.0)
-                    .min_size(egui::vec2(panel_width * 0.5, 32.0)),
-                );
-                if delete_char_btn.clicked() {
-                    delete_confirm.character = true;
-                }
-            });
+            if auth_state.authenticated {
+                ui.vertical_centered(|ui| {
+                    let delete_char_btn = ui.add(
+                        egui::Button::new(
+                            egui::RichText::new("\u{00D7}  Delete Character")
+                                .size(14.0)
+                                .color(egui::Color32::from_rgb(0xCC, 0x33, 0x33)),
+                        )
+                        .fill(egui::Color32::TRANSPARENT)
+                        .stroke(egui::Stroke::new(
+                            1.0,
+                            egui::Color32::from_rgb(0xAA, 0x44, 0x44),
+                        ))
+                        .corner_radius(4.0)
+                        .min_size(egui::vec2(panel_width * 0.5, 32.0)),
+                    );
+                    if delete_char_btn.clicked() {
+                        delete_confirm.character = true;
+                    }
+                });
+            }
             ui.add_space(4.0);
         });
 
@@ -250,12 +256,9 @@ fn render_version_select(
                 ui.vertical_centered(|ui| {
                     ui.add_space(4.0);
                     ui.label(
-                        egui::RichText::new(format!(
-                            "Delete \"{}\"?",
-                            version_list.character_name
-                        ))
-                        .size(18.0)
-                        .color(TEXT_COLOR),
+                        egui::RichText::new(format!("Delete \"{}\"?", version_list.character_name))
+                            .size(18.0)
+                            .color(TEXT_COLOR),
                     );
                     ui.add_space(4.0);
                     ui.label(

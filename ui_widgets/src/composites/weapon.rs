@@ -97,8 +97,9 @@ fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) 
                             .is_some();
                     }
                     if let Some(slot) = slots.get(i) {
-                        let has_tooltip = !slot.description.is_empty() || !slot.condition.is_empty();
-                    if response.hovered() && !menu_open && has_tooltip {
+                        let has_tooltip =
+                            !slot.description.is_empty() || !slot.condition.is_empty();
+                        if response.hovered() && !menu_open && has_tooltip {
                             let pos = response.hover_pos().unwrap_or(rect.right_top())
                                 + egui::vec2(8.0, 8.0);
                             egui::Area::new(response.id.with("cond_tip"))
@@ -118,7 +119,9 @@ fn inner_weapon_slots(ui: &mut egui::Ui, icon: TextureId, slots: &[WeaponSlot]) 
                                                         .color(crate::colors::TEXT_COLOR),
                                                 );
                                             }
-                                            if !slot.description.is_empty() && !slot.condition.is_empty() {
+                                            if !slot.description.is_empty()
+                                                && !slot.condition.is_empty()
+                                            {
                                                 ui.separator();
                                             }
                                             if !slot.condition.is_empty() {

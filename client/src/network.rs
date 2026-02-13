@@ -50,6 +50,13 @@ struct PendingServerMessages(Vec<ServerMessage>);
 #[derive(Resource, Default, Deref, DerefMut)]
 pub struct PendingClientMessages(pub Vec<ClientMessage>);
 
+/// Tracks whether the client has authenticated with the server for write access.
+#[derive(Resource, Default)]
+pub struct AuthState {
+    pub authenticated: bool,
+    pub pending: bool,
+}
+
 #[derive(Resource, Deref, DerefMut)]
 struct ReconnectTimer(Timer);
 
@@ -84,6 +91,7 @@ impl Plugin for NetworkPlugin {
             .insert_resource(ClientItemRegistry(item_reg))
             .init_resource::<PendingServerMessages>()
             .init_resource::<PendingClientMessages>()
+            .init_resource::<AuthState>()
             .init_resource::<ReconnectTimer>()
             .add_systems(Startup, connect_to_server)
             .add_systems(
@@ -187,6 +195,7 @@ fn process_server_messages(
     equipment_registry: Res<ClientEquipmentRegistry>,
     mut next_state: ResMut<NextState<AppScreen>>,
     mut pending_creation_portrait: ResMut<PendingCreationPortrait>,
+    mut auth_state: ResMut<AuthState>,
 ) {
     for msg in pending.drain(..) {
         match msg {
@@ -267,6 +276,11 @@ fn process_server_messages(
                 info!("Received portrait for character {}", id);
                 commands.insert_resource(PendingPortraitData { id, png_data });
             }
+            ServerMessage::AuthResult { success } => {
+                info!("Authentication result: {}", success);
+                auth_state.authenticated = success;
+                auth_state.pending = false;
+            }
             ServerMessage::Error { message } => {
                 error!("Server error: {message}");
             }
@@ -274,13 +288,30 @@ fn process_server_messages(
     }
 }
 
+/// Returns true if the message is a read-only request (allowed without auth).
+fn is_read_only(msg: &ClientMessage) -> bool {
+    matches!(
+        msg,
+        ClientMessage::RequestCharacterList
+            | ClientMessage::RequestVersionList { .. }
+            | ClientMessage::RequestCharacterVersion { .. }
+            | ClientMessage::RequestPortrait { .. }
+            | ClientMessage::Authenticate { .. }
+    )
+}
+
 /// Sends buffered client messages over the WebSocket.
+/// Mutations are silently dropped when not authenticated.
 fn send_client_messages(
     mut conn: Option<NonSendMut<WsConnection>>,
     mut pending: ResMut<PendingClientMessages>,
+    auth_state: Res<AuthState>,
 ) {
     let Some(conn) = conn.as_mut() else { return };
     for msg in pending.drain(..) {
+        if !auth_state.authenticated && !is_read_only(&msg) {
+            continue;
+        }
         if let Ok(bytes) = shared::serialize(&msg) {
             conn.sender.send(WsMessage::Binary(bytes));
         }

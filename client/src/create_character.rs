@@ -69,7 +69,9 @@ pub fn render_create_character_overlay(
     pending_creation_portrait: &mut PendingCreationPortrait,
     crop_editor: &mut CropEditorSlot,
     existing_names: &[String],
-) {
+    authenticated: bool,
+) -> Option<shared::Character> {
+    let mut local_character: Option<shared::Character> = None;
     let screen = ctx.content_rect();
     let state_id = egui::Id::new("create_character_state");
 
@@ -453,18 +455,32 @@ pub fn render_create_character_overlay(
                 if ui.add_enabled(can_create, button).clicked() {
                     let selected_race = Race::iter().nth(state.race_idx).unwrap_or_default();
                     let selected_class = Class::iter().nth(state.class_idx).unwrap_or_default();
-                    // Store portrait bytes for upload after CharacterCreated response
-                    pending_creation_portrait.0 = state.portrait_bytes.take();
-                    pending_messages
-                        .0
-                        .push(shared::ClientMessage::CreateCharacter {
-                            name: state.name.clone(),
-                            race: selected_race,
-                            class: selected_class,
-                            stats: state.stats.clone(),
-                            skills: state.skills.clone(),
-                            traits: state.selected_traits.clone(),
-                        });
+                    if authenticated {
+                        // Store portrait bytes for upload after CharacterCreated response
+                        pending_creation_portrait.0 = state.portrait_bytes.take();
+                        pending_messages
+                            .0
+                            .push(shared::ClientMessage::CreateCharacter {
+                                name: state.name.clone(),
+                                race: selected_race,
+                                class: selected_class,
+                                stats: state.stats,
+                                skills: state.skills.clone(),
+                                traits: state.selected_traits.clone(),
+                            });
+                    } else {
+                        // Build character locally without sending to server
+                        let mut character = shared::Character::new(state.name.clone());
+                        character.race = selected_race;
+                        character.class = selected_class;
+                        character.level = 1;
+                        character.stats = state.stats;
+                        character.skills = state.skills.clone();
+                        character.traits = state.selected_traits.clone();
+                        character.action_points =
+                            shared::Resource::new(selected_race.base_action_points());
+                        local_character = Some(character);
+                    }
                     state = CreateCharacterState::default();
                     create_open.0 = false;
                 }
@@ -486,4 +502,5 @@ pub fn render_create_character_overlay(
     }
 
     ctx.data_mut(|d| d.insert_temp(state_id, state));
+    local_character
 }

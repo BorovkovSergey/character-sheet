@@ -50,6 +50,9 @@ pub enum ClientMessage {
 
     /// Request a character's portrait
     RequestPortrait { id: Uuid },
+
+    /// Authenticate with a password to enable write access
+    Authenticate { password: String },
 }
 
 /// Messages sent from server to client
@@ -86,6 +89,9 @@ pub enum ServerMessage {
 
     /// Portrait image data for a character
     PortraitData { id: Uuid, png_data: Vec<u8> },
+
+    /// Result of an authentication attempt
+    AuthResult { success: bool },
 
     /// An error occurred
     Error { message: String },

@@ -37,10 +37,15 @@ pub(super) struct Registries<'w> {
     pub items: Res<'w, crate::network::ClientItemRegistry>,
 }
 
+#[derive(Resource, Default)]
+pub struct PasswordPopupOpen(pub bool);
+
 #[derive(SystemParam)]
 pub(super) struct UiModals<'w> {
     pub edit_mode: ResMut<'w, EditMode>,
     pub learn_ability: ResMut<'w, LearnAbilityOpen>,
     pub learn_trait: ResMut<'w, LearnTraitOpen>,
     pub create_item: ResMut<'w, crate::create_item::CreateItemOpen>,
+    pub password_popup: ResMut<'w, PasswordPopupOpen>,
+    pub auth_state: ResMut<'w, crate::network::AuthState>,
 }

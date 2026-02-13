@@ -37,6 +37,7 @@ pub struct PortraitResponse {
     pub save: bool,
     pub back: bool,
     pub upload_portrait: bool,
+    pub toggle_auth: bool,
 }
 
 /// Character portrait display area.
@@ -50,6 +51,7 @@ pub struct Portrait {
     xp_next: u32,
     xp_fraction: f32,
     edit_mode: bool,
+    authenticated: bool,
     ability_points: u32,
     trait_points: u32,
     armor: i32,
@@ -77,6 +79,7 @@ impl Portrait {
             xp_next,
             xp_fraction,
             edit_mode,
+            authenticated: false,
             shield: None,
             ability_points: 0,
             trait_points: 0,
@@ -104,6 +107,11 @@ impl Portrait {
 
     pub fn add_item_menu(mut self, menu: AddItemMenu) -> Self {
         self.add_item_menu = Some(menu);
+        self
+    }
+
+    pub fn authenticated(mut self, authenticated: bool) -> Self {
+        self.authenticated = authenticated;
         self
     }
 
@@ -244,9 +252,10 @@ impl Portrait {
         let mut save_clicked = false;
         let mut back_clicked = false;
         let mut upload_portrait = false;
+        let mut toggle_auth = false;
         let add_item_menu = self.add_item_menu;
         response.context_menu(|ui| {
-            if ui.button("Save").clicked() {
+            if self.authenticated && ui.button("Save").clicked() {
                 save_clicked = true;
                 ui.close();
             }
@@ -298,6 +307,16 @@ impl Portrait {
             }
             if ui.button("Create item").clicked() {
                 open_create_item = true;
+                ui.close();
+            }
+            ui.separator();
+            let auth_label = if self.authenticated {
+                "\u{1F513} Lock"
+            } else {
+                "\u{1F512} Unlock"
+            };
+            if ui.button(auth_label).clicked() {
+                toggle_auth = true;
                 ui.close();
             }
             if let Some(menu) = &add_item_menu {
@@ -414,6 +433,7 @@ impl Portrait {
             save: save_clicked,
             back: back_clicked,
             upload_portrait,
+            toggle_auth,
         }
     }
 }

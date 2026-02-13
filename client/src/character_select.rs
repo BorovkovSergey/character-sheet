@@ -3,8 +3,12 @@ use bevy_egui::{egui, EguiContexts, EguiPrimaryContextPass};
 use shared::CharacterSummary;
 use ui_widgets::colors::{MAIN_COLOR, SECONDARY_COLOR, STROKE_COLOR, TEXT_COLOR};
 
+use crate::components::spawn_character;
 use crate::create_character::CreateCharacterOpen;
-use crate::network::{ClientSkillRegistry, ClientTraitRegistry, PendingClientMessages};
+use crate::network::{
+    ClientEquipmentRegistry, ClientSkillRegistry, ClientTraitRegistry, ClientWeaponRegistry,
+    PendingClientMessages,
+};
 use crate::portrait::{CropEditorSlot, PendingCreationPortrait, PortraitPickerResult};
 
 use crate::state::AppScreen;
@@ -29,6 +33,7 @@ impl Plugin for CharacterSelectPlugin {
 }
 
 fn render_character_select(
+    mut commands: Commands,
     mut contexts: EguiContexts,
     character_list: Res<CharacterList>,
     mut pending_messages: ResMut<PendingClientMessages>,
@@ -36,9 +41,13 @@ fn render_character_select(
     mut create_open: ResMut<CreateCharacterOpen>,
     skill_registry: Res<ClientSkillRegistry>,
     trait_registry: Res<ClientTraitRegistry>,
+    weapon_registry: Res<ClientWeaponRegistry>,
+    equipment_registry: Res<ClientEquipmentRegistry>,
     portrait_picker: Res<PortraitPickerResult>,
     mut pending_creation_portrait: ResMut<PendingCreationPortrait>,
     mut crop_editor: ResMut<CropEditorSlot>,
+    mut auth_state: ResMut<crate::network::AuthState>,
+    mut password_popup: ResMut<crate::ui::PasswordPopupOpen>,
 ) -> Result {
     let ctx = contexts.ctx_mut()?;
 
@@ -97,16 +106,44 @@ fn render_character_select(
             ui.add_space(8.0);
 
             ui.vertical_centered(|ui| {
-                let button =
-                    egui::Button::new(egui::RichText::new("Create").size(16.0).color(TEXT_COLOR))
-                        .corner_radius(6.0)
-                        .stroke(egui::Stroke::new(1.0, STROKE_COLOR))
-                        .fill(MAIN_COLOR)
-                        .min_size(egui::vec2(panel_width * 0.5, 36.0));
+                ui.horizontal(|ui| {
+                    let btn_width = panel_width * 0.35;
 
-                if ui.add(button).clicked() {
-                    create_open.0 = true;
-                }
+                    let create_btn = egui::Button::new(
+                        egui::RichText::new("Create").size(16.0).color(TEXT_COLOR),
+                    )
+                    .corner_radius(6.0)
+                    .stroke(egui::Stroke::new(1.0, STROKE_COLOR))
+                    .fill(MAIN_COLOR)
+                    .min_size(egui::vec2(btn_width, 36.0));
+
+                    if ui.add(create_btn).clicked() {
+                        create_open.0 = true;
+                    }
+
+                    ui.add_space(8.0);
+
+                    let (lock_label, lock_color) = if auth_state.authenticated {
+                        ("\u{1F513} Lock", TEXT_COLOR)
+                    } else {
+                        ("\u{1F512} Unlock", TEXT_COLOR)
+                    };
+                    let lock_btn = egui::Button::new(
+                        egui::RichText::new(lock_label).size(16.0).color(lock_color),
+                    )
+                    .corner_radius(6.0)
+                    .stroke(egui::Stroke::new(1.0, STROKE_COLOR))
+                    .fill(MAIN_COLOR)
+                    .min_size(egui::vec2(btn_width, 36.0));
+
+                    if ui.add(lock_btn).clicked() {
+                        if auth_state.authenticated {
+                            auth_state.authenticated = false;
+                        } else {
+                            password_popup.0 = true;
+                        }
+                    }
+                });
             });
             ui.add_space(4.0);
         });
@@ -124,7 +161,7 @@ fn render_character_select(
             .iter()
             .map(|c| c.name.clone())
             .collect();
-        crate::create_character::render_create_character_overlay(
+        let local_char = crate::create_character::render_create_character_overlay(
             ctx,
             &mut create_open,
             &skill_registry,
@@ -134,6 +171,22 @@ fn render_character_select(
             &mut pending_creation_portrait,
             &mut crop_editor,
             &existing_names,
+            auth_state.authenticated,
+        );
+        if let Some(mut character) = local_char {
+            character.recalculate_effects(&trait_registry, &weapon_registry, &equipment_registry);
+            spawn_character(&mut commands, &character);
+            next_state.set(AppScreen::CharacterSheet);
+        }
+    }
+
+    // Password popup
+    if password_popup.0 {
+        crate::ui::render_password_popup(
+            ctx,
+            &mut password_popup,
+            &mut auth_state,
+            &mut pending_messages,
         );
     }
 

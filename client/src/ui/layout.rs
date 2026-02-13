@@ -153,7 +153,7 @@ pub(super) fn render_ui(
             });
         });
 
-    if save_clicked {
+    if save_clicked && modals.auth_state.authenticated {
         let ch = build_character_from_components(&character);
         pending_messages
             .0
@@ -225,6 +225,16 @@ pub(super) fn render_ui(
             &existing_item_names,
             &existing_equipment_names,
             &existing_weapon_names,
+        );
+    }
+
+    // Password popup
+    if modals.password_popup.0 {
+        crate::ui::render_password_popup(
+            ctx,
+            &mut modals.password_popup,
+            &mut modals.auth_state,
+            &mut pending_messages,
         );
     }
 
@@ -301,6 +311,7 @@ fn render_left_column(
             .ability_points(character.ability_pts.0)
             .trait_points(character.trait_pts.0)
             .add_item_menu(add_item_menu)
+            .authenticated(modals.auth_state.authenticated)
             .avatar_size(avatar_size)
             .show(&mut portrait_ui);
             save_clicked = portrait_resp.save;
@@ -322,6 +333,13 @@ fn render_left_column(
             }
             if portrait_resp.upload_portrait {
                 crate::portrait::spawn_portrait_picker(portrait_picker);
+            }
+            if portrait_resp.toggle_auth {
+                if modals.auth_state.authenticated {
+                    modals.auth_state.authenticated = false;
+                } else {
+                    modals.password_popup.0 = true;
+                }
             }
             if let Some(selection) = portrait_resp.add_item {
                 let inv_item = match selection {
@@ -664,15 +682,12 @@ fn render_center_column(
         let innate_names: Vec<&String> = class_abilities
             .map(|ca| ca.innate.keys().collect())
             .unwrap_or_default();
-        let all_ability_names = innate_names
-            .iter()
-            .copied()
-            .chain(
-                character
-                    .ability_names
-                    .iter()
-                    .filter(|n| !innate_names.contains(n)),
-            );
+        let all_ability_names = innate_names.iter().copied().chain(
+            character
+                .ability_names
+                .iter()
+                .filter(|n| !innate_names.contains(n)),
+        );
         let ability_entries: Vec<AbilityEntry> = all_ability_names
             .filter_map(|name| {
                 let ability = class_abilities

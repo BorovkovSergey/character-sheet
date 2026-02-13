@@ -7,21 +7,29 @@ use axum::{
 };
 use futures_util::{SinkExt, StreamExt};
 use shared::{deserialize, serialize, ClientMessage, ServerMessage};
+use std::sync::Arc;
 use tracing::{error, info, warn};
 
 use crate::storage::CharacterStore;
+use crate::AppState;
 
 /// Maximum portrait size in bytes (512KB).
 const MAX_PORTRAIT_SIZE: usize = 512 * 1024;
 
-pub async fn ws_handler(ws: WebSocketUpgrade, State(store): State<CharacterStore>) -> Response {
-    ws.on_upgrade(|socket| handle_socket(socket, store))
+pub async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
+    ws.on_upgrade(|socket| handle_socket(socket, state.store, state.admin_password))
 }
 
-async fn handle_socket(socket: WebSocket, store: CharacterStore) {
+async fn handle_socket(socket: WebSocket, store: CharacterStore, admin_password: Option<Arc<str>>) {
     let (mut sender, mut receiver) = socket.split();
 
-    info!("New WebSocket connection");
+    // If no admin password is configured, start authenticated (backwards compatible).
+    let mut authenticated = admin_password.is_none();
+
+    info!(
+        "New WebSocket connection (authenticated: {})",
+        authenticated
+    );
 
     // Send character summaries on connect
     let summaries = store.get_all_summaries().await;
@@ -39,7 +47,9 @@ async fn handle_socket(socket: WebSocket, store: CharacterStore) {
         match result {
             Ok(Message::Binary(data)) => {
                 if let Ok(client_msg) = deserialize::<ClientMessage>(&data) {
-                    let responses = handle_message(client_msg, &store).await;
+                    let responses =
+                        handle_message(client_msg, &store, &admin_password, &mut authenticated)
+                            .await;
                     for response in responses {
                         if let Ok(bytes) = serialize(&response) {
                             if sender.send(Message::Binary(bytes)).await.is_err() {
@@ -66,7 +76,52 @@ async fn handle_socket(socket: WebSocket, store: CharacterStore) {
     info!("WebSocket connection closed");
 }
 
-async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Vec<ServerMessage> {
+/// Returns true if the message is a mutation (write operation).
+fn is_mutation(msg: &ClientMessage) -> bool {
+    matches!(
+        msg,
+        ClientMessage::CreateCharacter { .. }
+            | ClientMessage::UpdateCharacter { .. }
+            | ClientMessage::DeleteCharacter { .. }
+            | ClientMessage::DeleteVersion { .. }
+            | ClientMessage::CreateWeapon { .. }
+            | ClientMessage::CreateEquipment { .. }
+            | ClientMessage::CreateItem { .. }
+            | ClientMessage::UploadPortrait { .. }
+    )
+}
+
+async fn handle_message(
+    msg: ClientMessage,
+    store: &CharacterStore,
+    admin_password: &Option<Arc<str>>,
+    authenticated: &mut bool,
+) -> Vec<ServerMessage> {
+    // Handle authentication
+    if let ClientMessage::Authenticate { password } = &msg {
+        if let Some(expected) = admin_password {
+            let success = password == expected.as_ref();
+            *authenticated = success;
+            if success {
+                info!("Client authenticated successfully");
+            } else {
+                warn!("Client authentication failed");
+            }
+            return vec![ServerMessage::AuthResult { success }];
+        } else {
+            // No password configured, always succeed
+            *authenticated = true;
+            return vec![ServerMessage::AuthResult { success: true }];
+        }
+    }
+
+    // Reject mutations from unauthenticated connections
+    if !*authenticated && is_mutation(&msg) {
+        return vec![ServerMessage::Error {
+            message: "Not authenticated — enable write access first".to_string(),
+        }];
+    }
+
     match msg {
         ClientMessage::RequestCharacterList => {
             let summaries = store.get_all_summaries().await;
@@ -180,5 +235,9 @@ async fn handle_message(msg: ClientMessage, store: &CharacterStore) -> Vec<Serve
             Some(png_data) => vec![ServerMessage::PortraitData { id, png_data }],
             None => vec![],
         },
+        ClientMessage::Authenticate { .. } => {
+            // Already handled above, but needed for exhaustive match
+            vec![]
+        }
     }
 }
