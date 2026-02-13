@@ -19,6 +19,7 @@ pub struct VersionList {
 #[derive(Resource, Default)]
 struct DeleteConfirm {
     version: Option<u32>,
+    character: bool,
 }
 
 pub struct VersionSelectPlugin;
@@ -123,10 +124,33 @@ fn render_version_select(
                         ui.add_space(6.0);
                     }
                 });
+
+            ui.add_space(8.0);
+            ui.separator();
+            ui.add_space(8.0);
+
+            ui.vertical_centered(|ui| {
+                let delete_char_btn = ui.add(
+                    egui::Button::new(
+                        egui::RichText::new("\u{00D7}  Delete Character")
+                            .size(14.0)
+                            .color(egui::Color32::from_rgb(0xCC, 0x33, 0x33)),
+                    )
+                    .fill(egui::Color32::TRANSPARENT)
+                    .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(0xAA, 0x44, 0x44)))
+                    .corner_radius(4.0)
+                    .min_size(egui::vec2(panel_width * 0.5, 32.0)),
+                );
+                if delete_char_btn.clicked() {
+                    delete_confirm.character = true;
+                }
+            });
+            ui.add_space(4.0);
         });
 
     if go_back {
         delete_confirm.version = None;
+        delete_confirm.character = false;
         next_state.set(AppScreen::CharacterSelect);
     }
 
@@ -204,6 +228,82 @@ fn render_version_select(
             });
         if close {
             delete_confirm.version = None;
+        }
+    }
+
+    // Character deletion confirmation dialog
+    if delete_confirm.character {
+        let mut close = false;
+        egui::Window::new("Confirm Delete Character")
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .title_bar(false)
+            .collapsible(false)
+            .resizable(false)
+            .frame(
+                egui::Frame::new()
+                    .fill(SECONDARY_COLOR)
+                    .corner_radius(8.0)
+                    .stroke(egui::Stroke::new(1.0, STROKE_COLOR))
+                    .inner_margin(egui::Margin::same(20)),
+            )
+            .show(ctx, |ui| {
+                ui.vertical_centered(|ui| {
+                    ui.add_space(4.0);
+                    ui.label(
+                        egui::RichText::new(format!(
+                            "Delete \"{}\"?",
+                            version_list.character_name
+                        ))
+                        .size(18.0)
+                        .color(TEXT_COLOR),
+                    );
+                    ui.add_space(4.0);
+                    ui.label(
+                        egui::RichText::new("All versions will be permanently deleted.")
+                            .size(13.0)
+                            .color(egui::Color32::from_rgb(0xAA, 0x44, 0x44)),
+                    );
+                    ui.add_space(16.0);
+                    ui.horizontal(|ui| {
+                        let delete_btn = ui.add(
+                            egui::Button::new(
+                                egui::RichText::new("Delete")
+                                    .size(14.0)
+                                    .color(egui::Color32::WHITE),
+                            )
+                            .fill(egui::Color32::from_rgb(0xCC, 0x33, 0x33))
+                            .corner_radius(4.0),
+                        );
+                        if delete_btn.clicked() {
+                            pending_messages
+                                .0
+                                .push(shared::ClientMessage::DeleteCharacter {
+                                    id: version_list.character_id,
+                                });
+                            pending_messages
+                                .0
+                                .push(shared::ClientMessage::RequestCharacterList);
+                            next_state.set(AppScreen::CharacterSelect);
+                            close = true;
+                        }
+                        ui.add_space(8.0);
+                        let cancel_btn = ui.add(
+                            egui::Button::new(
+                                egui::RichText::new("Cancel").size(14.0).color(TEXT_COLOR),
+                            )
+                            .fill(MAIN_COLOR)
+                            .stroke(egui::Stroke::new(1.0, STROKE_COLOR))
+                            .corner_radius(4.0),
+                        );
+                        if cancel_btn.clicked() {
+                            close = true;
+                        }
+                    });
+                    ui.add_space(4.0);
+                });
+            });
+        if close {
+            delete_confirm.character = false;
         }
     }
 
